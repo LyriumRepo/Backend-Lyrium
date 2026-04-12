@@ -1,0 +1,253 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Mi Panel del Vendedor
+          - navigation [ref=e8]:
+            - link [ref=e9] [cursor=pointer]:
+              - /url: /
+              - img [ref=e10]
+            - generic [ref=e12]:
+              - img [ref=e13]
+              - link "Mi Tienda" [ref=e15] [cursor=pointer]:
+                - /url: /seller
+            - generic [ref=e16]:
+              - img [ref=e17]
+              - generic [ref=e19]: Ayuda
+        - generic [ref=e20]:
+          - generic [ref=e22]:
+            - img [ref=e537]
+            - img [ref=e539]
+            - img [ref=e541]
+            - button "Verificar conexiones" [ref=e32]:
+              - img [ref=e33]
+          - generic [ref=e40]: API Offline
+          - generic [ref=e42]:
+            - generic [ref=e43]: "Ventas del Mes: S/ 4,560.00"
+            - generic [ref=e44]: "Pedidos Hoy: 08"
+          - button "Modo automático" [ref=e48]:
+            - img [ref=e49]
+          - button "Centro de Notificaciones" [ref=e52]:
+            - img [ref=e53]
+            - generic [ref=e56]: 9+
+          - button "TP Tienda Pepito seller" [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]: TP
+              - generic [ref=e62]:
+                - paragraph [ref=e63]: Tienda Pepito
+                - paragraph [ref=e64]: seller
+            - img [ref=e65]
+    - generic [ref=e67]:
+      - complementary [ref=e68]:
+        - generic [ref=e70]:
+          - generic [ref=e72]: TI
+          - generic [ref=e74]:
+            - paragraph [ref=e75]: Tienda Pepito
+            - paragraph [ref=e76]: Vendedor Premium
+        - generic [ref=e77]:
+          - heading "Gestión Comercial" [level=2] [ref=e78]
+          - button [ref=e79]:
+            - img [ref=e80]
+        - navigation [ref=e83]:
+          - generic [ref=e84]:
+            - heading "Navegación" [level=3] [ref=e87]
+            - link "Mi Plan" [ref=e88] [cursor=pointer]:
+              - /url: /seller/planes
+              - generic [ref=e90]:
+                - img [ref=e93]
+                - generic [ref=e95]: Mi Plan
+            - link "Mis Datos" [ref=e96] [cursor=pointer]:
+              - /url: /seller/profile
+              - generic [ref=e98]:
+                - img [ref=e101]
+                - generic [ref=e104]: Mis Datos
+            - link "Mi Tienda" [ref=e105] [cursor=pointer]:
+              - /url: /seller/store
+              - generic [ref=e107]:
+                - img [ref=e110]
+                - generic [ref=e114]: Mi Tienda
+            - link "Mi Catálogo" [ref=e115] [cursor=pointer]:
+              - /url: /seller/catalog
+              - generic [ref=e117]:
+                - img [ref=e120]
+                - generic [ref=e124]: Mi Catálogo
+            - link "Mis Servicios" [ref=e125] [cursor=pointer]:
+              - /url: /seller/services
+              - generic [ref=e127]:
+                - img [ref=e130]
+                - generic [ref=e132]: Mis Servicios
+            - link "Mis Ventas" [ref=e133] [cursor=pointer]:
+              - /url: /seller/sales
+              - generic [ref=e135]:
+                - img [ref=e138]
+                - generic [ref=e141]: Mis Ventas
+            - link "Mi Agenda" [ref=e142] [cursor=pointer]:
+              - /url: /seller/agenda
+              - generic [ref=e144]:
+                - img [ref=e147]
+                - generic [ref=e150]: Mi Agenda
+            - link "Mi Logística" [ref=e151] [cursor=pointer]:
+              - /url: /seller/logistics
+              - generic [ref=e153]:
+                - img [ref=e156]
+                - generic [ref=e161]: Mi Logística
+            - link "Centro de Finanzas" [ref=e162] [cursor=pointer]:
+              - /url: /seller/finance
+              - generic [ref=e164]:
+                - img [ref=e167]
+                - generic [ref=e169]: Centro de Finanzas
+            - link "Chat con Clientes" [ref=e170] [cursor=pointer]:
+              - /url: /seller/chat
+              - generic [ref=e172]:
+                - img [ref=e175]
+                - generic [ref=e177]: Chat con Clientes
+            - link "Mesa de Ayuda" [ref=e178] [cursor=pointer]:
+              - /url: /seller/help
+              - generic [ref=e180]:
+                - img [ref=e183]
+                - generic [ref=e186]: Mesa de Ayuda
+            - link "Mis Comprobantes" [ref=e189] [cursor=pointer]:
+              - /url: /seller/invoices
+              - generic [ref=e191]:
+                - img [ref=e194]
+                - generic [ref=e197]: Mis Comprobantes
+        - generic [ref=e199]:
+          - generic [ref=e200]:
+            - img [ref=e201]
+            - generic [ref=e203]: VENDOR PANEL © 2025
+          - generic [ref=e204]: v4.0 SPA
+      - main [ref=e205]:
+        - generic [ref=e207]:
+          - generic [ref=e208]:
+            - generic [ref=e209]:
+              - generic [ref=e210]:
+                - img [ref=e212]
+                - heading "Mesa de Ayuda" [level=1] [ref=e215]
+              - paragraph: Centro de soporte y gestion de incidencias
+            - button "Nuevo Ticket" [ref=e220]:
+              - img [ref=e221]
+              - text: Nuevo Ticket
+          - generic [ref=e223]:
+            - button "Centro de Soporte" [ref=e224]
+            - button "Datos Registrados" [ref=e225]
+          - generic [ref=e227]:
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - generic [ref=e231]:
+                  - img [ref=e232]
+                  - textbox "Buscar ticket o ID..." [ref=e235]
+                - combobox [ref=e237] [cursor=pointer]:
+                  - option "Todas las Categorías" [selected]
+                  - option "Soporte Técnico"
+                  - option "Pagos / Facturas"
+                  - option "Trámites"
+                  - option "🆘 Críticos"
+                - generic [ref=e238]:
+                  - generic [ref=e239]: 2 Tickets
+                  - button "Nuevo Ticket" [ref=e240]:
+                    - img [ref=e241]
+                    - text: Nuevo Ticket
+              - generic [ref=e243]:
+                - button "#2026-002 Abierto Pagos TEST TIEMPO REAL — ticket nuevo jjjljkkjlkl Tienda Pepito 5 hace 45 minutos" [ref=e244] [cursor=pointer]:
+                  - generic [ref=e245]:
+                    - generic [ref=e247]: "#2026-002"
+                    - generic [ref=e248]:
+                      - generic [ref=e249]: Abierto
+                      - generic [ref=e250]: Pagos
+                  - heading "TEST TIEMPO REAL — ticket nuevo" [level=4] [ref=e251]
+                  - paragraph [ref=e252]: jjjljkkjlkl
+                  - generic [ref=e253]:
+                    - generic [ref=e255]: Tienda Pepito
+                    - generic [ref=e256]:
+                      - generic [ref=e257]:
+                        - img [ref=e258]
+                        - generic [ref=e260]: "5"
+                      - generic [ref=e261]: hace 45 minutos
+                - button "#2026-001 Abierto Pagos holaerer okkkk Tienda Pepito 2 hace 1 hora" [ref=e262] [cursor=pointer]:
+                  - generic [ref=e263]:
+                    - generic [ref=e265]: "#2026-001"
+                    - generic [ref=e266]:
+                      - generic [ref=e267]: Abierto
+                      - generic [ref=e268]: Pagos
+                  - heading "holaerer" [level=4] [ref=e269]
+                  - paragraph [ref=e270]: okkkk
+                  - generic [ref=e271]:
+                    - generic [ref=e273]: Tienda Pepito
+                    - generic [ref=e274]:
+                      - generic [ref=e275]:
+                        - img [ref=e276]
+                        - generic [ref=e278]: "2"
+                      - generic [ref=e279]: hace 1 hora
+            - generic [ref=e426]:
+              - generic [ref=e427]:
+                - generic [ref=e428]:
+                  - img [ref=e430]
+                  - generic [ref=e433]:
+                    - generic [ref=e434]:
+                      - generic [ref=e435]: 2026-002
+                      - generic [ref=e436]: Abierto
+                    - heading "TEST TIEMPO REAL — ticket nuevo" [level=2] [ref=e437]
+                    - paragraph [ref=e438]: Sin asignar · Tienda Pepito
+                - button "Cerrar Ticket" [ref=e440]:
+                  - img [ref=e441]
+              - generic [ref=e444]:
+                - generic [ref=e446]:
+                  - generic [ref=e447]:
+                    - generic [ref=e448]: Tienda Pepito
+                    - generic [ref=e449]: 07:33
+                  - generic [ref=e450]:
+                    - generic [ref=e451]: Verificando que el admin recibe este ticket en tiempo real sin recargar la pagina
+                    - generic "Visto" [ref=e453]: ✓✓
+                - generic [ref=e455]:
+                  - generic [ref=e456]:
+                    - generic [ref=e457]: Tienda Pepito
+                    - generic [ref=e458]: 07:53
+                  - generic [ref=e459]:
+                    - generic [ref=e460]: smms2
+                    - generic "Visto" [ref=e462]: ✓✓
+                - generic [ref=e464]:
+                  - generic [ref=e465]:
+                    - generic [ref=e466]: Tienda Pepito
+                    - generic [ref=e467]: 07:54
+                  - generic [ref=e468]:
+                    - generic [ref=e469]: jjj
+                    - generic "Visto" [ref=e471]: ✓✓
+                - generic [ref=e473]:
+                  - generic [ref=e474]:
+                    - generic [ref=e475]: Tienda Pepito
+                    - generic [ref=e476]: 07:54
+                  - generic [ref=e477]:
+                    - generic [ref=e478]: ",,,,"
+                    - generic "Enviado" [ref=e480]: ✓✓
+                - generic [ref=e482]:
+                  - generic [ref=e483]:
+                    - generic [ref=e484]: Tienda Pepito
+                    - generic [ref=e485]: 08:02
+                  - generic [ref=e486]:
+                    - generic [ref=e487]: jjjljkkjlkl
+                    - generic "Enviado" [ref=e489]: ✓✓
+              - generic [ref=e490]:
+                - button "▶ Respuestas rápidas" [ref=e491]
+                - generic [ref=e492]:
+                  - textbox "Escribe una respuesta..." [active] [ref=e493]: SEGUNDO MENSAJE DE PRUEBA - check RT update
+                  - button "Enviar" [ref=e494]:
+                    - text: Enviar
+                    - img [ref=e495]
+    - contentinfo [ref=e291]:
+      - generic [ref=e293]:
+        - generic [ref=e294]: © 2026 MarketPlace. Todos los derechos reservados.
+        - generic [ref=e295]:
+          - link "Términos" [ref=e296] [cursor=pointer]:
+            - /url: /terminoscondiciones
+          - link "Privacidad" [ref=e297] [cursor=pointer]:
+            - /url: /politicasdeprivacidad
+          - link "Soporte" [ref=e298] [cursor=pointer]:
+            - /url: /support
+  - generic [ref=e299]:
+    - img [ref=e301]
+    - button "Open Tanstack query devtools" [ref=e349] [cursor=pointer]:
+      - img [ref=e350]
+  - button "Open Next.js Dev Tools" [ref=e403] [cursor=pointer]:
+    - img [ref=e404]
+  - alert [ref=e407]
