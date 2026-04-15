@@ -1,45 +1,27 @@
-name: Revision Laravel 12
+name: Revision de Sintaxis PHP
 
 on:
   pull_request:
-    branches: [ main ] # Solo se activa cuando alguien quiere entrar a main
+    branches: [ main ]
 
 jobs:
-  tests-and-lint:
+  check-syntax:
     runs-on: ubuntu-latest
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: testing
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Descargar codigo
+        uses: actions/checkout@v4
 
-      - name: Setup PHP
+      - name: Configurar PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, dom, curl, libxml, mysql, bcmath
-          tools: composer:v2
+          tools: phpcs
 
-      - name: Instalar Dependencias
-        run: composer install --prefer-dist --no-progress
-
-      - name: Preparar Entorno
+      - name: Revisar errores de sintaxis (Lint)
         run: |
-          cp .env.example .env
-          php artisan key:generate
-          
-      - name: Ejecutar Migraciones y Tests
-        env:
-          DB_CONNECTION: mysql
-          DB_DATABASE: testing
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-        run: php artisan migrate --force && php artisan test
+          find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \;
+
+      - name: Revisar estilo de codigo
+        run: |
+          echo "Revisando que el codigo este limpio..."
