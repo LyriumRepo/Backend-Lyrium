@@ -39,11 +39,11 @@ class AdminUserSeeder extends Seeder
 
         // Seller legacy
         $seller2 = User::updateOrCreate(
-            ['email' => 'angel.ipanaque.torre@gmail.com'],
+            ['email' => 'luis.torres@gmail.com'],
             [
-                'name' => 'Angel Ipanque',
-                'username' => 'angel_ipanaque',
-                'nicename' => 'angel-ipanaque',
+                'name' => 'Luis Torres',
+                'username' => 'luis_torres',
+                'nicename' => 'luis-torres',
                 'phone' => '999888777',
                 'document_type' => 'RUC',
                 'document_number' => '20123456789',
@@ -52,6 +52,36 @@ class AdminUserSeeder extends Seeder
             ]
         );
         $seller2->assignRole('seller');
+
+        //Cliente legacy
+        $customer = User::firstOrCreate(['email' => 'cliente@lyrium.com'], [
+            'name' => 'Cliente',
+            'username' => 'cliente_demo',
+            'nicename' => 'cliente-demo',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '987654321',
+            'document_type' => 'DNI',
+            'document_number' => '12345678',
+            'password' => bcrypt('12345678'),
+            'email_verified_at' => now(),
+        ]);
+        $customer->assignRole('customer');
+
+        //Operador Logístico legacy
+        $logistics = User::firstOrCreate(['email' => 'logistica@lyrium.com'], [
+            'name' => 'Operador Logístico',
+            'username' => 'operador_logistico',
+            'nicename' => 'logistica-lyrium',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '955112233',
+            'document_type' => 'DNI',
+            'document_number' => '87654321',
+            'password' => bcrypt('logistica2024'),
+            'email_verified_at' => now(),
+        ]);
+        $logistics->assignRole('logistics_operator');
 
         $store = \App\Models\Store::updateOrCreate(
             ['ruc' => '20123456789'],
@@ -82,57 +112,5 @@ class AdminUserSeeder extends Seeder
                 'gallery' => json_encode(['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg']),
             ]
         );
-        $seller = User::firstOrCreate(['email' => 'vendedor@lyrium.com'], [
-            'name' => 'Vendedor Demo',
-            'username' => 'vendedor_demo',
-            'nicename' => 'vendedor-demo',
-            'is_seller' => true,
-            'phone' => '999888777',
-            'document_type' => 'RUC',
-            'document_number' => '20123456789',
-            'password' => bcrypt('password'),
-            'email_verified_at' => now(),
-        ]);
-        $seller->assignRole('seller');
-
-        // Tienda para el vendedor
-        \App\Models\Store::firstOrCreate(['ruc' => '20123456789'], [
-            'owner_id' => $seller->id,
-            'trade_name' => 'BioTienda Demo',
-            'corporate_email' => 'vendedor@lyrium.com',
-            'slug' => 'biotienda-demo',
-            'status' => 'approved',
-            'approved_at' => now(),
-        ]);
-
-        // 3. Cliente
-        $customer = User::firstOrCreate(['email' => 'cliente@lyrium.com'], [
-            'name' => 'Cliente Demo',
-            'username' => 'cliente_demo',
-            'nicename' => 'cliente-demo',
-            'is_seller' => false,
-            'is_admin' => false,
-            'phone' => '987654321',
-            'document_type' => 'DNI',
-            'document_number' => '12345678',
-            'password' => bcrypt('12345678'),
-            'email_verified_at' => now(),
-        ]);
-        $customer->assignRole('customer');
-
-        // Operador Logístico 
-        $logistics = User::firstOrCreate(['email' => 'logistica@lyrium.com'], [
-            'name' => 'Operador Logístico',
-            'username' => 'operador_logistico',
-            'nicename' => 'logistica-lyrium',
-            'is_seller' => false,
-            'is_admin' => false,
-            'phone' => '955112233',
-            'document_type' => 'DNI',
-            'document_number' => '87654321',
-            'password' => bcrypt('logistica2024'),
-            'email_verified_at' => now(),
-        ]);
-        $logistics->assignRole('logistics_operator');
     }
 }
