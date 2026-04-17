@@ -111,7 +111,7 @@
 |--------|-------|
 | RoleSeeder | administrator, seller, customer, logistics_operator |
 | PlanSeeder | Emprende (5%), Crece (10%), Especial (15%) con campos detallados de beneficios |
-| AdminUserSeeder | pierre@admin.com / password (admin) + seller de prueba con tienda aprobada |
+| AdminUserSeeder | luis@admin.com / password (admin) + seller de prueba con tienda aprobada |
 | CategorySeeder | Categorias bio/organicas de productos y servicios |
 | ServiceCategorySeeder | Categorias especificas para servicios |
 
@@ -684,7 +684,7 @@ forum_replies
 |--------|----------|
 | RoleSeeder | 4 roles |
 | PlanSeeder | 3 planes con beneficios detallados |
-| AdminUserSeeder | pierre@admin.com / password + seller de prueba |
+| AdminUserSeeder | luis@admin.com / password + seller de prueba |
 | CategorySeeder | Categorias bio/organicas de productos |
 | ServiceCategorySeeder | Categorias de servicios |
 | BannerSeeder | Banners del home |
@@ -740,5 +740,5 @@ IZIPAY_*                    # Pasarela de pago para planes
 
 | Email | Password | Rol | Notas |
 |-------|----------|-----|-------|
-| pierre@admin.com | password | administrator | Admin principal |
+| luis@admin.com | password | administrator | Admin principal |
 | (seeder seller) | password | seller | Tienda aprobada de ejemplo |
