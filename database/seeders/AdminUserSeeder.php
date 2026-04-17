@@ -11,11 +11,11 @@ class AdminUserSeeder extends Seeder
     {
         // Admin principal
         $admin = User::updateOrCreate(
-            ['email' => 'pierre@admin.com'],
+            ['email' => 'luis@admin.com'],
             [
-                'name' => 'Pierre Admin',
-                'username' => 'pierre_admin',
-                'nicename' => 'pierre-admin',
+                'name' => 'Luis Admin',
+                'username' => 'luis_admin',
+                'nicename' => 'luis-admin',
                 'phone' => '999000000',
                 'password' => 'password',
                 'email_verified_at' => now(),
@@ -25,11 +25,11 @@ class AdminUserSeeder extends Seeder
 
         // Admin secundario (legacy)
         $admin2 = User::updateOrCreate(
-            ['email' => 'angel.enginner08@gmail.com'],
+            ['email' => 'torres.enginner08@gmail.com'],
             [
-                'name' => 'Angel Engineer',
-                'username' => 'angel_engineer',
-                'nicename' => 'angel-engineer',
+                'name' => 'torres Engineer',
+                'username' => 'torres_engineer',
+                'nicename' => 'torres-engineer',
                 'phone' => '999000111',
                 'password' => 'password',
                 'email_verified_at' => now(),
@@ -39,11 +39,11 @@ class AdminUserSeeder extends Seeder
 
         // Seller legacy
         $seller2 = User::updateOrCreate(
-            ['email' => 'angel.ipanaque.torre@gmail.com'],
+            ['email' => 'luis.torres@gmail.com'],
             [
-                'name' => 'Angel Ipanque',
-                'username' => 'angel_ipanaque',
-                'nicename' => 'angel-ipanaque',
+                'name' => 'Luis Torres',
+                'username' => 'luis_torres',
+                'nicename' => 'luis-torres',
                 'phone' => '999888777',
                 'document_type' => 'RUC',
                 'document_number' => '20123456789',
@@ -52,6 +52,36 @@ class AdminUserSeeder extends Seeder
             ]
         );
         $seller2->assignRole('seller');
+
+        //Cliente legacy
+        $customer = User::firstOrCreate(['email' => 'cliente@lyrium.com'], [
+            'name' => 'Cliente',
+            'username' => 'cliente_demo',
+            'nicename' => 'cliente-demo',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '987654321',
+            'document_type' => 'DNI',
+            'document_number' => '12345678',
+            'password' => bcrypt('12345678'),
+            'email_verified_at' => now(),
+        ]);
+        $customer->assignRole('customer');
+
+        //Operador Logístico legacy
+        $logistics = User::firstOrCreate(['email' => 'logistica@lyrium.com'], [
+            'name' => 'Operador Logístico',
+            'username' => 'operador_logistico',
+            'nicename' => 'logistica-lyrium',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '955112233',
+            'document_type' => 'DNI',
+            'document_number' => '87654321',
+            'password' => bcrypt('logistica2024'),
+            'email_verified_at' => now(),
+        ]);
+        $logistics->assignRole('logistics_operator');
 
         $store = \App\Models\Store::updateOrCreate(
             ['ruc' => '20123456789'],
