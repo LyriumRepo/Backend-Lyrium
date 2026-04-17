@@ -11,11 +11,11 @@ class AdminUserSeeder extends Seeder
     {
         // Admin principal
         $admin = User::updateOrCreate(
-            ['email' => 'pierre@admin.com'],
+            ['email' => 'luis@admin.com'],
             [
-                'name' => 'Pierre Admin',
-                'username' => 'pierre_admin',
-                'nicename' => 'pierre-admin',
+                'name' => 'Luis Admin',
+                'username' => 'luis_admin',
+                'nicename' => 'luis-admin',
                 'phone' => '999000000',
                 'password' => 'password',
                 'email_verified_at' => now(),
@@ -25,11 +25,11 @@ class AdminUserSeeder extends Seeder
 
         // Admin secundario (legacy)
         $admin2 = User::updateOrCreate(
-            ['email' => 'angel.enginner08@gmail.com'],
+            ['email' => 'torres.enginner08@gmail.com'],
             [
-                'name' => 'Angel Engineer',
-                'username' => 'angel_engineer',
-                'nicename' => 'angel-engineer',
+                'name' => 'torres Engineer',
+                'username' => 'torres_engineer',
+                'nicename' => 'torres-engineer',
                 'phone' => '999000111',
                 'password' => 'password',
                 'email_verified_at' => now(),
@@ -82,5 +82,57 @@ class AdminUserSeeder extends Seeder
                 'gallery' => json_encode(['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg']),
             ]
         );
+        $seller = User::firstOrCreate(['email' => 'vendedor@lyrium.com'], [
+            'name' => 'Vendedor Demo',
+            'username' => 'vendedor_demo',
+            'nicename' => 'vendedor-demo',
+            'is_seller' => true,
+            'phone' => '999888777',
+            'document_type' => 'RUC',
+            'document_number' => '20123456789',
+            'password' => bcrypt('password'),
+            'email_verified_at' => now(),
+        ]);
+        $seller->assignRole('seller');
+
+        // Tienda para el vendedor
+        \App\Models\Store::firstOrCreate(['ruc' => '20123456789'], [
+            'owner_id' => $seller->id,
+            'trade_name' => 'BioTienda Demo',
+            'corporate_email' => 'vendedor@lyrium.com',
+            'slug' => 'biotienda-demo',
+            'status' => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        // 3. Cliente
+        $customer = User::firstOrCreate(['email' => 'cliente@lyrium.com'], [
+            'name' => 'Cliente Demo',
+            'username' => 'cliente_demo',
+            'nicename' => 'cliente-demo',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '987654321',
+            'document_type' => 'DNI',
+            'document_number' => '12345678',
+            'password' => bcrypt('12345678'),
+            'email_verified_at' => now(),
+        ]);
+        $customer->assignRole('customer');
+
+        // Operador Logístico 
+        $logistics = User::firstOrCreate(['email' => 'logistica@lyrium.com'], [
+            'name' => 'Operador Logístico',
+            'username' => 'operador_logistico',
+            'nicename' => 'logistica-lyrium',
+            'is_seller' => false,
+            'is_admin' => false,
+            'phone' => '955112233',
+            'document_type' => 'DNI',
+            'document_number' => '87654321',
+            'password' => bcrypt('logistica2024'),
+            'email_verified_at' => now(),
+        ]);
+        $logistics->assignRole('logistics_operator');
     }
 }
