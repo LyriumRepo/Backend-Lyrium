@@ -740,5 +740,5 @@ IZIPAY_*                    # Pasarela de pago para planes
 
 | Email | Password | Rol | Notas |
 |-------|----------|-----|-------|
-| pierre@admin.com | password | administrator | Admin principal |
+| luis@admin.com | password | administrator | Admin principal |
 | (seeder seller) | password | seller | Tienda aprobada de ejemplo |
