@@ -53,36 +53,7 @@ class AdminUserSeeder extends Seeder
         );
         $seller2->assignRole('seller');
 
-        //Cliente legacy
-        $customer = User::firstOrCreate(['email' => 'cliente@lyrium.com'], [
-            'name' => 'Cliente',
-            'username' => 'cliente_demo',
-            'nicename' => 'cliente-demo',
-            'is_seller' => false,
-            'is_admin' => false,
-            'phone' => '987654321',
-            'document_type' => 'DNI',
-            'document_number' => '12345678',
-            'password' => bcrypt('12345678'),
-            'email_verified_at' => now(),
-        ]);
-        $customer->assignRole('customer');
-
-        //Operador Logístico legacy
-        $logistics = User::firstOrCreate(['email' => 'logistica@lyrium.com'], [
-            'name' => 'Operador Logístico',
-            'username' => 'operador_logistico',
-            'nicename' => 'logistica-lyrium',
-            'is_seller' => false,
-            'is_admin' => false,
-            'phone' => '955112233',
-            'document_type' => 'DNI',
-            'document_number' => '87654321',
-            'password' => bcrypt('logistica2024'),
-            'email_verified_at' => now(),
-        ]);
-        $logistics->assignRole('logistics_operator');
-
+      
         $store = \App\Models\Store::updateOrCreate(
             ['ruc' => '20123456789'],
             [
