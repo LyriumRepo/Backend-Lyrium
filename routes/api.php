@@ -63,6 +63,7 @@ Route::prefix('auth')->group(function () {
 */
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/mega-menu', [CategoryController::class, 'megaMenu']);
+Route::get('/categories/slug/{slug}', [CategoryController::class, 'getBySlug']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
@@ -226,7 +227,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/disputes/{id}/messages', [DisputeController::class, 'addMessage']);
 
     // Services (Citas/Servicios)
-    Route::get('/services', [ServiceController::class, 'index']);
+    //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
     Route::get('/services/{id}/slots', [ServiceController::class, 'availableSlots']);
     Route::post('/services/{serviceId}/book', [ServiceController::class, 'book']);

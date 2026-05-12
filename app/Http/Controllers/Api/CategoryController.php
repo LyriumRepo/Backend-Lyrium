@@ -91,19 +91,39 @@ final class CategoryController extends Controller
                             'name' => $sub->name,
                             'slug' => $sub->slug,
                             'image' => $sub->image ? asset($sub->image) : null,
-                            'href' => $prefix . '/' . $cat->slug . '/' . $sub->slug,
+                            'href' => $prefix . '/' . $cat->slug . '?sub=' . $sub->slug,
                             'children' => $sub->children->map(function ($subsub) use ($cat, $prefix) {
                                 return [
                                     'id' => $subsub->id,
                                     'name' => $subsub->name,
                                     'slug' => $subsub->slug,
-                                    'href' => $prefix . '/' . $cat->slug . '/' . $subsub->slug,
+                                    'href' => $prefix . '/' . $cat->slug . '?sub=' . $subsub->slug,
                                 ];
                             }),
                         ];
                     }),
                 ];
             }),
+        ]);
+    }
+
+     /**
+     * GET /api/categories/{slug}
+     */
+    public function getBySlug(string $slug): JsonResponse
+    {
+        $category = Category::where('slug', $slug)->first();
+
+        if (! $category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new CategoryResource($category)
         ]);
     }
 

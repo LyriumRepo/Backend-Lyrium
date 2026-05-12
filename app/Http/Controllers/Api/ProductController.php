@@ -45,8 +45,21 @@ final class ProductController extends Controller
             });
         }
 
-        if ($category = $request->query('category')) {
-            $query->whereHas('categories', fn ($q) => $q->where('slug', $category));
+        if ($categorySlug = $request->query('category')) {
+            $category = Category::where('slug', $categorySlug)->first();
+
+            if ($category) {
+                $category->load([
+                    'children',
+                    'children.children'
+                ]);
+
+                $ids = $this->getDescendantIds($category);
+
+                $query->whereHas('categories', function ($q) use ($ids) {
+                    $q->whereIn('categories.id', $ids);
+                });
+            }
         }
 
         if ($categoryId = $request->query('category_id')) {
@@ -398,5 +411,17 @@ final class ProductController extends Controller
         broadcast(new ProductStatusChanged($product));
 
         return response()->json(new ProductResource($product));
+    }
+
+    //Función para obtener categorias decendientes.
+    private function getDescendantIds(Category $category): array
+    {
+        $ids = [$category->id];
+
+        foreach ($category->children as $child) {
+            $ids = array_merge($ids, $this->getDescendantIds($child));
+        }
+
+        return $ids;
     }
 }

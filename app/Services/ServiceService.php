@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSchedule;
+use App\Models\Category;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -40,7 +41,13 @@ final class ServiceService
         }
 
         if (! empty($filters['category_slug'])) {
-            $query->whereHas('category', fn ($q) => $q->where('slug', $filters['category_slug']));
+            $category = Category::where('slug', $filters['category_slug'])->first();
+
+            if ($category) {
+                $ids = $this->getDescendantIds($category);
+
+                $query->whereIn('category_id', array_merge([$category->id], $ids));
+            }
         }
 
         if (! empty($filters['store_id'])) {
@@ -266,5 +273,18 @@ final class ServiceService
         $booking->update(['seller_notes' => $notes]);
 
         return $booking->fresh();
+    }
+
+    //Obtener categorias decendentes
+    private function getDescendantIds(Category $category): array
+    {
+        $ids = [];
+
+        foreach ($category->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $this->getDescendantIds($child));
+        }
+
+        return $ids;
     }
 }
