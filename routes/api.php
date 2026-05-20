@@ -33,6 +33,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -197,6 +198,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
+
+    // Wishlist
+    Route::get('/wishlist', [WishlistController::class, 'index']);
+    Route::post('/wishlist', [WishlistController::class, 'store']);
+    Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
+    Route::get('/wishlist/check', [WishlistController::class, 'check']);
 
     // Reviews
     Route::post('/reviews', [ReviewController::class, 'store']);

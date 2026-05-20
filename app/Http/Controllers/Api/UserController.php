@@ -179,6 +179,11 @@ final class UserController extends Controller
         $user = $request->user();
         $data = $request->validated();
 
+        if (isset($data['display_name'])) {
+            $data['name'] = $data['display_name'];
+            unset($data['display_name']);
+        }
+
         $user->update($data);
 
         return response()->json(new UserResource($user->fresh()));
