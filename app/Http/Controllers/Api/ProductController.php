@@ -81,6 +81,15 @@ final class ProductController extends Controller
             $query->where('slug', $slug);
         }
 
+        if ($storeSlug = $request->query('store_slug')) {
+            $store = \App\Models\Store::where('slug', $storeSlug)->first();
+            if ($store) {
+                $query->where('store_id', $store->id);
+            } else {
+                $query->whereNull('id'); // no results
+            }
+        }
+
         $perPage = min((int) $request->query('per_page', 15), 100);
         $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
 

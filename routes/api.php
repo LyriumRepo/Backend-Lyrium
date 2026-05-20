@@ -90,6 +90,9 @@ Route::get('/shipping/methods', [ShippingController::class, 'methods']);
 Route::get('/shipping/zones', [ShippingController::class, 'zones']);
 Route::get('/shipping/calculate', [ShippingController::class, 'calculate']);
 
+// Store público
+Route::get('/stores/slug/{slug}', [StoreController::class, 'showBySlug']);
+
 // Returns público
 Route::get('/orders/{orderId}/returns', [ReturnController::class, 'orderReturns']);
 

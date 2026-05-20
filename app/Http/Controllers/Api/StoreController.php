@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUpdateRequest;
+use App\Http\Resources\StorePublicResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Contract;
 use App\Models\Store;
@@ -93,6 +94,29 @@ final class StoreController extends Controller
         $store = Store::with(['owner', 'subscription.plan', 'category'])->findOrFail($id);
 
         return response()->json(new StoreResource($store));
+    }
+
+    /**
+     * GET /api/stores/slug/{slug} (público)
+     */
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $store = Store::with(['category', 'subscription.plan', 'branches'])
+            ->where('slug', $slug)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $store) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tienda no encontrada',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new StorePublicResource($store),
+        ]);
     }
 
     /**

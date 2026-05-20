@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Graphify generated files
+/graphify-out
+/app/Http/Controllers/graphify-out
+/routes/graphify-out
