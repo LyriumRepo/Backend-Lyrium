@@ -373,7 +373,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/stores/{id}/media/gallery/{mediaId}', [MediaController::class, 'deleteStoreGallery']);
 
         // Rutas que requieren contrato activo para operar
-        Route::middleware('contract.active')->group(function () {
+        Route::middleware('auth:sanctum', 'contract.active')->group(function () {
             // Products CRUD
             Route::post('/products', [ProductController::class, 'store']);
             Route::put('/products/{id}', [ProductController::class, 'update']);

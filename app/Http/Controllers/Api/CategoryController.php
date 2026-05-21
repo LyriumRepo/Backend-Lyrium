@@ -36,6 +36,13 @@ final class CategoryController extends Controller
 
         if ($type = $request->query('type')) {
             $query->where('type', $type);
+            if ($request->boolean('children_only')) {
+                $rootIds = Category::where('type', $type)
+                    ->whereNull('parent_id')   // ← null, no 0
+                    ->pluck('id');
+
+                $query->whereIn('parent_id', $rootIds);  // solo nivel 2
+            }
         }
 
         if (! $request->query('type') && ! $request->query('tree') && ! $request->query('search')) {
@@ -44,7 +51,7 @@ final class CategoryController extends Controller
             });
         }
 
-        $perPage = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 400);
         $categories = $query->orderBy('sort_order')->paginate($perPage);
 
         return response()->json([
@@ -167,9 +174,11 @@ final class CategoryController extends Controller
             }
         }
 
+        
+
         $category = Category::create([
             'name' => $data['name'],
-            'slug' => Str::slug($data['name']),
+            'slug' => $this->generateSlug($data['name'], $data['parent'] ?? null),
             'description' => $data['description'] ?? null,
             'parent_id' => $data['parent'] ?? null,
             'image' => $data['image'] ?? null,
@@ -197,11 +206,20 @@ final class CategoryController extends Controller
             'type' => 'nullable|string|in:product,service',
             'sort_order' => 'nullable|integer|min:0',
         ]);
+        $name = $data['name'] ?? $category->name;
+
+        $parentId = array_key_exists('parent', $data)
+            ? $data['parent']
+            : $category->parent_id;
 
         $updateData = [];
         if (isset($data['name'])) {
             $updateData['name'] = $data['name'];
-            $updateData['slug'] = Str::slug($data['name']);
+            $updateData['slug'] = $this->generateSlug(
+                $name,
+                $parentId,
+                $category->id
+            );
         }
         if (array_key_exists('description', $data)) {
             $updateData['description'] = $data['description'];
@@ -260,5 +278,44 @@ final class CategoryController extends Controller
         broadcast(new CategoryUpdated($category, 'deleted'));
 
         return response()->json(new CategoryResource($category));
+    }
+
+    private function generateSlug(string $name, ?int $parentId = null, ?int $ignoreId = null): string
+    {
+        $slug = Str::slug($name);
+
+        if ($parentId) {
+            $parent = Category::find($parentId);
+            if ($parent) {
+                // Nivel 3
+                if ($parent->parent_id) {
+                    $grandparent = Category::find($parent->parent_id);
+                    if ($grandparent) {
+                        $slug = Str::slug(
+                            $grandparent->name . '-' .
+                            $parent->name . '-' .
+                            $name
+                        );
+                    }
+                } else {
+                    // Nivel 2
+                    $slug = Str::slug(
+                        $parent->name . '-' . $name
+                    );
+                }
+            }
+        }
+        $originalSlug = $slug;
+        $counter = 1;
+        while (
+            Category::where('slug', $slug)
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }
