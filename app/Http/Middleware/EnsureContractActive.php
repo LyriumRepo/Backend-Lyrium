@@ -13,7 +13,7 @@ final class EnsureContractActive
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        $user = auth('sanctum')->user();
 
         // Solo aplica a sellers (los admins están exentos)
         if (! $user || $user->hasRole('administrator')) {

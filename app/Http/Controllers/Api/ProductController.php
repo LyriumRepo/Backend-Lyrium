@@ -28,7 +28,7 @@ final class ProductController extends Controller
     {
         $query = Product::with(['categories', 'store', 'mainAttributes', 'additionalAttributes', 'media']);
 
-        $user = $request->user();
+        $user = auth('sanctum')->user();
 
         // If user has a store, show all products from that store (including pending)
         if ($user && $user->store) {
@@ -41,12 +41,28 @@ final class ProductController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('categories', function ($cat) use ($search) {
+                        $cat->where('name', 'like', "%{$search}%");
+                    });   
             });
         }
 
-        if ($category = $request->query('category')) {
-            $query->whereHas('categories', fn ($q) => $q->where('slug', $category));
+        if ($categorySlug = $request->query('category')) {
+            $category = Category::where('slug', $categorySlug)->first();
+
+            if ($category) {
+                $category->load([
+                    'children',
+                    'children.children'
+                ]);
+
+                $ids = $this->getDescendantIds($category);
+
+                $query->whereHas('categories', function ($q) use ($ids) {
+                    $q->whereIn('categories.id', $ids);
+                });
+            }
         }
 
         if ($categoryId = $request->query('category_id')) {
@@ -55,6 +71,13 @@ final class ProductController extends Controller
 
         if ($request->boolean('on_sale')) {
             $query->where('discount_percentage', '>', 0);
+        }
+        if ($minPrice = $request->query('min_price')) {
+            $query->where('price', '>=', $minPrice);
+        }
+
+        if ($maxPrice = $request->query('max_price')) {
+            $query->where('price', '<=', $maxPrice);
         }
 
         if ($request->boolean('new')) {
@@ -398,5 +421,17 @@ final class ProductController extends Controller
         broadcast(new ProductStatusChanged($product));
 
         return response()->json(new ProductResource($product));
+    }
+
+    //Función para obtener categorias decendientes.
+    private function getDescendantIds(Category $category): array
+    {
+        $ids = [$category->id];
+
+        foreach ($category->children as $child) {
+            $ids = array_merge($ids, $this->getDescendantIds($child));
+        }
+
+        return $ids;
     }
 }
