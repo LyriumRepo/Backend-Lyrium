@@ -26,6 +26,8 @@ final class MediaController extends Controller
         Gate::authorize('update', $product);
 
         $file = $request->file('file');
+        
+        $product->clearMediaCollection('images');
 
         $media = $product->addMedia($file)
             ->toMediaCollection('images');

@@ -31,7 +31,7 @@ final class StoreUpdateRequest extends FormRequest
             'seller_type' => ['sometimes', 'string', 'in:products,services,both'],
             'rep_legal_nombre' => ['nullable', 'string', 'max:255'],
             'rep_legal_dni' => ['nullable', 'string', 'max:20'],
-            'rep_legal_foto' => ['nullable', 'string', 'max:500'],
+            'rep_legal_foto' => ['nullable', 'string'],
             'experience_years' => ['nullable', 'integer', 'min:0', 'max:100'],
             'tax_condition' => ['nullable', 'string', 'max:100'],
             'direccion_fiscal' => ['nullable', 'string'],

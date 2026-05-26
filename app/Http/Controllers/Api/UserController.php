@@ -179,6 +179,8 @@ final class UserController extends Controller
         $user = $request->user();
         $data = $request->validated();
 
+        \Log::info('REQUEST ALL', $request->all());
+\Log::info('VALIDATED', $request->validated());
         $user->update($data);
 
         return response()->json(new UserResource($user->fresh()));

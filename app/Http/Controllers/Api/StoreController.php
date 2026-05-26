@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
+use Illuminate\Support\Facades\Storage;
 
 use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
@@ -244,11 +245,18 @@ final class StoreController extends Controller
         }
 
         foreach ($data['branches'] as $branchData) {
-            $branchData['store_id'] = $store->id;
+
+            $branchId = $branchData['id'] ?? null;
+
             unset($branchData['id']);
 
+            $branchData['store_id'] = $store->id;
+
             $store->branches()->updateOrCreate(
-                ['id' => $branchData['id'] ?? null],
+                [
+                    'id' => $branchId,
+                    'store_id' => $store->id
+                ],
                 $branchData
             );
         }
@@ -449,6 +457,28 @@ final class StoreController extends Controller
         return response()->json([
             'gallery' => $store->fresh()->gallery,
             'message' => 'Imagen eliminada correctamente',
+        ]);
+    }
+    //UploadRepLegalPhoto
+    public function uploadRepLegalPhoto(Request $request, int $id)
+    {
+        $request->validate([
+            'file' => ['required', 'image']
+        ]);
+
+        $store = Store::findOrFail($id);
+
+        $path = $request->file('file')
+            ->store('stores', 'public');
+
+        $url = Storage::url($path);
+
+        $store->update([
+            'rep_legal_foto' => $url
+        ]);
+
+        return response()->json([
+            'url' => $url
         ]);
     }
 }

@@ -18,6 +18,7 @@ final class UpdateSellerProfileRequest extends FormRequest
         return [
             'name' => ['sometimes', 'string', 'min:2', 'max:100'],
             'username' => ['sometimes', 'string', 'min:3', 'max:30', 'unique:users,username,'.auth()->id()],
+            'email' => ['sometimes', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'string', 'max:500'],
             'document_type' => ['nullable', 'string', 'max:10'],

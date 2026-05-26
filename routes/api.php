@@ -358,6 +358,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/stores/{id}', [StoreController::class, 'update']);
         Route::get('/stores/{id}/branches', [StoreController::class, 'branches']);
         Route::put('/stores/{id}/branches', [StoreController::class, 'updateBranches']);
+        Route::post('/stores/{id}/rep-photo',[StoreController::class, 'uploadRepLegalPhoto']);
 
         // Store policies (PDF uploads)
         Route::post('/stores/{id}/media/policy', [MediaController::class, 'uploadStorePolicy']);
