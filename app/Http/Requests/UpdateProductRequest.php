@@ -26,7 +26,7 @@ final class UpdateProductRequest extends FormRequest
             'stock' => 'sometimes|integer|min:0',
             'category' => 'nullable|string',
             'image' => 'nullable|string',
-            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis',
+            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis,organic,natural,eco,premium,vegan',
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
             'mainAttributes' => 'nullable|array',
             'additionalAttributes' => 'nullable|array',
@@ -52,5 +52,12 @@ final class UpdateProductRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'sticker.in' => 'El sticker seleccionado no es válido.',
+        ];
     }
 }

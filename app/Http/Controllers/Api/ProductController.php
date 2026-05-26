@@ -192,6 +192,7 @@ final class ProductController extends Controller
             'price' => $data['price'],
             'stock' => $data['stock'] ?? 0,
             'image' => $data['image'] ?? null,
+            'sticker' => $data['sticker'] ?? null,
             'discount_percentage' => $data['discountPercentage'] ?? null,
             'status' => 'pending_review',
         ];

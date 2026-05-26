@@ -23,6 +23,7 @@ final class StoreProductRequest extends FormRequest
             'stock' => 'required|integer|min:0',
             'category' => 'nullable|string',
             'image' => 'nullable|string',
+            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis,organic,natural,eco,premium,vegan',
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
             'mainAttributes' => 'nullable|array',
             'mainAttributes.*.values' => 'array',
@@ -62,6 +63,7 @@ final class StoreProductRequest extends FormRequest
     {
         return [
             'type.in' => 'El tipo debe ser: physical, digital o service.',
+            'sticker.in' => 'El sticker seleccionado no es válido. Opciones: liquidacion, oferta, descuento, nuevo, bestseller, envio_gratis.',
             'downloadUrl.required' => 'La URL de descarga es obligatoria para productos digitales.',
             'serviceDuration.required' => 'La duración es obligatoria para servicios.',
             'serviceModality.required' => 'La modalidad es obligatoria para servicios.',

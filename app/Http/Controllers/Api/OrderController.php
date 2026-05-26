@@ -14,6 +14,7 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -99,14 +100,14 @@ final class OrderController extends Controller
                     throw new \Exception("Stock insuficiente para '{$product->name}'.");
                 }
 
-                $lineTotal = $item->quantity * $item->unit_price;
+                $lineTotal = $item->quantity * $product->price;
                 $subtotal += $lineTotal;
 
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'store_id' => $product->store_id,
                     'product_name' => $product->name,
-                    'unit_price' => $item->unit_price,
+                    'unit_price' => $product->price,
                     'quantity' => $item->quantity,
                     'line_total' => $lineTotal,
                     'status' => 'pending_seller',
@@ -165,6 +166,7 @@ final class OrderController extends Controller
                 'shipping_city' => $data['shipping_city'] ?? null,
                 'shipping_postal_code' => $data['shipping_postal_code'] ?? null,
                 'shipping_notes' => $data['shipping_notes'] ?? null,
+                'shipping_type' => $data['shipping_type'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
@@ -377,6 +379,22 @@ final class OrderController extends Controller
         $order->load(['items.product.store', 'user']);
 
         return $this->success(new OrderResource($order));
+    }
+
+    public function downloadReceipt(Request $request, string $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items', 'user'])->findOrFail($id);
+
+        if (! $user->hasRole('administrator') && $order->user_id !== $user->id) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $pdf = Pdf::loadView('pdf.receipt', ['order' => $order]);
+
+        $filename = 'comprobante-' . $order->order_number . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function updateItemStatus(Request $request, string $orderId, string $itemId): JsonResponse

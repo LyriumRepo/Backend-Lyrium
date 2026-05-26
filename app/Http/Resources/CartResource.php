@@ -13,36 +13,37 @@ final class CartResource extends JsonResource
     {
         $items = $this->whenLoaded('items', function () {
             return $this->items->map(function ($item) {
-                $price = $item->product?->sale_price ?? $item->product?->price ?? 0;
+                $price = (float) ($item->product?->sale_price ?? $item->product?->price ?? 0);
                 $lineTotal = $price * $item->quantity;
-                $timestamp = $item->created_at?->timestamp ?? now()->timestamp;
 
                 return [
-                    'id' => "{$item->product_id}-{$timestamp}",
-                    'product_id' => $item->product_id,
-                    'name' => $item->product?->name ?? '',
-                    'image' => $item->product?->getFirstMediaUrl('images')
-                        ?? $item->product?->image
-                        ?? null,
-                    'price' => round($price, 2),
+                    'id' => (int) $item->product_id,
+                    'productId' => (int) $item->product_id,
                     'quantity' => (int) $item->quantity,
-                    'total' => round($lineTotal, 2),
+                    'unitPrice' => round($price, 2),
+                    'lineTotal' => round($lineTotal, 2),
+                    'product' => [
+                        'id' => (int) $item->product_id,
+                        'name' => $item->product?->name ?? '',
+                        'slug' => $item->product?->slug ?? '',
+                        'image' => $item->product?->getFirstMediaUrl('images')
+                            ?? $item->product?->image
+                            ?? null,
+                        'price' => round($price, 2),
+                        'regular_price' => (float) ($item->product?->regular_price ?? $item->product?->price ?? 0),
+                        'stock' => (int) ($item->product?->stock ?? 0),
+                    ],
                 ];
             })->all();
         }, []);
 
-        $subtotal = collect($items)->sum('total');
-        $discount = 0.0;
-        $shipping = $subtotal > 0 ? 10.00 : 0.0;
-        $total = round($subtotal + $discount + $shipping, 2);
+        $subtotal = collect($items)->sum('lineTotal');
 
         return [
             'items' => $items,
             'subtotal' => round($subtotal, 2),
-            'discount' => $discount,
-            'shipping' => round($shipping, 2),
-            'total' => $total,
-            'item_count' => (int) $this->item_count,
+            'total' => round($subtotal, 2),
+            'itemCount' => (int) $this->item_count,
         ];
     }
 }

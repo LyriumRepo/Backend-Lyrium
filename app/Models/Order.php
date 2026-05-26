@@ -58,6 +58,7 @@ final class Order extends Model
         'shipping_city',
         'shipping_postal_code',
         'shipping_notes',
+        'shipping_type',
         'subtotal',
         'shipping_cost',
         'tax_amount',

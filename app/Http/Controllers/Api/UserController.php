@@ -8,11 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\UpdateSellerProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Models\UserNotificationSetting;
 use App\Mail\WelcomeInternalUserMail;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 final class UserController extends Controller
@@ -172,16 +174,128 @@ final class UserController extends Controller
 
     /**
      * PUT /api/users/profile
-     * Seller profile update with new fields
+     * Update authenticated user's profile
      */
     public function updateProfile(UpdateSellerProfileRequest $request): JsonResponse
     {
         $user = $request->user();
         $data = $request->validated();
 
+        if (isset($data['display_name'])) {
+            $data['name'] = $data['display_name'];
+            unset($data['display_name']);
+        }
+
+        if (isset($data['avatar']) && str_starts_with($data['avatar'], 'data:image/')) {
+            $base64 = $data['avatar'];
+            $imageData = base64_decode(explode(',', $base64)[1] ?? '');
+            $extension = explode('/', explode(';', $base64)[0])[1] ?? 'png';
+            $filename = 'avatars/' . $user->id . '_' . time() . '.' . $extension;
+            Storage::disk('public')->put($filename, $imageData);
+            $data['avatar'] = '/storage/' . $filename;
+        }
+
         $user->update($data);
 
         return response()->json(new UserResource($user->fresh()));
+    }
+
+    /**
+     * POST /api/users/avatar
+     * Upload avatar as file (multipart)
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+        ]);
+
+        $user = $request->user();
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $url = '/storage/' . $path;
+
+        $user->update(['avatar' => $url]);
+
+        return response()->json([
+            'avatar' => $url,
+            'user' => new UserResource($user->fresh()),
+        ]);
+    }
+
+    /**
+     * PUT /api/users/profile/password
+     * Update authenticated user's password
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'actual' => 'required|string|min:1',
+            'nueva' => 'required|string|min:8',
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($data['actual'], $user->password)) {
+            return $this->error('La contraseña actual no es correcta.', 422);
+        }
+
+        $user->update(['password' => Hash::make($data['nueva'])]);
+
+        return $this->success(null, 'Contraseña actualizada correctamente.');
+    }
+
+    /**
+     * GET /api/users/settings
+     * Get authenticated user's notification settings
+     */
+    public function getSettings(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $settings = UserNotificationSetting::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'email_order' => true,
+                'email_promotions' => true,
+                'email_newsletter' => false,
+                'sms_order' => false,
+                'push_notifications' => true,
+            ]
+        );
+
+        return $this->success($settings);
+    }
+
+    /**
+     * PUT /api/users/settings
+     * Update authenticated user's notification settings
+     */
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email_order' => 'sometimes|boolean',
+            'email_promotions' => 'sometimes|boolean',
+            'email_newsletter' => 'sometimes|boolean',
+            'sms_order' => 'sometimes|boolean',
+            'push_notifications' => 'sometimes|boolean',
+        ]);
+
+        $user = $request->user();
+
+        $settings = UserNotificationSetting::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'email_order' => true,
+                'email_promotions' => true,
+                'email_newsletter' => false,
+                'sms_order' => false,
+                'push_notifications' => true,
+            ]
+        );
+
+        $settings->update($data);
+
+        return $this->success($settings->fresh());
     }
 
     /**

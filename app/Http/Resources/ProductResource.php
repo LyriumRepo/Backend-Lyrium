@@ -22,6 +22,8 @@ final class ProductResource extends JsonResource
             'price' => (float) ($this->sale_price ?? $this->price),
             'regular_price' => (float) ($this->regular_price ?? $this->price),
             'stock' => (int) $this->stock,
+            'in_stock' => $this->stock > 0,
+            'image' => $this->image,
             'images' => $this->resource->getMedia('images')->map(fn ($media) => [
                 'src' => $media->getUrl(),
                 'thumb' => $media->getUrl('thumb'),
@@ -65,6 +67,12 @@ final class ProductResource extends JsonResource
             $data['serviceModality'] = $this->service_modality;
             $data['serviceLocation'] = $this->service_location;
         }
+
+        // Wishlist status for authenticated users
+        $data['is_wishlisted'] = $this->when(
+            $request->user() !== null,
+            fn () => $request->user()->wishlists()->where('product_id', (int) $this->id)->exists(),
+        );
 
         // Include attributes
         $data['mainAttributes'] = $this->whenLoaded('mainAttributes', fn () => $this->mainAttributes->map(fn ($attr) => [
