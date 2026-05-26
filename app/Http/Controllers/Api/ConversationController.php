@@ -30,7 +30,9 @@ final class ConversationController extends Controller
                 ->latest('created_at')
                 ->get();
         } elseif ($user->hasRole('seller') || $user->hasRole('administrator')) {
-            $storeIds = $user->stores()->pluck('stores.id');
+            $storeIds = $user->stores()->pluck('stores.id')
+                ->merge(Store::where('owner_id', $user->id)->pluck('id'))
+                ->unique();
             $conversations = Conversation::forStore($storeIds)
                 ->with(['store.owner', 'customer', 'latestMessage'])
                 ->withCount('messages')
@@ -222,14 +224,14 @@ final class ConversationController extends Controller
     {
         $stores = Store::where('status', 'approved')
             ->with('owner')
-            ->get(['id', 'business_name', 'trade_name', 'logo']);
+            ->get(['id', 'owner_id', 'nombre_comercial', 'trade_name', 'logo']);
 
         return response()->json([
             'success' => true,
             'data' => $stores->map(fn ($s) => [
                 'id' => (string) $s->id,
                 'name' => $s->owner?->name ?? '',
-                'store' => $s->trade_name ?? $s->business_name ?? '',
+                'store' => $s->trade_name ?? $s->nombre_comercial ?? $s->razon_social ?? '',
                 'avatar' => $s->owner?->avatar ?? '',
             ]),
         ]);
@@ -242,7 +244,9 @@ final class ConversationController extends Controller
         }
 
         if ($user->hasRole('seller') || $user->hasRole('administrator')) {
-            $storeIds = $user->stores()->pluck('stores.id');
+            $storeIds = $user->stores()->pluck('stores.id')
+                ->merge(Store::where('owner_id', $user->id)->pluck('id'))
+                ->unique();
             return Conversation::forStore($storeIds)->find($id);
         }
 

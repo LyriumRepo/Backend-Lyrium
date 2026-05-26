@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class Conversation extends Model
 {
@@ -44,9 +45,9 @@ final class Conversation extends Model
         return $this->hasMany(ConversationMessage::class);
     }
 
-    public function latestMessage(): HasMany
+    public function latestMessage(): HasOne
     {
-        return $this->hasMany(ConversationMessage::class)->latestOfMany();
+        return $this->hasOne(ConversationMessage::class)->latestOfMany();
     }
 
     public function scopeActive($query)
