@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BenefitController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
@@ -256,6 +257,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/disputes', [DisputeController::class, 'store']);
     Route::get('/disputes/{id}', [DisputeController::class, 'show']);
     Route::post('/disputes/{id}/messages', [DisputeController::class, 'addMessage']);
+
+    // Chat con Vendedores
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations', [ConversationController::class, 'store']);
+    Route::get('/conversations/stores', [ConversationController::class, 'stores']);
+    Route::get('/conversations/{id}', [ConversationController::class, 'show']);
+    Route::post('/conversations/{id}/messages', [ConversationController::class, 'sendMessage']);
+    Route::get('/conversations/{id}/messages', [ConversationController::class, 'getMessages']);
+    Route::put('/conversations/{id}/read', [ConversationController::class, 'markRead']);
+    Route::put('/conversations/{id}/archive', [ConversationController::class, 'archive']);
 
     // Wishlist
     Route::get('/wishlist', [WishlistController::class, 'index']);
