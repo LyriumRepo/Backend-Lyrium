@@ -9,6 +9,7 @@ use App\Http\Requests\Seller\UpdateSellerProfileRequest;
 use App\Http\Resources\SellerResource;
 use App\Http\Resources\StoreResource;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 
 final class SellerController extends Controller

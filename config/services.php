@@ -22,8 +22,34 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    'culqi' => [
+        'public_key'        => env('CULQI_PUBLIC_KEY'),
+        'secret_key'        => env('CULQI_SECRET_KEY'),
+        'mode'              => env('CULQI_MODE', 'test'),
+        'webhook_public_key' => env('CULQI_WEBHOOK_PUBLIC_KEY'),
+    ],
+
+
+    'izipay' => [
+        'user_id'  => env('IZIPAY_USER_ID'),
+        'password' => env('IZIPAY_PASSWORD'),
+        'mode'     => env('IZIPAY_MODE', 'test'),
+        'hash_key' => env('IZIPAY_HASH_KEY', ''),
+    ],
+
+
+
     'google' => [
-        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Callback dinámico mapeado a la URI de tu controlador
+        'redirect_uri'  => env('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/api/google/callback'),
+    ],
+
+    // ─── GOOGLE SERVICE ACCOUNT (Soporte Fallback / Plan B) ──────────────────
+    'google_calendar' => [
+        'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS_PATH', storage_path('app/google-service-account.json')),
+        'calendar_id'      => env('GOOGLE_CALENDAR_ID', 'primary'),
     ],
 
     'ses' => [
@@ -38,5 +64,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+
 
 ];

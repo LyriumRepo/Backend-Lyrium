@@ -227,6 +227,131 @@ final class AuthController extends Controller
     }
 
     /**
+     * POST /api/auth/forgot-password
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $request->validate(['email'=>'required|email']);
+
+        $user = User::where('email',$request->email)->first();
+
+        if(!$user){
+            return response()->json([
+                'success'=>false,
+                'error'=>'Usuario no encontrado'
+            ], 404);
+
+        }
+        $this->otpService->generate($user);
+        return response()->json([
+            'success'=>true,
+            'message'=>'Codigo enviado al correo'
+        ]);
+    }
+
+    /**
+     * POST /api/auth/resetPassword
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email'=> 'required|email',
+            'token'=> 'required|string',
+            'password'=>'required|min:6|confirmed',
+        ]);
+        $user = User::where('email',$request->email)->first();
+
+        if(!$user){
+            return response()->json([
+                'success'=>false,
+                'error'=>'Usuario no encontrado'
+            ],404);
+        }
+        $record = DB::table('password_reset_tokens')
+            ->where('email',$user->email)
+            ->first();
+        
+        if(!$record){
+            return response()->json([
+                'success'=>false,
+                'error'=>'Token invalido'
+            ],422);
+        }
+
+        if(now()->diffInMinutes($record->created_at)>15){
+            DB::table('password_reset_tokens')->where('email',$user->email)->delete();
+            return response()->json([
+                'success'=> false,
+                'error'=>'Token expirado'
+            ],422);
+
+        }
+
+        if(!Hash::check($request->token,$record->token)){
+            return response()->json([
+                'success'=>false,
+                'error'=>'Token invalido'
+            ],422);
+        }
+
+        $user->update([
+            'password'=>bcrypt($request->password)
+        ]);
+
+
+        $user->tokens()->delete();
+
+        DB::table('password_reset_tokens')->where('email',$user->email)->delete();
+
+        return response()->json([
+            'success'=>true,
+            'message'=>'Contraseña actualizada correctamente'
+        ]);
+        
+    }
+
+    /**
+     * POST /api/auth/verifyotpReset
+     */
+    public function verifyOtpReset(Request $request): JsonResponse
+    {
+    $request->validate([
+        'email' => 'required|email',
+        'code'  => 'required|string',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (!$user) {
+        return response()->json([
+            'success' => false,
+            'error' => 'Usuario no encontrado'
+        ], 404);
+    }
+
+    $verify = $this->otpService->verifyOnly($user, $request->code);
+
+    if (!$verify['success']) {
+        return response()->json($verify, 422);
+    }
+
+    $plainToken = Str::random(64);
+
+    DB::table('password_reset_tokens')->updateOrInsert(
+        ['email' => $user->email],
+        [
+            'token' => Hash::make($plainToken),
+            'created_at' => now(),
+        ]
+    );
+
+    return response()->json([
+        'success' => true,
+        'reset_token' => $plainToken
+    ]);
+}
+
+    /**
      * POST /api/auth/google
      */
     public function googleAuth(GoogleAuthRequest $request): JsonResponse
