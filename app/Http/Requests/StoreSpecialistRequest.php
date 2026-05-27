@@ -1,0 +1,72 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use App\Models\Specialist;
+use Illuminate\Foundation\Http\FormRequest;
+
+/**
+ * StoreSpecialistRequest — Validación para crear un especialista.
+ *
+ * El vendedor autenticado solo puede crear especialistas para su propia tienda.
+ * El email debe ser único en la tabla specialists (se usa para Google Calendar).
+ */
+final class StoreSpecialistRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // La autorización real se hace en el controller
+    }
+
+    public function rules(): array
+    {
+        return [
+            // ── Datos de identidad ────────────────────────────────────────
+            'nombres'            => ['required', 'string', 'max:255'],
+            'apellidos'          => ['required', 'string', 'max:255'],
+            'document_type'      => ['required', 'in:DNI,CE,PASAPORTE'],
+            'document_number'    => ['required', 'string', 'max:20'],
+
+            // Email único — solo para Google Calendar, nunca mostrado al cliente
+            'email'              => ['required', 'email', 'max:255', 'unique:specialists,email'],
+
+            // ── Datos profesionales ───────────────────────────────────────
+            'especialidad'       => ['required', 'string', 'max:255'],
+            'sub_especialidad'   => ['nullable', 'string', 'max:255'],
+            'anios_experiencia'  => ['nullable', 'integer', 'min:0', 'max:30'],
+            'numero_colegiatura' => ['nullable', 'string', 'max:100'],
+
+            // ── Estado y foto ─────────────────────────────────────────────
+            'availability'       => ['sometimes', 'in:Disponible,Indispuesto'],
+            'foto'               => ['nullable', 'string', 'max:500'], // URL de imagen
+
+            // google_calendar_id: se autorrellena con el email si no se provee
+            'google_calendar_id' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.unique'              => 'Ya existe un especialista registrado con este email.',
+            'anios_experiencia.max'     => 'Los años de experiencia no pueden superar 30.',
+            'document_type.in'          => 'El tipo de documento debe ser DNI, CE o PASAPORTE.',
+            'availability.in'           => 'El estado debe ser Disponible o Indispuesto.',
+        ];
+    }
+
+    /**
+     * Prepara los datos antes de la validación.
+     * Si no se provee google_calendar_id, usa el email como ID de calendario.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (empty($this->google_calendar_id) && ! empty($this->email)) {
+            $this->merge([
+                'google_calendar_id' => $this->email,
+            ]);
+        }
+    }
+}

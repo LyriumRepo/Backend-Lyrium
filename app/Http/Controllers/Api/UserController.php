@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 final class UserController extends Controller
 {
@@ -242,5 +243,32 @@ final class UserController extends Controller
         $user->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * PUT /api/users/profile/password
+     */
+    public function updatePassword(Request $request): JsonResponse
+    {
+    $user = $request->user();
+
+    $validated = $request->validate([
+        'current_password' => ['required', 'current_password'],
+        'password' => [
+            'required', 
+            'confirmed', 
+            Password::min(8)->letters()->mixedCase()->numbers()->symbols()
+        ],
+    ], [
+        'current_password.current_password' => 'La contraseña actual es incorrecta.',
+    ]);
+
+    $user->update([
+        'password' => Hash::make($validated['password']),
+    ]);
+
+    return response()->json([
+        'message' => 'Contraseña actualizada exitosamente.'
+    ]);
     }
 }

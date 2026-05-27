@@ -53,24 +53,66 @@ final class ServiceController extends Controller
             ],
         ]);
     }
+    public function sellerServices(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
+    {
+        // 1. Obtener el usuario autenticado a través del Token de Sanctum
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado. Debe iniciar sesión.'
+            ], 401);
+        }
+
+        // 2. Resolver la tienda del vendedor utilizando las relaciones del modelo User
+        // Primero intentamos con la relación directa "store" y luego con la relación N:N "stores"
+        $store = $user->store ?? $user->stores()->where('status', 'approved')->first();
+
+        // 3. Validar que el vendedor realmente posea una tienda activa
+        if (!$store) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes una tienda registrada o aprobada en el sistema.'
+            ], 403);
+        }
+
+        // 4. Capturar el parámetro de paginación de la URL (por defecto 15 ítems)
+        $perPage = (int) $request->query('per_page', 15);
+
+        // 5. Consultar a tu ServiceService la lista paginada filtrando por el ID de la tienda
+        $services = $this->serviceService->paginateForStore(
+            storeId: $store->id,
+            perPage: $perPage
+        );
+
+        // 6. Retornar la colección de recursos estructurada bajo el formato estándar de tu API
+        return response()->json([
+            'data' => \App\Http\Resources\ServiceResource::collection($services->items()),
+            'meta' => [
+                'current_page' => $services->currentPage(),
+                'last_page'    => $services->lastPage(),
+                'per_page'     => $services->perPage(),
+                'total'        => $services->total(),
+            ],
+        ]);
+    }
 
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $user = $request->user();
 
-        $store = $user->stores()->where('status', 'approved')->first();
+        $store = $user->store;
 
         if (! $store) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No tienes una tienda aprobada para crear servicios',
-            ], 403);
+            return response()->json(['message' => 'No tienes una tienda registrada.'], 403);
         }
 
         $service = $this->serviceService->createForStore(
             storeId: $store->id,
             data: $request->validated()
         );
+        $service->load(['schedules', 'category', 'store']);
 
         return response()->json(
             new ServiceResource($service),
@@ -81,6 +123,26 @@ final class ServiceController extends Controller
     public function show(int $id): JsonResponse
     {
         $service = $this->serviceService->findOrFail($id);
+
+        return response()->json(new ServiceResource($service));
+    }
+
+    public function showMyService(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        $serviceId = (int) $id;
+
+        $service = $this->serviceService->findOrFail($serviceId);
+
+        // Validamos si la tienda del vendedor autenticado es dueña de este servicio
+        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+
+        if (! $hasAccess && ! $user->hasRole('administrator')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado. Este servicio no pertenece a tu tienda.',
+            ], 403);
+        }
 
         return response()->json(new ServiceResource($service));
     }
@@ -101,6 +163,8 @@ final class ServiceController extends Controller
         }
 
         $service = $this->serviceService->update($id, $request->validated());
+
+        $service->load(['schedules', 'category', 'store']);
 
         return response()->json(new ServiceResource($service));
     }
@@ -125,7 +189,7 @@ final class ServiceController extends Controller
         return response()->json(null, 204);
     }
 
-    public function availableSlots(Request $request, int $serviceId): JsonResponse
+    /**public function availableSlots(Request $request, int $serviceId): JsonResponse
     {
         $date = $request->query('date');
 
@@ -142,7 +206,8 @@ final class ServiceController extends Controller
             'data' => $slots,
             'date' => $date,
         ]);
-    }
+    } */
+
 
     public function book(BookServiceRequest $request, int $serviceId): JsonResponse
     {
@@ -200,9 +265,11 @@ final class ServiceController extends Controller
         $booking = \App\Models\ServiceBooking::with('service')
             ->findOrFail($bookingId);
 
-        if ($booking->user_id !== $user->id &&
+        if (
+            $booking->user_id !== $user->id &&
             ! $user->stores()->where('id', $booking->service->store_id)->exists() &&
-            ! $user->hasRole('administrator')) {
+            ! $user->hasRole('administrator')
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes acceso a esta reserva',
@@ -303,5 +370,41 @@ final class ServiceController extends Controller
         );
 
         return response()->json(new ServiceBookingResource($booking));
+    }
+    /**
+     * Obtener los intervalos disponibles reales de un especialista para un servicio y fecha.
+     * GET /api/services/{id}/slots
+     */
+    public function availableSlots(\Illuminate\Http\Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $request->validate([
+            'specialist_id'    => ['required', 'integer', 'exists:specialists,id'],
+            'appointment_date' => ['required', 'date', 'after_or_equal:today'],
+        ]);
+
+        $specialistId = (int) $request->input('specialist_id');
+        $dateString   = (string) $request->input('appointment_date');
+
+        try {
+            $slots = $this->serviceService->getAvailableSlots(
+                serviceId: $id,
+                specialistId: $specialistId,
+                dateString: $dateString
+            );
+
+            // Retornamos un listado limpio de strings de horas en formato JSON
+            return response()->json([
+                'success' => true,
+                'date'    => $dateString,
+                'slots'   => $slots
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Error cargando slots: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocurrió un error al procesar la agenda disponible.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
 }

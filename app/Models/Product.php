@@ -23,6 +23,7 @@ final class Product extends Model implements HasMedia
         'name',
         'slug',
         'description',
+        'serving_note',
         'price',
         'stock',
         'weight',
@@ -138,11 +139,17 @@ final class Product extends Model implements HasMedia
 
     public function getAverageRatingAttribute(): float
     {
-        return round($this->reviews()->avg('rating') ?? 0, 1);
+        // Añadido (float) para evitar el TypeError en round()
+        return round((float) ($this->reviews()->avg('rating') ?? 0), 1);
     }
 
     public function getReviewCountAttribute(): int
     {
         return $this->reviews()->count();
+    }
+
+    public function nutritionalAttributes(): HasMany
+    {
+        return $this->hasMany(ProductAttribute::class)->where('type', 'nutritional');
     }
 }

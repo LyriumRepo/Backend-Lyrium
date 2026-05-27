@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductRankingResource;
+use App\Http\Resources\StoreRankingResource;
+use App\Models\Product;
+use App\Models\Store;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+final class RankingController extends Controller
+{
+    /**
+     * GET /api/rankings/products?limit=100&min_reviews=1
+     * Público — top productos por rating
+     */
+    public function products(Request $request): JsonResponse
+    {
+        $limit      = min((int) $request->query('limit', 100), 100);
+        $minReviews = max((int) $request->query('min_reviews', 1), 1);
+
+        $products = Product::with(['store:id,store_name,slug,logo', 'categories:id,name,slug', 'media'])
+            ->where('status', 'approved')
+            ->where('rating_count', '>=', $minReviews)
+            ->orderByDesc('rating_promedio')
+            ->orderByDesc('rating_count')  // desempate por más reseñas
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => ProductRankingResource::collection($products),
+            'meta'    => ['total' => $products->count(), 'min_reviews' => $minReviews],
+        ]);
+    }
+
+    /**
+     * GET /api/rankings/stores?limit=20
+     * Público — top tiendas por rating promedio
+     */
+    public function stores(Request $request): JsonResponse
+    {
+        $limit = min((int) $request->query('limit', 20), 50);
+
+        // Una query con subquery para evitar N+1
+        $stores = Store::withCount('reviews as review_count')
+            ->withAvg('reviews as average_rating', 'rating')
+            ->having('review_count', '>=', 1)
+            ->orderByDesc('average_rating')
+            ->orderByDesc('review_count')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => StoreRankingResource::collection($stores),
+        ]);
+    }
+}

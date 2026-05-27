@@ -1,0 +1,59 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+/**
+ * UpdateSpecialistRequest — Validación para actualizar un especialista.
+ *
+ * Todos los campos son opcionales (PATCH semántico).
+ * El email se valida como único ignorando el propio registro.
+ */
+final class UpdateSpecialistRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // La autorización real se hace en el controller
+    }
+
+    public function rules(): array
+    {
+        // El ID del especialista viene en la ruta: /api/specialists/{specialist}
+        $specialistId = (int) $this->route('specialist');
+
+        return [
+            'nombres'            => ['sometimes', 'string', 'max:255'],
+            'apellidos'          => ['sometimes', 'string', 'max:255'],
+            'document_type'      => ['sometimes', 'in:DNI,CE,PASAPORTE'],
+            'document_number'    => ['sometimes', 'string', 'max:20'],
+
+            // Ignorar el email del propio especialista al validar unicidad
+            'email'              => [
+                'sometimes',
+                'email',
+                'max:255',
+                "unique:specialists,email,{$specialistId}",
+            ],
+
+            'especialidad'       => ['sometimes', 'string', 'max:255'],
+            'sub_especialidad'   => ['nullable', 'string', 'max:255'],
+            'anios_experiencia'  => ['nullable', 'integer', 'min:0', 'max:30'],
+            'numero_colegiatura' => ['nullable', 'string', 'max:100'],
+            'availability'       => ['sometimes', 'in:Disponible,Indispuesto'],
+            'foto'               => ['nullable', 'string', 'max:500'],
+            'google_calendar_id' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.unique'          => 'Ya existe otro especialista registrado con este email.',
+            'anios_experiencia.max' => 'Los años de experiencia no pueden superar 30.',
+            'availability.in'       => 'El estado debe ser Disponible o Indispuesto.',
+        ];
+    }
+}
