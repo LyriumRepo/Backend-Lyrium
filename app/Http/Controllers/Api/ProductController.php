@@ -302,9 +302,12 @@ final class ProductController extends Controller
             );
         }
 
-        if ($category = $request->query('category')) {
-            $query->whereHas('categories', fn($q) => $q->where('slug', $category));
+        if ($categorySlug = $request->query('category')) {
+
+        $category = Category::where('slug', $categorySlug)->first();
+
             if ($category) {
+
                 $category->load([
                     'children',
                     'children.children'
