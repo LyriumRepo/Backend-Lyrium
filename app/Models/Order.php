@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
 
 final class Order extends Model
 {
@@ -262,5 +264,24 @@ final class Order extends Model
             self::STATUS_CANCELLED => 'Cancelado',
             default => $this->status,
         };
+    }
+
+    public function culqiTransactions(): HasMany
+    {
+        return $this->hasMany(CulqiTransaction::class);
+    }
+    public function latestCulqiTransaction()
+    {
+        return $this->hasOne(CulqiTransaction::class)->latestOfMany();
+    }
+
+    public function izipayTransactions(): HasMany
+    {
+        return $this->hasMany(IzipayOrderTransaction::class);
+    }
+
+    public function latestIzipayTransaction(): HasOne
+    {
+        return $this->hasOne(IzipayOrderTransaction::class)->latestOfMany();
     }
 }

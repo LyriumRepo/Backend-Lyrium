@@ -6,17 +6,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Review\StoreReviewRequest;
+use App\Http\Requests\Review\UpdateReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Order;
 use App\Models\Review;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\ReviewReport;
 
 final class ReviewController extends Controller
 {
+    /**
+     * GET /api/reviews?product_id=X
+     */
     public function index(Request $request): JsonResponse
     {
-        $productId = $request->query('product_id');
+        $productId = (int) $request->query('product_id');
 
         if (! $productId) {
             return $this->error('El parámetro product_id es requerido.', 400);
@@ -24,95 +30,102 @@ final class ReviewController extends Controller
 
         $reviews = Review::where('product_id', $productId)
             ->with(['user:id,name,avatar'])
-            ->orderBy('created_at', 'desc')
+            ->orderByDesc('created_at')
             ->paginate(10);
 
-        $stats = Review::getRatingStats((int) $productId);
+        $stats = Review::getRatingStats($productId);
 
         return $this->success([
-            'data' => ReviewResource::collection($reviews),
-            'stats' => $stats,
+            'data'       => ReviewResource::collection($reviews),
+            'stats'      => $stats,
             'pagination' => [
-                'page' => $reviews->currentPage(),
-                'perPage' => $reviews->perPage(),
-                'total' => $reviews->total(),
+                'page'       => $reviews->currentPage(),
+                'perPage'    => $reviews->perPage(),
+                'total'      => $reviews->total(),
                 'totalPages' => $reviews->lastPage(),
-                'hasMore' => $reviews->hasMorePages(),
+                'hasMore'    => $reviews->hasMorePages(),
             ],
         ]);
     }
 
+    /**
+     * POST /api/reviews
+     */
     public function store(StoreReviewRequest $request): JsonResponse
     {
         $data = $request->validated();
         $user = $request->user();
 
-        $existingReview = Review::where('user_id', $user->id)
+        $alreadyReviewed = Review::where('user_id', $user->id)
             ->where('product_id', $data['product_id'])
-            ->first();
+            ->exists();
 
-        if ($existingReview) {
-            return $this->error('Ya has dejado una reseña para este producto.', 400);
+        if ($alreadyReviewed) {
+            return $this->error('Ya has dejado una reseña para este producto.', 422);
         }
 
         $isVerifiedPurchase = false;
 
-        if (isset($data['order_id'])) {
-            $order = Order::where('id', $data['order_id'])
+        if (! empty($data['order_id'])) {
+            $isVerifiedPurchase = Order::where('id', $data['order_id'])
                 ->where('user_id', $user->id)
                 ->where('status', 'delivered')
-                ->whereHas('items', fn ($q) => $q->where('product_id', $data['product_id']))
-                ->first();
-
-            if ($order) {
-                $isVerifiedPurchase = true;
-            }
+                ->whereHas('items', fn($q) => $q->where('product_id', $data['product_id']))
+                ->exists();  // exists() en vez de first() — no necesitamos el objeto
         }
 
         $review = Review::create([
-            'user_id' => $user->id,
-            'product_id' => $data['product_id'],
-            'order_id' => $data['order_id'] ?? null,
-            'rating' => $data['rating'],
-            'title' => $data['title'] ?? null,
-            'comment' => $data['comment'] ?? null,
+            'user_id'              => $user->id,
+            'product_id'           => $data['product_id'],
+            'order_id'             => $data['order_id'] ?? null,
+            'rating'               => $data['rating'],
+            'title'                => $data['title'] ?? null,
+            'comment'              => $data['comment'] ?? null,
             'is_verified_purchase' => $isVerifiedPurchase,
         ]);
 
-        $review->load(['user:id,name,avatar']);
-
-        return $this->created(new ReviewResource($review));
+        return $this->created(new ReviewResource($review->load('user:id,name,avatar')));
     }
 
+    /**
+     * GET /api/reviews/{id}
+     */
     public function show(string $id): JsonResponse
     {
-        $review = Review::with(['user:id,name,avatar', 'product:id,name,slug'])->findOrFail($id);
+        $review = Review::with([
+            'user:id,name,avatar',
+            'product:id,name,slug',
+        ])->findOrFail($id);
 
         return $this->success(new ReviewResource($review));
     }
 
-    public function update(StoreReviewRequest $request, string $id): JsonResponse
+    /**
+     * PUT /api/reviews/{id}
+     * Solo rating, title y comment — product_id y order_id no cambian
+     */
+    public function update(UpdateReviewRequest $request, string $id): JsonResponse
     {
         $review = Review::findOrFail($id);
-        $user = $request->user();
+        $user   = $request->user();
 
         if ($review->user_id !== $user->id && ! $user->hasRole('administrator')) {
             return $this->forbidden('No tienes permiso para editar esta reseña.');
         }
 
-        $data = $request->validated();
-
-        $review->update($data);
-
-        $review->load(['user:id,name,avatar']);
+        $review->update($request->validated());
+        $review->load('user:id,name,avatar');
 
         return $this->success(new ReviewResource($review));
     }
 
+    /**
+     * DELETE /api/reviews/{id}
+     */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $review = Review::findOrFail($id);
-        $user = $request->user();
+        $user   = $request->user();
 
         if ($review->user_id !== $user->id && ! $user->hasRole('administrator')) {
             return $this->forbidden('No tienes permiso para eliminar esta reseña.');
@@ -121,5 +134,47 @@ final class ReviewController extends Controller
         $review->delete();
 
         return $this->success(['message' => 'Reseña eliminada correctamente.']);
+    }
+
+    // Agregar este método al ReviewController existente
+
+    /**
+     * POST /api/reviews/{id}/report
+     * Usuario reporta una reseña
+     */
+    public function report(Request $request, string $id): JsonResponse
+    {
+        $request->validate([
+            'reason'  => 'required|string|in:spam,offensive,fake,irrelevant,other',
+            'details' => 'nullable|string|max:500',
+        ]);
+
+        $review = Review::findOrFail($id);
+        $user   = $request->user();
+
+        // No puede reportar su propia reseña
+        if ($review->user_id === $user->id) {
+            return $this->error('No puedes reportar tu propia reseña.', 422);
+        }
+
+        // Ya reportó esta reseña
+        if ($review->isReportedBy($user->id)) {
+            return $this->error('Ya reportaste esta reseña.', 422);
+        }
+
+        DB::transaction(function () use ($review, $request, $user) {
+            ReviewReport::create([
+                'review_id'   => $review->id,
+                'reporter_id' => $user->id,
+                'reason'      => $request->reason,
+                'details'     => $request->details,
+                'status'      => 'pending',
+            ]);
+
+            // Incrementar contador en la reseña
+            $review->increment('reported_count');
+        });
+
+        return $this->success(['message' => 'Reseña reportada. La revisaremos pronto.']);
     }
 }

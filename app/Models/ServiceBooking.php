@@ -33,7 +33,9 @@ final class ServiceBooking extends Model
         'payment_status',
         'customer_notes',
         'seller_notes',
+        'specialist_id',
         'reschedule_token',
+        'google_event_id',
         'confirmed_at',
         'cancelled_at',
     ];
@@ -63,6 +65,10 @@ final class ServiceBooking extends Model
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(ServiceSchedule::class);
+    }
+    public function specialist(): BelongsTo
+    {
+        return $this->belongsTo(Specialist::class);
     }
 
     public function isPending(): bool
