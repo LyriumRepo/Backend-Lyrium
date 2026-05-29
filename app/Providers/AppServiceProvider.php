@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Listeners\BroadcastNotificationCreated;
+<<<<<<< HEAD
 use App\Models\Expense;
 use App\Observers\ExpenseObserver;
+=======
+use App\Services\RapifacService;
+>>>>>>> 49185e4 (cambios recientes en backent para PreMain)
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -20,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(RapifacService::class, fn () => RapifacService::fromConfig());
     }
 
     /**

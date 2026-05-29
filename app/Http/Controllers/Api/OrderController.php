@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
+use App\Events\OrderStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\OrderResource;
 use App\Models\Cart;
+use App\Models\Conversation;
+use App\Models\ConversationMessage;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
@@ -20,6 +25,24 @@ use Illuminate\Support\Facades\DB;
 
 final class OrderController extends Controller
 {
+    public function activeCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $activeStatuses = [
+            Order::STATUS_PENDING_SELLER,
+            Order::STATUS_CONFIRMED,
+            Order::STATUS_PROCESSING,
+            Order::STATUS_SHIPPED,
+        ];
+
+        $count = Order::where('user_id', $user->id)
+            ->whereIn('status', $activeStatuses)
+            ->count();
+
+        return $this->success(['count' => $count]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -201,6 +224,8 @@ final class OrderController extends Controller
             fn($storeId) => broadcast(new NewOrderReceived($order, $storeId))
         );
 
+        broadcast(new OrderStatusChanged($order));
+
         return $this->created(new OrderResource($order));
     }
 
@@ -235,6 +260,8 @@ final class OrderController extends Controller
         }
 
         $order->load(['items.product.store', 'user']);
+
+        broadcast(new OrderStatusChanged($order));
 
         return $this->success(new OrderResource($order));
     }
@@ -346,6 +373,8 @@ final class OrderController extends Controller
 
         $order->load(['items.product.store', 'user']);
 
+        broadcast(new OrderStatusChanged($order));
+
         return $this->success(new OrderResource($order));
     }
 
@@ -379,6 +408,90 @@ final class OrderController extends Controller
         return $this->success(new OrderResource($order));
     }
 
+<<<<<<< HEAD
+=======
+    public function requestReceipt(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->hasRole('customer')) {
+            return $this->forbidden('Solo los clientes pueden solicitar comprobantes.');
+        }
+
+        $order = Order::with(['items.store.owner'])->findOrFail($id);
+
+        if ($order->user_id !== $user->id) {
+            return $this->forbidden('Esta orden no te pertenece.');
+        }
+
+        $firstItem = $order->items->first();
+
+        if (! $firstItem || ! $firstItem->store) {
+            return $this->error('No se encontró una tienda asociada a esta orden.', 404);
+        }
+
+        $storeId = $firstItem->store_id;
+        $orderNumber = $order->order_number;
+
+        // Buscar conversación existente de facturación con esta tienda
+        $conversation = Conversation::where('customer_user_id', $user->id)
+            ->where('store_id', $storeId)
+            ->where('category', 'facturacion')
+            ->where('status', 'active')
+            ->first();
+
+        if (! $conversation) {
+            $conversation = Conversation::create([
+                'customer_user_id' => $user->id,
+                'store_id' => $storeId,
+                'category' => 'facturacion',
+                'subject' => "Solicitud de comprobante - Pedido {$orderNumber}",
+                'last_message_at' => now(),
+            ]);
+        }
+
+        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
+
+        $message = ConversationMessage::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'content' => $messageContent,
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
+
+        broadcast(new NewConversationMessage(
+            message: $message->loadMissing(['sender', 'conversation']),
+            customerUserId: $user->id,
+            storeId: (int) $storeId,
+        ));
+
+        $conversation->load(['store.owner', 'latestMessage']);
+
+        return response()->json([
+            'success' => true,
+            'data' => new ConversationResource($conversation),
+            'message' => 'Solicitud enviada al vendedor correctamente.',
+        ]);
+    }
+
+    public function downloadReceipt(Request $request, string $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items', 'user'])->findOrFail($id);
+
+        if (! $user->hasRole('administrator') && $order->user_id !== $user->id) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $pdf = Pdf::loadView('pdf.receipt', ['order' => $order]);
+
+        $filename = 'comprobante-' . $order->order_number . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+>>>>>>> 49185e4 (cambios recientes en backent para PreMain)
     public function updateItemStatus(Request $request, string $orderId, string $itemId): JsonResponse
     {
         $data = $request->validate([

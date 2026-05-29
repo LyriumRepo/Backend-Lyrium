@@ -65,6 +65,58 @@ return [
         ],
     ],
 
+<<<<<<< HEAD
 
+=======
+    'rapifac' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Rapifac — Facturación Electrónica SUNAT (Perú)
+        |--------------------------------------------------------------------------
+        |
+        | Rapifac es el proveedor de facturación electrónica que permite emitir
+        | comprobantes (Factura, Boleta, Nota de Crédito) con validación SUNAT.
+        |
+        | URLs de API según entorno:
+        |   Testing:
+        |     RAPIFAC_AUTH_URL = https://wsoauth-p1.rapifac.com/oauth2/token
+        |     RAPIFAC_SALES_URL = https://wsventas-p1.rapifac.com/v0/comprobantes
+        |     RAPIFAC_PDF_URL = https://wsventas-p1.rapifac.com/v0/comprobantes
+        |   Producción:
+        |     RAPIFAC_AUTH_URL = https://wsoauth.rapifac.com/oauth2/token
+        |     RAPIFAC_SALES_URL = https://wsventas.rapifac.com/v0/comprobantes
+        |     RAPIFAC_PDF_URL = https://wsventas.rapifac.com/v0/comprobantes
+        |
+        | Credenciales se obtienen del panel de Rapifac:
+        |   - RUC: RUC de la empresa registrada en Rapifac
+        |   - Usuario/Contraseña: credenciales del panel Rapifac
+        |   - Branch ID: código de local/sucursal (opcional, default 1)
+        |
+        | Tiempo de vida del token: ~1 hora. El servicio lo cachea y renueva
+        | automáticamente al expirar (refresh automático en 401).
+        */
+        'auth_url' => env('RAPIFAC_AUTH_URL'),
+        'sales_url' => env('RAPIFAC_SALES_URL'),
+        'ruc' => env('RAPIFAC_RUC'),
+        'user' => env('RAPIFAC_USER'),
+        'password' => env('RAPIFAC_PASSWORD'),
+        'branch_id' => env('RAPIFAC_BRANCH_ID'),
+
+        /*
+        | URL base para descarga de PDF de comprobantes.
+        | Normalmente coincide con RAPIFAC_SALES_URL.
+        | Si Rapifac proporciona una URL diferente para PDFs, configúrala aquí.
+        */
+        'pdf_url' => env('RAPIFAC_PDF_URL'),
+
+        /*
+        | Timeouts y reintentos para peticiones HTTP a Rapifac.
+        | Ajusta según la latencia de tu conexión a los servidores de Rapifac.
+        */
+        'timeout' => env('RAPIFAC_TIMEOUT', 30),
+        'connect_timeout' => env('RAPIFAC_CONNECT_TIMEOUT', 10),
+        'retry_attempts' => env('RAPIFAC_RETRY_ATTEMPTS', 3),
+    ],
+>>>>>>> 49185e4 (cambios recientes en backent para PreMain)
 
 ];
