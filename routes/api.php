@@ -2,10 +2,13 @@
 <?php
 
 use App\Http\Controllers\Api\AdminTicketController;
+use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BenefitController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
@@ -19,6 +22,7 @@ use App\Http\Controllers\Api\NewsletterController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PlanRequestController;
 use App\Http\Controllers\Api\ProductController;
@@ -33,6 +37,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\UserController;
+<<<<<<< HEAD
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\AdminSellerController;
@@ -44,6 +49,9 @@ use App\Http\Controllers\Api\CulqiController;
 use App\Http\Controllers\Api\ReviewModerationController;
 use App\Http\Controllers\Api\RankingController;
 use App\Http\Controllers\Api\StoreReviewController;
+=======
+use App\Http\Controllers\Api\WishlistController;
+>>>>>>> rama-calderon
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IzipayController;
 
@@ -243,6 +251,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users
     Route::get('/users/me', [UserController::class, 'me']);
     Route::put('/users/profile', [UserController::class, 'updateProfile']);
+    Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
+    Route::get('/users/settings', [UserController::class, 'getSettings']);
+    Route::put('/users/settings', [UserController::class, 'updateSettings']);
+    Route::post('/users/avatar', [UserController::class, 'uploadAvatar']);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
@@ -301,6 +313,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loyalty/validate-code', [LoyaltyController::class, 'validateCode']);
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
 
+    // Cart
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart/items', [CartController::class, 'addItem']);
+    Route::put('/cart/items/{productId}', [CartController::class, 'updateItem']);
+    Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
+    Route::delete('/cart/clear', [CartController::class, 'clear']);
+
+    // Payment Methods
+    Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
+    Route::post('/payment-methods', [PaymentMethodController::class, 'store']);
+    Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);
+    Route::put('/payment-methods/{id}', [PaymentMethodController::class, 'update']);
+    Route::delete('/payment-methods/{id}', [PaymentMethodController::class, 'destroy']);
+
+    // Addresses
+    Route::get('/addresses', [AddressController::class, 'index']);
+    Route::post('/addresses', [AddressController::class, 'store']);
+    Route::get('/addresses/{id}', [AddressController::class, 'show']);
+    Route::put('/addresses/{id}', [AddressController::class, 'update']);
+    Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+    Route::put('/addresses/{id}/default', [AddressController::class, 'setDefault']);
+
     // Orders
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
@@ -309,10 +343,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
     Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
 >>>>>>> 49185e4 (cambios recientes en backent para PreMain)
+=======
+    Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
+    Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
+>>>>>>> rama-calderon
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
 
@@ -348,7 +387,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/disputes/{id}/messages', [DisputeController::class, 'addMessage']);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> rama-calderon
     // Chat con Vendedores
     Route::get('/conversations', [ConversationController::class, 'index']);
     Route::post('/conversations', [ConversationController::class, 'store']);
@@ -369,7 +411,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wishlist/check', [WishlistController::class, 'check']);
     Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
 
+<<<<<<< HEAD
 >>>>>>> 49185e4 (cambios recientes en backent para PreMain)
+=======
+>>>>>>> rama-calderon
     // Services (Citas/Servicios)
     //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);

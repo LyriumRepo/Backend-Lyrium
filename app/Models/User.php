@@ -24,6 +24,10 @@ class User extends Authenticatable
         'nicename',
         'avatar',
         'phone',
+        'phone_2',
+        'secondary_email',
+        'landline',
+        'birthday',
         'document_type',
         'document_number',
         'is_banned',
@@ -87,5 +91,19 @@ class User extends Authenticatable
     public function couponUsages(): HasMany
     {
         return $this->hasMany(CouponUsage::class);
+    }
+
+    public function wishlists(): HasMany
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function wishlistProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'wishlists')
+            ->using(Wishlist::class)
+            ->withPivot('id', 'created_at')
+            ->withTimestamps()
+            ->orderByPivot('created_at', 'desc');
     }
 }

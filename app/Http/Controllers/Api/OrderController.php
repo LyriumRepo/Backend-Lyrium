@@ -19,6 +19,7 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,14 +123,22 @@ final class OrderController extends Controller
                     throw new \Exception("Stock insuficiente para '{$product->name}'.");
                 }
 
+<<<<<<< HEAD
                 $lineTotal = $item->quantity * $item->product->price;
+=======
+                $lineTotal = $item->quantity * $product->price;
+>>>>>>> rama-calderon
                 $subtotal += $lineTotal;
 
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'store_id' => $product->store_id,
                     'product_name' => $product->name,
+<<<<<<< HEAD
                     'unit_price' => $item->product->price,
+=======
+                    'unit_price' => $product->price,
+>>>>>>> rama-calderon
                     'quantity' => $item->quantity,
                     'line_total' => $lineTotal,
                     'status' => 'pending_seller',
@@ -188,6 +197,7 @@ final class OrderController extends Controller
                 'shipping_city' => $data['shipping_city'] ?? null,
                 'shipping_postal_code' => $data['shipping_postal_code'] ?? null,
                 'shipping_notes' => $data['shipping_notes'] ?? null,
+                'shipping_type' => $data['shipping_type'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
@@ -409,7 +419,10 @@ final class OrderController extends Controller
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> rama-calderon
     public function requestReceipt(Request $request, string $id): JsonResponse
     {
         $user = $request->user();
@@ -491,7 +504,10 @@ final class OrderController extends Controller
         return $pdf->download($filename);
     }
 
+<<<<<<< HEAD
 >>>>>>> 49185e4 (cambios recientes en backent para PreMain)
+=======
+>>>>>>> rama-calderon
     public function updateItemStatus(Request $request, string $orderId, string $itemId): JsonResponse
     {
         $data = $request->validate([

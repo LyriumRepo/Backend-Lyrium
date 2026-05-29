@@ -20,6 +20,7 @@ final class UpdateProductRequest extends FormRequest
         $type    = $this->input('type', $product?->type ?? 'physical');
 
         $rules = [
+<<<<<<< HEAD
             // Campos base
             'name'               => 'sometimes|string|min:3|max:200',
             'description'        => 'nullable|string|max:5000',
@@ -29,6 +30,15 @@ final class UpdateProductRequest extends FormRequest
             'category'           => 'nullable|string',
             'image'              => 'nullable|string',
             'sticker'            => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis',
+=======
+            'name' => 'sometimes|string|min:3|max:200',
+            'description' => 'nullable|string|max:5000',
+            'price' => 'sometimes|numeric|min:0',
+            'stock' => 'sometimes|integer|min:0',
+            'category' => 'nullable|string',
+            'image' => 'nullable|string',
+            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis,organic,natural,eco,premium,vegan',
+>>>>>>> rama-calderon
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
 
             // Atributos principales (ficha de características)
@@ -77,6 +87,7 @@ final class UpdateProductRequest extends FormRequest
     public function messages(): array
     {
         return [
+<<<<<<< HEAD
             'mainAttributes.*.values.label.required_with'        => 'Cada característica debe tener un nombre.',
             'mainAttributes.*.values.value.required_with'        => 'Cada característica debe tener un valor.',
             'additionalAttributes.*.values.label.required_with'  => 'Cada atributo adicional debe tener un nombre.',
@@ -87,6 +98,9 @@ final class UpdateProductRequest extends FormRequest
             'serviceModality.in'       => 'La modalidad debe ser: presencial, virtual o domicilio.',
             'expirationDate.after'     => 'La fecha de vencimiento debe ser posterior a hoy.',
             'short_description.max'    => 'La descripción corta no puede superar los 300 caracteres.',
+=======
+            'sticker.in' => 'El sticker seleccionado no es válido.',
+>>>>>>> rama-calderon
         ];
     }
 }

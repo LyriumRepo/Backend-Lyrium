@@ -12,6 +12,7 @@ final class ProductResource extends JsonResource
     public function toArray(Request $request): array
     {
         $data = [
+<<<<<<< HEAD
             'id'                => (string) $this->id,
             'name'              => $this->name,
             'slug'              => $this->slug,
@@ -35,6 +36,26 @@ final class ProductResource extends JsonResource
                 'medium' => $m->getUrl('medium'),
                 'large'  => $m->getUrl('large'),
                 'alt'    => $this->name,
+=======
+            'id' => (string) $this->id,
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'type' => $this->type,
+            'description' => $this->description,
+            'status' => $this->status,
+            'sticker' => $this->sticker,
+            'price' => (float) ($this->sale_price ?? $this->price),
+            'regular_price' => (float) ($this->regular_price ?? $this->price),
+            'stock' => (int) $this->stock,
+            'in_stock' => $this->stock > 0,
+            'image' => $this->image,
+            'images' => $this->resource->getMedia('images')->map(fn ($media) => [
+                'src' => $media->getUrl(),
+                'thumb' => $media->getUrl('thumb'),
+                'medium' => $media->getUrl('medium'),
+                'large' => $media->getUrl('large'),
+                'alt' => $this->name,
+>>>>>>> rama-calderon
             ])->values()->all(),
 
             'categories' => $this->whenLoaded(
@@ -135,6 +156,25 @@ final class ProductResource extends JsonResource
             $data['serviceLocation'] = $this->service_location;
         }
 
+<<<<<<< HEAD
+=======
+        // Wishlist status for authenticated users
+        $data['is_wishlisted'] = $this->when(
+            $request->user() !== null,
+            fn () => $request->user()->wishlists()->where('product_id', (int) $this->id)->exists(),
+        );
+
+        // Include attributes
+        $data['mainAttributes'] = $this->whenLoaded('mainAttributes', fn () => $this->mainAttributes->map(fn ($attr) => [
+            'values' => $attr->values,
+        ])->values()->all()
+        );
+        $data['additionalAttributes'] = $this->whenLoaded('additionalAttributes', fn () => $this->additionalAttributes->map(fn ($attr) => [
+            'values' => $attr->values,
+        ])->values()->all()
+        );
+
+>>>>>>> rama-calderon
         return $data;
     }
 }

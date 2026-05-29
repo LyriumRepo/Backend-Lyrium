@@ -6,11 +6,15 @@ namespace App\Providers;
 
 use App\Listeners\BroadcastNotificationCreated;
 <<<<<<< HEAD
+<<<<<<< HEAD
 use App\Models\Expense;
 use App\Observers\ExpenseObserver;
 =======
 use App\Services\RapifacService;
 >>>>>>> 49185e4 (cambios recientes en backent para PreMain)
+=======
+use App\Services\RapifacService;
+>>>>>>> rama-calderon
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;

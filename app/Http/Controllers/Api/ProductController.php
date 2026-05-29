@@ -380,10 +380,81 @@ final class ProductController extends Controller
      */
     private function syncAttributes(Product $product, array $data, bool $update = false): void
     {
+<<<<<<< HEAD
         $groups = [
             'mainAttributes'         => 'main',
             'additionalAttributes'   => 'additional',
             'nutritionalAttributes'  => 'nutritional',
+=======
+        $query = Product::with(['categories', 'store', 'mainAttributes', 'additionalAttributes', 'media']);
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 100);
+        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        $data = ProductResource::collection($products);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'total_pages' => $products->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/products/{id}
+     */
+    public function show(string $id): JsonResponse
+    {
+        $product = Product::with(['categories', 'store', 'mainAttributes', 'additionalAttributes'])
+            ->findOrFail($id);
+
+        return response()->json(new ProductResource($product));
+    }
+
+    /**
+     * POST /api/products
+     */
+    public function store(StoreProductRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $user = $request->user();
+        $store = $user->store;
+
+        if (! $store) {
+            return response()->json(['message' => 'No tienes una tienda registrada.'], 403);
+        }
+
+        $type = $data['type'] ?? 'physical';
+
+        $productData = [
+            'store_id' => $store->id,
+            'type' => $type,
+            'name' => $data['name'],
+            'slug' => Str::slug($data['name']).'-'.Str::random(5),
+            'description' => $data['description'] ?? '',
+            'price' => $data['price'],
+            'stock' => $data['stock'] ?? 0,
+            'image' => $data['image'] ?? null,
+            'sticker' => $data['sticker'] ?? null,
+            'discount_percentage' => $data['discountPercentage'] ?? null,
+            'status' => 'pending_review',
+>>>>>>> rama-calderon
         ];
 
         foreach ($groups as $key => $type) {

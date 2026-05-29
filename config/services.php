@@ -66,8 +66,11 @@ return [
     ],
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
+=======
+>>>>>>> rama-calderon
     'rapifac' => [
         /*
         |--------------------------------------------------------------------------
@@ -117,6 +120,9 @@ return [
         'connect_timeout' => env('RAPIFAC_CONNECT_TIMEOUT', 10),
         'retry_attempts' => env('RAPIFAC_RETRY_ATTEMPTS', 3),
     ],
+<<<<<<< HEAD
 >>>>>>> 49185e4 (cambios recientes en backent para PreMain)
+=======
+>>>>>>> rama-calderon
 
 ];
