@@ -161,14 +161,14 @@ final class PaymentSchedulerService
 
     public function getTotalPendingAmount(): float
     {
-        return SellerPayment::query()
+        return (float) SellerPayment::query()
             ->where('status', SellerPayment::STATUS_PENDING)
             ->sum('net_amount');
     }
 
     public function getTotalPendingAmountByStore(int $storeId): float
     {
-        return SellerPayment::query()
+        return (float) SellerPayment::query()
             ->where('store_id', $storeId)
             ->where('status', SellerPayment::STATUS_PENDING)
             ->sum('net_amount');

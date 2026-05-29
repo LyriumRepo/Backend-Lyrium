@@ -22,6 +22,16 @@ final class ConversationMessageResource extends JsonResource
             'content' => $this->content,
             'timestamp' => $this->created_at?->toIso8601String(),
             'read' => $this->read_at !== null,
+            'attachments' => $this->whenLoaded('attachments', fn () =>
+                $this->attachments->map(fn ($att) => [
+                    'id' => (string) $att->id,
+                    'file_name' => $att->file_name,
+                    'mime_type' => $att->mime_type,
+                    'file_size' => $att->file_size,
+                    'url' => url('storage/' . $att->file_path),
+                    'download_url' => url("api/chat/attachments/{$att->id}/download"),
+                ])
+            ),
         ];
     }
 }

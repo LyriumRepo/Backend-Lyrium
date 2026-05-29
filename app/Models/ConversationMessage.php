@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class ConversationMessage extends Model
 {
@@ -34,5 +35,10 @@ final class ConversationMessage extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ConversationMessageAttachment::class, 'conversation_message_id');
     }
 }

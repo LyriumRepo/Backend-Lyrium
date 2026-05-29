@@ -221,10 +221,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Orders
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/active-count', [OrderController::class, 'activeCount']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
     Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
+    Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
 
@@ -237,6 +239,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
+    Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -265,8 +268,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/{id}', [ConversationController::class, 'show']);
     Route::post('/conversations/{id}/messages', [ConversationController::class, 'sendMessage']);
     Route::get('/conversations/{id}/messages', [ConversationController::class, 'getMessages']);
+    Route::post('/conversations/{id}/messages/attachments', [ConversationController::class, 'sendMessageWithAttachment']);
     Route::put('/conversations/{id}/read', [ConversationController::class, 'markRead']);
     Route::put('/conversations/{id}/archive', [ConversationController::class, 'archive']);
+
+    // Chat file attachments
+    Route::get('/chat/attachments/{id}/download', [ConversationController::class, 'downloadAttachment']);
 
     // Wishlist
     Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -476,5 +483,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments/pending', [PaymentController::class, 'sellerPendingPayments']);
         Route::get('/payments/completed', [PaymentController::class, 'sellerCompletedPayments']);
         Route::get('/payments/pending-total', [PaymentController::class, 'sellerPendingTotal']);
+
+        // Facturación / Comprobantes (vendedor)
+        Route::prefix('seller/invoices')->group(function () {
+            Route::get('/', [InvoiceController::class, 'sellerInvoices']);
+            Route::post('/emit', [InvoiceController::class, 'sellerEmit']);
+            Route::post('/{id}/retry', [InvoiceController::class, 'sellerRetry']);
+            Route::get('/kpis', [InvoiceController::class, 'sellerKpis']);
+        });
     });
 });

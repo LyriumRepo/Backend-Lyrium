@@ -12,9 +12,12 @@ use App\Http\Resources\ConversationMessageResource;
 use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
+use App\Models\ConversationMessageAttachment;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class ConversationController extends Controller
 {
@@ -99,7 +102,7 @@ final class ConversationController extends Controller
         $conversation->load([
             'store.owner',
             'customer',
-            'messages' => fn ($q) => $q->with('sender')->latest()->limit(50),
+            'messages' => fn ($q) => $q->with(['sender', 'attachments'])->latest()->limit(50),
         ]);
 
         $conversation->setRelation('messages', $conversation->messages->reverse()->values());
@@ -147,6 +150,98 @@ final class ConversationController extends Controller
         ], 201);
     }
 
+    public function sendMessageWithAttachment(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $conversation = $this->findConversation($user, $id);
+
+        if (!$conversation) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Conversación no encontrada.',
+            ], 404);
+        }
+
+        $request->validate([
+            'content' => ['nullable', 'string', 'max:5000'],
+            'attachments' => ['required_without:content', 'array', 'max:10'],
+            'attachments.*' => ['file', 'mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,rar', 'max:10240'],
+        ]);
+
+        $message = ConversationMessage::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'content' => $request->input('content'),
+        ]);
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store('chat-attachments', 'public');
+
+                $message->attachments()->create([
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        }
+
+        $conversation->update(['last_message_at' => now()]);
+
+        $message->load(['sender', 'attachments']);
+
+        broadcast(new NewConversationMessage(
+            message: $message,
+            customerUserId: $conversation->customer_user_id,
+            storeId: $conversation->store_id,
+        ));
+
+        return response()->json([
+            'success' => true,
+            'data' => new ConversationMessageResource($message),
+        ], 201);
+    }
+
+    public function downloadAttachment(Request $request, int $id): BinaryFileResponse|JsonResponse
+    {
+        $attachment = ConversationMessageAttachment::with('message.conversation')->findOrFail($id);
+
+        $message = $attachment->message;
+        $conversation = $message->conversation;
+        $user = $request->user();
+
+        $canAccess = false;
+        if ($user->hasRole('customer') && $conversation->customer_user_id === $user->id) {
+            $canAccess = true;
+        } elseif ($user->hasRole('seller') || $user->hasRole('administrator')) {
+            $storeIds = $user->stores()->pluck('stores.id')
+                ->merge(Store::where('owner_id', $user->id)->pluck('id'))
+                ->unique();
+            if ($storeIds->contains($conversation->store_id)) {
+                $canAccess = true;
+            }
+        }
+
+        if (!$canAccess) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para descargar este archivo.',
+            ], 403);
+        }
+
+        $fullPath = Storage::disk('public')->path($attachment->file_path);
+
+        if (!file_exists($fullPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Archivo no encontrado.',
+            ], 404);
+        }
+
+        return response()->download($fullPath, $attachment->file_name);
+    }
+
     public function getMessages(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
@@ -159,7 +254,7 @@ final class ConversationController extends Controller
             ], 404);
         }
 
-        $query = $conversation->messages()->with('sender')->orderByDesc('id');
+        $query = $conversation->messages()->with(['sender', 'attachments'])->orderByDesc('id');
 
         if ($beforeId = $request->query('before_id')) {
             $query->where('id', '<', (int) $beforeId);
