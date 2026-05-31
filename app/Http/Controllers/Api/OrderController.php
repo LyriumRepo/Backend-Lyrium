@@ -30,7 +30,7 @@ final class OrderController extends Controller
                 ->paginate(15);
         } elseif ($user->hasRole('seller')) {
             $storeIds = $user->stores()->pluck('stores.id');
-            $orders = Order::whereHas('items', fn($q) => $q->whereIn('store_id', $storeIds))
+            $orders = Order::whereHas('items', fn ($q) => $q->whereIn('store_id', $storeIds))
                 ->with(['items.product.store', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
@@ -64,7 +64,7 @@ final class OrderController extends Controller
 
         if ($user->hasRole('seller')) {
             $storeIds = $user->stores()->pluck('stores.id');
-            $hasAccess = $order->items->every(fn($item) => $storeIds->contains($item->store_id));
+            $hasAccess = $order->items->every(fn ($item) => $storeIds->contains($item->store_id));
             if (! $hasAccess) {
                 return $this->forbidden('No tienes acceso a esta orden.');
             }
@@ -116,7 +116,7 @@ final class OrderController extends Controller
             }
 
             if ($subtotal < Order::MIN_ORDER_AMOUNT) {
-                throw new \Exception('El monto mínimo de la orden es S/ ' . number_format(Order::MIN_ORDER_AMOUNT, 2) . '.');
+                throw new \Exception('El monto mínimo de la orden es S/ '.number_format(Order::MIN_ORDER_AMOUNT, 2).'.');
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
@@ -198,7 +198,7 @@ final class OrderController extends Controller
 
         // Notificar a cada tienda involucrada en la orden
         $order->items->pluck('store_id')->unique()->each(
-            fn($storeId) => broadcast(new NewOrderReceived($order, $storeId))
+            fn ($storeId) => broadcast(new NewOrderReceived($order, $storeId))
         );
 
         return $this->created(new OrderResource($order));

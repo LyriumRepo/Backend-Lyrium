@@ -23,8 +23,8 @@ final class ReviewReport extends Model
     {
         return [
             'reviewed_at' => 'datetime',
-            'status'      => 'string',
-            'reason'      => 'string',
+            'status' => 'string',
+            'reason' => 'string',
         ];
     }
 
@@ -47,10 +47,12 @@ final class ReviewReport extends Model
     {
         return $this->status === 'pending';
     }
+
     public function isAccepted(): bool
     {
         return $this->status === 'accepted';
     }
+
     public function isDismissed(): bool
     {
         return $this->status === 'dismissed';

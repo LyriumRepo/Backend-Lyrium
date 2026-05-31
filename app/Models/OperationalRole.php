@@ -23,9 +23,9 @@ final class OperationalRole extends Model
     ];
 
     protected $casts = [
-        'modules'       => 'array',
-        'is_active'     => 'boolean',
-        'requires_2fa'  => 'boolean',
+        'modules' => 'array',
+        'is_active' => 'boolean',
+        'requires_2fa' => 'boolean',
     ];
 
     // ─── Relationships ───────────────────────────────────────────────────────

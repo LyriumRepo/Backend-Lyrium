@@ -49,15 +49,15 @@ final class TicketResource extends JsonResource
                 'numeros' => $admin?->phone ?? '',
                 'correo' => $admin?->email ?? '',
             ],
-            'mensajes'            => $this->when(
+            'mensajes' => $this->when(
                 $orderedMessages !== null,
                 fn () => TicketMessageResource::collection($orderedMessages)
             ),
-            'has_more_messages'   => $this->when(
+            'has_more_messages' => $this->when(
                 $orderedMessages !== null,
                 fn () => $this->messages_count > $orderedMessages->count()
             ),
-            'oldest_message_id'   => $this->when(
+            'oldest_message_id' => $this->when(
                 $orderedMessages !== null && $orderedMessages->isNotEmpty(),
                 fn () => $orderedMessages->first()?->id
             ),

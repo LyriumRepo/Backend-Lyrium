@@ -20,7 +20,7 @@ final class RankingController extends Controller
      */
     public function products(Request $request): JsonResponse
     {
-        $limit      = min((int) $request->query('limit', 100), 100);
+        $limit = min((int) $request->query('limit', 100), 100);
         $minReviews = max((int) $request->query('min_reviews', 1), 1);
 
         $products = Product::with(['store:id,store_name,slug,logo', 'categories:id,name,slug', 'media'])
@@ -33,8 +33,8 @@ final class RankingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => ProductRankingResource::collection($products),
-            'meta'    => ['total' => $products->count(), 'min_reviews' => $minReviews],
+            'data' => ProductRankingResource::collection($products),
+            'meta' => ['total' => $products->count(), 'min_reviews' => $minReviews],
         ]);
     }
 
@@ -57,7 +57,7 @@ final class RankingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => StoreRankingResource::collection($stores),
+            'data' => StoreRankingResource::collection($stores),
         ]);
     }
 }

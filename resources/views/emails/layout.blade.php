@@ -67,53 +67,9 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
-        /* Header */
-        .email-header {
-            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
-            padding: 32px 40px;
-            text-align: center;
-        }
-
-        .email-header .logo-text {
-            font-size: 28px;
-            font-weight: 800;
-            color: #FFFFFF;
-            letter-spacing: -0.5px;
-        }
-
-        .email-header .logo-dot {
-            color: #60A5FA;
-        }
-
-        .email-header .tagline {
-            font-size: 13px;
-            color: #BFDBFE;
-            margin-top: 4px;
-            letter-spacing: 0.5px;
-        }
-
         /* Body */
         .email-body {
-            padding: 40px 40px 32px;
-        }
-
-        /* Footer */
-        .email-footer {
-            background-color: #F8FAFC;
-            border-top: 1px solid #E2E8F0;
-            padding: 24px 40px;
-            text-align: center;
-        }
-
-        .email-footer p {
-            font-size: 12px;
-            color: #94A3B8;
-            line-height: 1.7;
-        }
-
-        .email-footer a {
-            color: #2563EB;
-            text-decoration: none;
+            padding: 0 0 32px;
         }
 
         /* Typography */
@@ -136,13 +92,7 @@
             margin-bottom: 16px;
         }
 
-        /* Greeting */
-        .greeting {
-            font-size: 17px;
-            color: #1E293B;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
+
 
         /* Status badge */
         .status-badge {
@@ -284,26 +234,6 @@
 
         /* Responsive */
         @media only screen and (max-width: 600px) {
-            .email-body {
-                padding: 28px 24px 24px;
-            }
-
-            .email-header {
-                padding: 24px;
-            }
-
-            .email-footer {
-                padding: 20px 24px;
-            }
-
-            .info-row {
-                flex-direction: column;
-                gap: 2px;
-            }
-
-            .info-value {
-                text-align: left;
-            }
         }
     </style>
 </head>
@@ -312,27 +242,9 @@
     <div class="email-wrapper">
         <div class="email-container">
 
-            {{-- HEADER --}}
-            <div class="email-header">
-                <div class="logo-text">Lyrium<span class="logo-dot">.</span></div>
-                <div class="tagline">BioMarketplace · Servicios de Salud y Bienestar</div>
-            </div>
-
             {{-- BODY --}}
             <div class="email-body">
                 @yield('email_content')
-            </div>
-
-            {{-- FOOTER --}}
-            <div class="email-footer">
-                <p>
-                    Este correo fue enviado automáticamente por <strong>Lyrium Platform</strong>.<br />
-                    Si tienes preguntas, contáctanos en
-                    <a href="mailto:soporte@lyrium.pe">soporte@lyrium.pe</a>
-                </p>
-                <p style="margin-top: 10px;">
-                    © {{ date('Y') }} Lyrium · Todos los derechos reservados
-                </p>
             </div>
 
         </div>

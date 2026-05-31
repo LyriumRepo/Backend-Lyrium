@@ -13,8 +13,8 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 final class ProductController extends Controller
 {
@@ -44,7 +44,7 @@ final class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Product::with(self::RELATIONS_LIST);
-        $user  = $request->user();
+        $user = $request->user();
 
         if ($user?->store) {
             $query->where('store_id', $user->store->id);
@@ -54,17 +54,17 @@ final class ProductController extends Controller
 
         $this->applyFilters($query, $request);
 
-        $perPage  = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 100);
         $products = $query->orderByDesc('created_at')->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data'    => ProductResource::collection($products),
-            'meta'    => [
+            'data' => ProductResource::collection($products),
+            'meta' => [
                 'current_page' => $products->currentPage(),
-                'per_page'     => $products->perPage(),
-                'total'        => $products->total(),
-                'total_pages'  => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'total_pages' => $products->lastPage(),
             ],
         ]);
     }
@@ -82,23 +82,22 @@ final class ProductController extends Controller
 
         if ($search = $request->query('search')) {
             $query->where(
-                fn($q) =>
-                $q->where('name', 'like', "%{$search}%")
+                fn ($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
             );
         }
 
-        $perPage  = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 100);
         $products = $query->orderByDesc('created_at')->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data'    => ProductResource::collection($products),
-            'meta'    => [
+            'data' => ProductResource::collection($products),
+            'meta' => [
                 'current_page' => $products->currentPage(),
-                'per_page'     => $products->perPage(),
-                'total'        => $products->total(),
-                'total_pages'  => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'total_pages' => $products->lastPage(),
             ],
         ]);
     }
@@ -121,8 +120,8 @@ final class ProductController extends Controller
      */
     public function store(StoreProductRequest $request): JsonResponse
     {
-        $data  = $request->validated();
-        $user  = $request->user();
+        $data = $request->validated();
+        $user = $request->user();
         $store = $user->store;
 
         if (! $store) {
@@ -132,30 +131,30 @@ final class ProductController extends Controller
         $type = $data['type'] ?? 'physical';
 
         $productData = [
-            'store_id'           => $store->id,
-            'type'               => $type,
-            'name'               => $data['name'],
-            'slug'               => Str::slug($data['name']) . '-' . Str::random(5),
-            'description'        => $data['description'] ?? '',
-            'short_description'  => $data['short_description'] ?? null,
-            'price'              => $data['price'],
-            'stock'              => $data['stock'] ?? 0,
-            'image'              => $data['image'] ?? null,
+            'store_id' => $store->id,
+            'type' => $type,
+            'name' => $data['name'],
+            'slug' => Str::slug($data['name']).'-'.Str::random(5),
+            'description' => $data['description'] ?? '',
+            'short_description' => $data['short_description'] ?? null,
+            'price' => $data['price'],
+            'stock' => $data['stock'] ?? 0,
+            'image' => $data['image'] ?? null,
             'discount_percentage' => $data['discountPercentage'] ?? null,
-            'status'             => 'pending_review',
+            'status' => 'pending_review',
         ];
 
         if ($type === 'physical') {
-            $productData['weight']          = $data['weight'] ?? null;
-            $productData['dimensions']      = $data['dimensions'] ?? null;
+            $productData['weight'] = $data['weight'] ?? null;
+            $productData['dimensions'] = $data['dimensions'] ?? null;
             $productData['expiration_date'] = $data['expirationDate'] ?? null;
         }
 
         if ($type === 'digital') {
-            $productData['download_url']   = $data['downloadUrl'];
+            $productData['download_url'] = $data['downloadUrl'];
             $productData['download_limit'] = $data['downloadLimit'] ?? null;
-            $productData['file_type']      = $data['fileType'] ?? null;
-            $productData['file_size']      = $data['fileSize'] ?? null;
+            $productData['file_type'] = $data['fileType'] ?? null;
+            $productData['file_size'] = $data['fileSize'] ?? null;
         }
 
         if ($type === 'service') {
@@ -180,7 +179,7 @@ final class ProductController extends Controller
     public function update(UpdateProductRequest $request, string $id): JsonResponse
     {
         $product = Product::findOrFail($id);
-        $data    = $request->validated();
+        $data = $request->validated();
 
         $updateData = $this->buildUpdateData($data, $product->type);
         $product->update($updateData);
@@ -245,17 +244,17 @@ final class ProductController extends Controller
         if ($validated['status'] === 'rejected' && empty($validated['reason'])) {
             return response()->json([
                 'message' => 'El motivo de rechazo es obligatorio.',
-                'errors'  => ['reason' => ['Debes indicar el motivo del rechazo.']],
+                'errors' => ['reason' => ['Debes indicar el motivo del rechazo.']],
             ], 422);
         }
 
         $product->update([
-            'status'           => $validated['status'],
+            'status' => $validated['status'],
             'rejection_reason' => $validated['status'] === 'rejected'
                 ? $validated['reason']
                 : null,                              // limpiar si se aprueba
-            'reviewed_at'      => now(),
-            'reviewed_by'      => Auth::id(),
+            'reviewed_at' => now(),
+            'reviewed_by' => Auth::id(),
         ]);
 
         $product->load(self::RELATIONS_DETAIL);
@@ -273,18 +272,17 @@ final class ProductController extends Controller
     {
         if ($search = $request->query('search')) {
             $query->where(
-                fn($q) =>
-                $q->where('name', 'like', "%{$search}%")
+                fn ($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
             );
         }
 
         if ($category = $request->query('category')) {
-            $query->whereHas('categories', fn($q) => $q->where('slug', $category));
+            $query->whereHas('categories', fn ($q) => $q->where('slug', $category));
         }
 
         if ($categoryId = $request->query('category_id')) {
-            $query->whereHas('categories', fn($q) => $q->where('id', $categoryId));
+            $query->whereHas('categories', fn ($q) => $q->where('id', $categoryId));
         }
 
         if ($request->boolean('on_sale')) {
@@ -336,15 +334,18 @@ final class ProductController extends Controller
     private function syncAttributes(Product $product, array $data, bool $update = false): void
     {
         $groups = [
-            'mainAttributes'         => 'main',
-            'additionalAttributes'   => 'additional',
-            'nutritionalAttributes'  => 'nutritional',
+            'mainAttributes' => 'main',
+            'additionalAttributes' => 'additional',
+            'nutritionalAttributes' => 'nutritional',
         ];
 
         foreach ($groups as $key => $type) {
             if (! array_key_exists($key, $data)) {
                 // En update: si no viene el grupo, no se toca
-                if ($update) continue;
+                if ($update) {
+                    continue;
+                }
+
                 // En store: si no viene, tampoco se crea nada
                 continue;
             }
@@ -359,14 +360,14 @@ final class ProductController extends Controller
             // El primer registro de nutritional puede ser el serving_note
             if ($type === 'nutritional' && ! empty($data['servingNote'])) {
                 $product->attributes()->create([
-                    'type'   => 'nutritional',
+                    'type' => 'nutritional',
                     'values' => ['serving_note' => $data['servingNote']],
                 ]);
             }
 
             foreach ($data[$key] as $attr) {
                 $product->attributes()->create([
-                    'type'   => $type,
+                    'type' => $type,
                     'values' => $attr['values'] ?? [],
                 ]);
             }
@@ -379,27 +380,27 @@ final class ProductController extends Controller
     private function buildUpdateData(array $data, string $type): array
     {
         $map = [
-            'name'               => 'name',
-            'description'        => 'description',
-            'short_description'  => 'short_description',
-            'price'              => 'price',
-            'stock'              => 'stock',
-            'image'              => 'image',
-            'sticker'            => 'sticker',
+            'name' => 'name',
+            'description' => 'description',
+            'short_description' => 'short_description',
+            'price' => 'price',
+            'stock' => 'stock',
+            'image' => 'image',
+            'sticker' => 'sticker',
             'discountPercentage' => 'discount_percentage',
         ];
 
         $typeMap = [
             'physical' => [
-                'weight'         => 'weight',
-                'dimensions'     => 'dimensions',
+                'weight' => 'weight',
+                'dimensions' => 'dimensions',
                 'expirationDate' => 'expiration_date',
             ],
             'digital' => [
-                'downloadUrl'   => 'download_url',
+                'downloadUrl' => 'download_url',
                 'downloadLimit' => 'download_limit',
-                'fileType'      => 'file_type',
-                'fileSize'      => 'file_size',
+                'fileType' => 'file_type',
+                'fileSize' => 'file_size',
             ],
             'service' => [
                 'serviceDuration' => 'service_duration',

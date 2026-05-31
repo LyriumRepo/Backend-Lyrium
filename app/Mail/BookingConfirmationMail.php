@@ -47,15 +47,15 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         $serviceName = $this->booking->service?->name ?? 'Consulta';
-        $date        = Carbon::parse($this->booking->appointment_date)
+        $date = Carbon::parse($this->booking->appointment_date)
             ->setTimezone('America/Lima')
             ->translatedFormat('l d \d\e F \d\e Y \a \l\a\s H:i');
 
         $subject = match ($this->role) {
-            'client'     => "✅ Tu cita está confirmada — {$serviceName}",
+            'client' => "✅ Tu cita está confirmada — {$serviceName}",
             'specialist' => "📅 Nueva cita asignada — {$serviceName} el {$date}",
-            'seller'     => "🔔 Nueva reserva en tu tienda — {$serviceName}",
-            default      => "Confirmación de cita — {$serviceName}",
+            'seller' => "🔔 Nueva reserva en tu tienda — {$serviceName}",
+            default => "Confirmación de cita — {$serviceName}",
         };
 
         return new Envelope(subject: $subject);
@@ -66,16 +66,16 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.booking-confirmation',
             with: [
-                'booking'       => $this->booking,
+                'booking' => $this->booking,
                 'recipientName' => $this->recipientName,
-                'role'          => $this->role,
-                'gcalOk'        => $this->gcalOk,
-                'hasIcs'        => $this->icsContent !== null,
+                'role' => $this->role,
+                'gcalOk' => $this->gcalOk,
+                'hasIcs' => $this->icsContent !== null,
                 // Datos formateados para la vista
-                'serviceName'   => $this->booking->service?->name ?? 'Consulta',
+                'serviceName' => $this->booking->service?->name ?? 'Consulta',
                 'specialistName' => $this->booking->specialist?->nombre_completo ?? '—',
-                'clientName'    => $this->booking->user?->name ?? '—',
-                'storeName'     => $this->booking->service?->store?->trade_name
+                'clientName' => $this->booking->user?->name ?? '—',
+                'storeName' => $this->booking->service?->store?->trade_name
                     ?? $this->booking->service?->store?->store_name
                     ?? '—',
                 'appointmentDate' => Carbon::parse($this->booking->appointment_date)
@@ -84,9 +84,9 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
                 'appointmentTime' => Carbon::parse($this->booking->appointment_date)
                     ->setTimezone('America/Lima')
                     ->format('H:i'),
-                'duration'      => $this->booking->service?->duration_minutes ?? 30,
-                'price'         => number_format((float) $this->booking->total_price, 2),
-                'status'        => $this->booking->status,
+                'duration' => $this->booking->service?->duration_minutes ?? 30,
+                'price' => number_format((float) $this->booking->total_price, 2),
+                'status' => $this->booking->status,
                 'customerNotes' => $this->booking->customer_notes,
             ]
         );
@@ -104,7 +104,7 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
 
         return [
             Attachment::fromData(
-                fn() => $this->icsContent,
+                fn () => $this->icsContent,
                 'cita-lyrium.ics'
             )->withMime('text/calendar'),
         ];

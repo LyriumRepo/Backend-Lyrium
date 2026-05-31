@@ -29,9 +29,9 @@ final class Expense extends Model
     ];
 
     protected $casts = [
-        'amount'    => 'decimal:2',
+        'amount' => 'decimal:2',
         'issued_at' => 'date',
-        'paid_at'   => 'date',
+        'paid_at' => 'date',
     ];
 
     // ─── Relationships ───────────────────────────────────────────────────────
@@ -70,8 +70,8 @@ final class Expense extends Model
      */
     public static function nextReceiptNumber(): string
     {
-        $year  = now()->year;
-        $count = static::whereYear('created_at', $year)->withTrashed()->count();
+        $year = now()->year;
+        $count = self::whereYear('created_at', $year)->withTrashed()->count();
 
         return sprintf('EXP-%d-%03d', $year, $count + 1);
     }

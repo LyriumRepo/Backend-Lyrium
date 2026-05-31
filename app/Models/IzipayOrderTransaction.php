@@ -83,6 +83,6 @@ final class IzipayOrderTransaction extends Model
      */
     public static function generateIzipayOrderId(int $orderId): string
     {
-        return 'LYR-' . $orderId . '-' . time();
+        return 'LYR-'.$orderId.'-'.time();
     }
 }

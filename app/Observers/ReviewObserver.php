@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Models\Review;
 use App\Models\Product;
+use App\Models\Review;
 
 class ReviewObserver
 {
@@ -48,7 +48,7 @@ class ReviewObserver
             ->first();
 
         Product::where('id', $productId)->update([
-            'rating_count'    => (int) $stats->total,
+            'rating_count' => (int) $stats->total,
             'rating_promedio' => round((float) $stats->promedio, 2),
         ]);
     }

@@ -10,7 +10,6 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 
 final class AdminSellerController extends Controller
 {
@@ -37,7 +36,7 @@ final class AdminSellerController extends Controller
         $sellerStoreQuery = Store::whereIn('owner_id', $sellerUserIds)
             ->whereNull('deleted_at');
 
-        $active  = (clone $sellerStoreQuery)->where('status', 'approved')->count();
+        $active = (clone $sellerStoreQuery)->where('status', 'approved')->count();
         $pending = (clone $sellerStoreQuery)->where('status', 'pending')->count();
 
         // Alertas: strikes > 0 || disputas abiertas || pagos fallidos
@@ -63,10 +62,10 @@ final class AdminSellerController extends Controller
         $alerts = $alertStoreIds->count();
 
         return response()->json([
-            'total'   => $total,
-            'active'  => $active,
+            'total' => $total,
+            'active' => $active,
             'pending' => $pending,
-            'alerts'  => $alerts,
+            'alerts' => $alerts,
         ]);
     }
 
@@ -84,8 +83,8 @@ final class AdminSellerController extends Controller
     public function index(Request $request): JsonResponse
     {
         $perPage = min((int) $request->query('per_page', 20), 100);
-        $search  = $request->query('search');
-        $status  = $request->query('status');
+        $search = $request->query('search');
+        $status = $request->query('status');
 
         // Base: usuarios con rol seller
         $query = User::role('seller')
@@ -114,12 +113,12 @@ final class AdminSellerController extends Controller
 
         // Filtro por status
         match ($status) {
-            'active'  => $query->where('is_banned', false)
-                ->whereHas('ownedStores', fn($s) => $s->where('status', 'active')),
-            'pending' => $query->whereHas('ownedStores', fn($s) => $s->where('status', 'pending')),
-            'banned'  => $query->where('is_banned', true),
-            'alert'   => $query->whereHas('ownedStores', fn($s) => $s->where('strikes', '>', 0)),
-            default   => null,
+            'active' => $query->where('is_banned', false)
+                ->whereHas('ownedStores', fn ($s) => $s->where('status', 'active')),
+            'pending' => $query->whereHas('ownedStores', fn ($s) => $s->where('status', 'pending')),
+            'banned' => $query->where('is_banned', true),
+            'alert' => $query->whereHas('ownedStores', fn ($s) => $s->where('strikes', '>', 0)),
+            default => null,
         };
 
         $users = $query->latest('created_at')->paginate($perPage);
@@ -153,45 +152,45 @@ final class AdminSellerController extends Controller
             }
 
             return [
-                'id'             => $user->id,
-                'username'       => $user->username,
-                'display_name'   => $user->name,
-                'email'          => $user->email,
-                'phone'          => $user->phone,
-                'document_type'  => $user->document_type,
+                'id' => $user->id,
+                'username' => $user->username,
+                'display_name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'document_type' => $user->document_type,
                 'document_number' => $user->document_number,
-                'avatar'         => $user->avatar,
-                'is_banned'      => $user->is_banned,
+                'avatar' => $user->avatar,
+                'is_banned' => $user->is_banned,
                 'email_verified' => (bool) $user->email_verified_at,
-                'created_at'     => $user->created_at?->toIso8601String(),
-                'stores_count'   => $user->owned_stores_count,
-                'store'          => $store ? [
-                    'id'             => $store->id,
-                    'trade_name'     => $store->trade_name,
-                    'store_name'     => $store->store_name,
-                    'slug'           => $store->slug,
-                    'logo'           => $store->logo,
-                    'status'         => $store->status,           // pending | active | suspended
+                'created_at' => $user->created_at?->toIso8601String(),
+                'stores_count' => $user->owned_stores_count,
+                'store' => $store ? [
+                    'id' => $store->id,
+                    'trade_name' => $store->trade_name,
+                    'store_name' => $store->store_name,
+                    'slug' => $store->slug,
+                    'logo' => $store->logo,
+                    'status' => $store->status,           // pending | active | suspended
                     'profile_status' => $store->profile_status,   // approved | pending | rejected
-                    'strikes'        => $store->strikes,
-                    'rating'         => $store->rating,
-                    'total_sales'    => $store->total_sales,
-                    'approved_at'    => $store->approved_at?->toIso8601String(),
+                    'strikes' => $store->strikes,
+                    'rating' => $store->rating,
+                    'total_sales' => $store->total_sales,
+                    'approved_at' => $store->approved_at?->toIso8601String(),
                     'has_active_contract' => $store->contracts->isNotEmpty(),
                 ] : null,
-                'alerts'         => $alertReasons,   // [] = sin alerta
-                'has_alerts'     => count($alertReasons) > 0,
+                'alerts' => $alertReasons,   // [] = sin alerta
+                'has_alerts' => count($alertReasons) > 0,
             ];
         });
 
         return response()->json([
-            'data'       => $data,
+            'data' => $data,
             'pagination' => [
-                'page'       => $users->currentPage(),
-                'perPage'    => $users->perPage(),
-                'total'      => $users->total(),
+                'page' => $users->currentPage(),
+                'perPage' => $users->perPage(),
+                'total' => $users->total(),
                 'totalPages' => $users->lastPage(),
-                'hasMore'    => $users->hasMorePages(),
+                'hasMore' => $users->hasMorePages(),
             ],
         ]);
     }
@@ -214,20 +213,20 @@ final class AdminSellerController extends Controller
 
         $openDisputes = $store
             ? \App\Models\Dispute::where('store_id', $store->id)
-            ->whereIn('status', ['open', 'under_review'])
-            ->count()
+                ->whereIn('status', ['open', 'under_review'])
+                ->count()
             : 0;
 
         $pendingPayments = $store
             ? \App\Models\SellerPayment::where('store_id', $store->id)
-            ->where('status', 'pending')
-            ->count()
+                ->where('status', 'pending')
+                ->count()
             : 0;
 
         return response()->json([
-            'user'            => new UserResource($user),
-            'store'           => $store,
-            'open_disputes'   => $openDisputes,
+            'user' => new UserResource($user),
+            'store' => $store,
+            'open_disputes' => $openDisputes,
             'pending_payments' => $pendingPayments,
         ]);
     }
@@ -245,9 +244,9 @@ final class AdminSellerController extends Controller
         $user->update(['is_banned' => ! $user->is_banned]);
 
         return response()->json([
-            'id'       => $user->id,
+            'id' => $user->id,
             'is_banned' => $user->is_banned,
-            'message'  => $user->is_banned
+            'message' => $user->is_banned
                 ? 'Vendedor baneado correctamente.'
                 : 'Vendedor habilitado correctamente.',
         ]);
@@ -266,14 +265,14 @@ final class AdminSellerController extends Controller
 
         $store = Store::whereNull('deleted_at')->findOrFail($storeId);
         $store->update([
-            'status'      => $validated['status'],
+            'status' => $validated['status'],
             'approved_at' => $validated['status'] === 'active' ? now() : $store->approved_at,
         ]);
 
         return response()->json([
             'store_id' => $store->id,
-            'status'   => $store->status,
-            'message'  => 'Estado de tienda actualizado.',
+            'status' => $store->status,
+            'message' => 'Estado de tienda actualizado.',
         ]);
     }
 }

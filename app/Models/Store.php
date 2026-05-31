@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 final class Store extends Model implements HasMedia
 {
@@ -212,7 +212,7 @@ final class Store extends Model implements HasMedia
     public function getGalleryUrls(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn($media) => $media->getUrl())
+            ->map(fn ($media) => $media->getUrl())
             ->toArray();
     }
 
@@ -247,7 +247,7 @@ final class Store extends Model implements HasMedia
     // Cambia esto en app/Models/Store.php
     public function getAverageRatingAttribute($value): float
     {
-        // Si $value ya existe (gracias a withAvg), lo usamos. 
+        // Si $value ya existe (gracias a withAvg), lo usamos.
         // Si no existe (cuando consultas una sola tienda sin con conAvg), hace el fallback a la BD.
         $rating = $value ?? $this->reviews()->avg('rating') ?? 0;
 

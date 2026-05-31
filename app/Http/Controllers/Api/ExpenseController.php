@@ -29,7 +29,7 @@ final class ExpenseController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('receipt_number', 'like', "%{$search}%")
                     ->orWhere('concept', 'like', "%{$search}%")
-                    ->orWhereHas('supplier', fn($s) => $s->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('supplier', fn ($s) => $s->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -49,17 +49,17 @@ final class ExpenseController extends Controller
             $query->whereDate('issued_at', '<=', $to);
         }
 
-        $perPage  = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 100);
         $expenses = $query->paginate($perPage);
 
         return response()->json([
-            'data'       => ExpenseResource::collection($expenses),
+            'data' => ExpenseResource::collection($expenses),
             'pagination' => [
-                'page'       => $expenses->currentPage(),
-                'perPage'    => $expenses->perPage(),
-                'total'      => $expenses->total(),
+                'page' => $expenses->currentPage(),
+                'perPage' => $expenses->perPage(),
+                'total' => $expenses->total(),
                 'totalPages' => $expenses->lastPage(),
-                'hasMore'    => $expenses->hasMorePages(),
+                'hasMore' => $expenses->hasMorePages(),
             ],
         ]);
     }
@@ -70,16 +70,16 @@ final class ExpenseController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $total   = Expense::whereNot('status', 'Anulado')->sum('amount');
-        $paid    = Expense::paid()->sum('amount');
+        $total = Expense::whereNot('status', 'Anulado')->sum('amount');
+        $paid = Expense::paid()->sum('amount');
         $pending = Expense::pending()->sum('amount');
-        $count   = Expense::whereNot('status', 'Anulado')->count();
+        $count = Expense::whereNot('status', 'Anulado')->count();
 
         return response()->json([
-            'total_invertido'    => (float) $total,
-            'total_pagado'       => (float) $paid,
-            'total_pendiente'    => (float) $pending,
-            'total_recibos'      => $count,
+            'total_invertido' => (float) $total,
+            'total_pagado' => (float) $paid,
+            'total_pendiente' => (float) $pending,
+            'total_recibos' => $count,
             'recibos_pendientes' => Expense::pending()->count(),
         ]);
     }
@@ -104,8 +104,8 @@ final class ExpenseController extends Controller
         $expense = Expense::create([
             ...$data,
             'receipt_number' => Expense::nextReceiptNumber(),
-            'registered_by'  => $request->user()->id,
-            'status'         => $data['status'] ?? 'Pendiente',
+            'registered_by' => $request->user()->id,
+            'status' => $data['status'] ?? 'Pendiente',
         ]);
 
         $expense->load(['supplier', 'registeredBy']);
@@ -128,7 +128,7 @@ final class ExpenseController extends Controller
     {
         $expense = Expense::findOrFail($id);
         $oldData = $expense->toArray();
-        $data    = $request->validated();
+        $data = $request->validated();
 
         // Si se marca como Pagado y no hay fecha de pago, asignar hoy
         if (isset($data['status']) && $data['status'] === 'Pagado' && ! isset($data['paid_at'])) {

@@ -53,15 +53,16 @@ final class ServiceController extends Controller
             ],
         ]);
     }
+
     public function sellerServices(\Illuminate\Http\Request $request): \Illuminate\Http\JsonResponse
     {
         // 1. Obtener el usuario autenticado a través del Token de Sanctum
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => false,
-                'message' => 'No autorizado. Debe iniciar sesión.'
+                'message' => 'No autorizado. Debe iniciar sesión.',
             ], 401);
         }
 
@@ -70,10 +71,10 @@ final class ServiceController extends Controller
         $store = $user->store ?? $user->stores()->where('status', 'approved')->first();
 
         // 3. Validar que el vendedor realmente posea una tienda activa
-        if (!$store) {
+        if (! $store) {
             return response()->json([
                 'success' => false,
-                'message' => 'No tienes una tienda registrada o aprobada en el sistema.'
+                'message' => 'No tienes una tienda registrada o aprobada en el sistema.',
             ], 403);
         }
 
@@ -91,9 +92,9 @@ final class ServiceController extends Controller
             'data' => \App\Http\Resources\ServiceResource::collection($services->items()),
             'meta' => [
                 'current_page' => $services->currentPage(),
-                'last_page'    => $services->lastPage(),
-                'per_page'     => $services->perPage(),
-                'total'        => $services->total(),
+                'last_page' => $services->lastPage(),
+                'per_page' => $services->perPage(),
+                'total' => $services->total(),
             ],
         ]);
     }
@@ -127,6 +128,13 @@ final class ServiceController extends Controller
         return response()->json(new ServiceResource($service));
     }
 
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $service = $this->serviceService->findBySlug($slug);
+
+        return response()->json(new ServiceResource($service));
+    }
+
     public function showMyService(Request $request, $id): JsonResponse
     {
         $user = $request->user();
@@ -153,7 +161,7 @@ final class ServiceController extends Controller
 
         $service = $this->serviceService->findOrFail($id);
 
-        $hasAccess = $user->stores()->where('id', $service->store_id)->exists();
+        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -208,7 +216,6 @@ final class ServiceController extends Controller
         ]);
     } */
 
-
     public function book(BookServiceRequest $request, int $serviceId): JsonResponse
     {
         $booking = $this->serviceService->book(
@@ -221,6 +228,20 @@ final class ServiceController extends Controller
         broadcast(new NewBookingReceived($booking));
 
         return response()->json(new ServiceBookingResource($booking), 201);
+    }
+
+    public function pendingReview(Request $request, int $serviceId): JsonResponse
+    {
+        $booking = \App\Models\ServiceBooking::where('service_id', $serviceId)
+            ->where('user_id', $request->user()->id)
+            ->where('status', \App\Models\ServiceBooking::STATUS_COMPLETED)
+            ->whereDoesntHave('review')
+            ->latest('updated_at')
+            ->first();
+
+        return response()->json([
+            'data' => $booking ? new \App\Http\Resources\ServiceBookingResource($booking) : null,
+        ]);
     }
 
     public function myBookings(Request $request): JsonResponse
@@ -247,7 +268,7 @@ final class ServiceController extends Controller
         $booking = $this->serviceService->confirmBooking($bookingId);
 
         $service = $booking->service;
-        $hasAccess = $user->stores()->where('id', $service->store_id)->exists();
+        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -345,6 +366,87 @@ final class ServiceController extends Controller
         ]);
     }
 
+    public function completeBooking(Request $request, int $bookingId): JsonResponse
+    {
+        $user = $request->user();
+        $booking = \App\Models\ServiceBooking::with('service.store')->findOrFail($bookingId);
+
+        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+
+        if (! $hasAccess && ! $user->hasRole('administrator')) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $booking = $this->serviceService->completeBooking($bookingId);
+
+        return response()->json(new ServiceBookingResource($booking));
+    }
+
+    public function markOnTheWay(Request $request, int $bookingId): JsonResponse
+    {
+        $user = $request->user();
+        $booking = \App\Models\ServiceBooking::with('service.store')->findOrFail($bookingId);
+
+        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+
+        if (! $hasAccess && ! $user->hasRole('administrator')) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $booking = $this->serviceService->markAsOnTheWay($bookingId);
+
+        return response()->json(new ServiceBookingResource($booking));
+    }
+
+    public function confirmCompletion(Request $request, int $bookingId): JsonResponse
+    {
+        $booking = \App\Models\ServiceBooking::with('service')->findOrFail($bookingId);
+
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $booking = $this->serviceService->confirmCompletion($bookingId);
+
+        return response()->json(new ServiceBookingResource($booking));
+    }
+
+    public function rateBooking(Request $request, int $bookingId): JsonResponse
+    {
+        $booking = \App\Models\ServiceBooking::with('service')->findOrFail($bookingId);
+
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        if ($booking->status !== \App\Models\ServiceBooking::STATUS_COMPLETED) {
+            return response()->json(['message' => 'Solo se puede calificar reservas completadas'], 422);
+        }
+
+        $data = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $existing = \App\Models\Review::where('service_booking_id', $bookingId)->first();
+
+        if ($existing) {
+            return response()->json(['message' => 'Ya calificaste esta reserva'], 422);
+        }
+
+        $review = \App\Models\Review::create([
+            'service_booking_id' => $bookingId,
+            'specialist_id' => $booking->specialist_id,
+            'user_id' => $request->user()->id,
+            'product_id' => $booking->service->id,
+            'rating' => $data['rating'],
+            'comment' => $data['comment'] ?? null,
+            'is_verified_purchase' => true,
+        ]);
+
+        return response()->json($review, 201);
+    }
+
     public function addNotes(Request $request, int $bookingId): JsonResponse
     {
         $user = $request->user();
@@ -371,6 +473,7 @@ final class ServiceController extends Controller
 
         return response()->json(new ServiceBookingResource($booking));
     }
+
     /**
      * Obtener los intervalos disponibles reales de un especialista para un servicio y fecha.
      * GET /api/services/{id}/slots
@@ -378,12 +481,12 @@ final class ServiceController extends Controller
     public function availableSlots(\Illuminate\Http\Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $request->validate([
-            'specialist_id'    => ['required', 'integer', 'exists:specialists,id'],
+            'specialist_id' => ['required', 'integer', 'exists:specialists,id'],
             'appointment_date' => ['required', 'date', 'after_or_equal:today'],
         ]);
 
         $specialistId = (int) $request->input('specialist_id');
-        $dateString   = (string) $request->input('appointment_date');
+        $dateString = (string) $request->input('appointment_date');
 
         try {
             $slots = $this->serviceService->getAvailableSlots(
@@ -395,15 +498,16 @@ final class ServiceController extends Controller
             // Retornamos un listado limpio de strings de horas en formato JSON
             return response()->json([
                 'success' => true,
-                'date'    => $dateString,
-                'slots'   => $slots
+                'date' => $dateString,
+                'slots' => $slots,
             ]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Error cargando slots: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Error cargando slots: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Ocurrió un error al procesar la agenda disponible.',
-                'error'   => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

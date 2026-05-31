@@ -282,7 +282,7 @@ final class ContractController extends Controller
      */
     public function templateInfo(): JsonResponse
     {
-        $exists   = Storage::disk('local')->exists(ContractDocumentService::TEMPLATE_PATH);
+        $exists = Storage::disk('local')->exists(ContractDocumentService::TEMPLATE_PATH);
         $uploadedAt = null;
 
         if ($exists) {
@@ -291,7 +291,7 @@ final class ContractController extends Controller
 
         return response()->json([
             'has_template' => $exists,
-            'uploaded_at'  => $uploadedAt,
+            'uploaded_at' => $uploadedAt,
             'placeholders' => [
                 '${contract_number}', '${company}', '${ruc}',
                 '${rep_nombre}', '${rep_dni}', '${direccion}',
@@ -314,12 +314,12 @@ final class ContractController extends Controller
         $file = $request->file('file');
 
         // Guardar sobrescribiendo el template anterior
-        $dir  = dirname(ContractDocumentService::TEMPLATE_PATH);
+        $dir = dirname(ContractDocumentService::TEMPLATE_PATH);
         $name = basename(ContractDocumentService::TEMPLATE_PATH);
         $file->storeAs($dir, $name, 'local');
 
         return response()->json([
-            'message'     => 'Template subido correctamente',
+            'message' => 'Template subido correctamente',
             'uploaded_at' => now()->toDateTimeString(),
         ]);
     }
@@ -422,12 +422,12 @@ final class ContractController extends Controller
             'file' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
-        $file        = $request->file('file');
+        $file = $request->file('file');
         $companySlug = preg_replace('/[^a-zA-Z0-9_]/', '_', $contract->company ?? 'empresa');
-        $year        = now()->year;
-        $path        = $file->storeAs(
+        $year = now()->year;
+        $path = $file->storeAs(
             "contracts/{$companySlug}/{$year}/signed",
-            "firmado_{$contract->contract_number}." . $file->getClientOriginalExtension(),
+            "firmado_{$contract->contract_number}.".$file->getClientOriginalExtension(),
             'local'
         );
 

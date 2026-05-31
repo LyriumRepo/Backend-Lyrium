@@ -26,22 +26,22 @@ final class StoreProductRequest extends FormRequest
             'image' => 'nullable|string',
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
             // En StoreProductRequest, reemplazar las reglas de atributos por estas:
-            'mainAttributes'                        => 'nullable|array',
-            'mainAttributes.*.values'               => 'required_with:mainAttributes|array',
-            'mainAttributes.*.values.label'         => 'required_with:mainAttributes|string|max:100',
-            'mainAttributes.*.values.value'         => 'required_with:mainAttributes|string|max:255',
+            'mainAttributes' => 'nullable|array',
+            'mainAttributes.*.values' => 'required_with:mainAttributes|array',
+            'mainAttributes.*.values.label' => 'required_with:mainAttributes|string|max:100',
+            'mainAttributes.*.values.value' => 'required_with:mainAttributes|string|max:255',
 
-            'additionalAttributes'                  => 'nullable|array',
-            'additionalAttributes.*.values'         => 'required_with:additionalAttributes|array',
-            'additionalAttributes.*.values.label'   => 'required_with:additionalAttributes|string|max:100',
-            'additionalAttributes.*.values.value'   => 'required_with:additionalAttributes|string|max:255',
+            'additionalAttributes' => 'nullable|array',
+            'additionalAttributes.*.values' => 'required_with:additionalAttributes|array',
+            'additionalAttributes.*.values.label' => 'required_with:additionalAttributes|string|max:100',
+            'additionalAttributes.*.values.value' => 'required_with:additionalAttributes|string|max:255',
 
-            'servingNote'                                    => 'nullable|string|max:200',
-            'nutritionalAttributes'                          => 'nullable|array',
-            'nutritionalAttributes.*.values'                 => 'required_with:nutritionalAttributes|array',
-            'nutritionalAttributes.*.values.label'           => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.value'           => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.daily_value'     => 'nullable|string|max:20',
+            'servingNote' => 'nullable|string|max:200',
+            'nutritionalAttributes' => 'nullable|array',
+            'nutritionalAttributes.*.values' => 'required_with:nutritionalAttributes|array',
+            'nutritionalAttributes.*.values.label' => 'required_with:nutritionalAttributes|string|max:100',
+            'nutritionalAttributes.*.values.value' => 'required_with:nutritionalAttributes|string|max:100',
+            'nutritionalAttributes.*.values.daily_value' => 'nullable|string|max:20',
 
         ];
 
@@ -74,10 +74,10 @@ final class StoreProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mainAttributes.*.values.label.required_with'        => 'Cada característica debe tener un nombre.',
-            'mainAttributes.*.values.value.required_with'        => 'Cada característica debe tener un valor.',
-            'additionalAttributes.*.values.label.required_with'  => 'Cada atributo adicional debe tener un nombre.',
-            'additionalAttributes.*.values.value.required_with'  => 'Cada atributo adicional debe tener un valor.',
+            'mainAttributes.*.values.label.required_with' => 'Cada característica debe tener un nombre.',
+            'mainAttributes.*.values.value.required_with' => 'Cada característica debe tener un valor.',
+            'additionalAttributes.*.values.label.required_with' => 'Cada atributo adicional debe tener un nombre.',
+            'additionalAttributes.*.values.value.required_with' => 'Cada atributo adicional debe tener un valor.',
             'nutritionalAttributes.*.values.label.required_with' => 'Cada fila nutricional debe tener un nombre.',
             'nutritionalAttributes.*.values.value.required_with' => 'Cada fila nutricional debe tener un valor.',
             'type.in' => 'El tipo debe ser: physical, digital o service.',

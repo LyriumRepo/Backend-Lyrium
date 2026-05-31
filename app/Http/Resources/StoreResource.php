@@ -75,6 +75,7 @@ final class StoreResource extends JsonResource
             'rating' => (float) $this->rating,
             'contractStatus' => $this->whenLoaded('contracts', function () {
                 $contract = $this->contracts->first();
+
                 return $contract ? $contract->status : null;
             }),
             'registeredAt' => $this->created_at?->toIso8601String(),

@@ -37,8 +37,9 @@ final class Cart extends Model
     {
         return $this->items->sum('quantity');
     }
+
     protected $casts = [
-    'price' => 'float',
-    'sale_price' => 'float',
+        'price' => 'float',
+        'sale_price' => 'float',
     ];
 }

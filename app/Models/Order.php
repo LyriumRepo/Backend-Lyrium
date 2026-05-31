@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class Order extends Model
 {
@@ -270,6 +269,7 @@ final class Order extends Model
     {
         return $this->hasMany(CulqiTransaction::class);
     }
+
     public function latestCulqiTransaction()
     {
         return $this->hasOne(CulqiTransaction::class)->latestOfMany();

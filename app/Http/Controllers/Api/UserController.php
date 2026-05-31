@@ -7,8 +7,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\UpdateSellerProfileRequest;
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use App\Mail\WelcomeInternalUserMail;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -137,10 +137,10 @@ final class UserController extends Controller
     public function createInternal(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|unique:users,email',
-            'password'     => 'required|string|min:8',
-            'role'         => 'required|in:logistics_operator,administrator',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:logistics_operator,administrator',
             'send_welcome' => 'sometimes|boolean',
         ]);
 
@@ -152,11 +152,11 @@ final class UserController extends Controller
         }
 
         $user = User::create([
-            'name'              => $data['name'],
-            'username'          => $username,
-            'email'             => $data['email'],
-            'nicename'          => Str::slug($data['name']),
-            'password'          => Hash::make($data['password']),
+            'name' => $data['name'],
+            'username' => $username,
+            'email' => $data['email'],
+            'nicename' => Str::slug($data['name']),
+            'password' => Hash::make($data['password']),
             'email_verified_at' => now(),
         ]);
 
@@ -250,25 +250,25 @@ final class UserController extends Controller
      */
     public function updatePassword(Request $request): JsonResponse
     {
-    $user = $request->user();
+        $user = $request->user();
 
-    $validated = $request->validate([
-        'current_password' => ['required', 'current_password'],
-        'password' => [
-            'required', 
-            'confirmed', 
-            Password::min(8)->letters()->mixedCase()->numbers()->symbols()
-        ],
-    ], [
-        'current_password.current_password' => 'La contraseña actual es incorrecta.',
-    ]);
+        $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)->letters()->mixedCase()->numbers()->symbols(),
+            ],
+        ], [
+            'current_password.current_password' => 'La contraseña actual es incorrecta.',
+        ]);
 
-    $user->update([
-        'password' => Hash::make($validated['password']),
-    ]);
+        $user->update([
+            'password' => Hash::make($validated['password']),
+        ]);
 
-    return response()->json([
-        'message' => 'Contraseña actualizada exitosamente.'
-    ]);
+        return response()->json([
+            'message' => 'Contraseña actualizada exitosamente.',
+        ]);
     }
 }

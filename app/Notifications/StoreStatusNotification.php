@@ -30,21 +30,21 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
         if ($this->newStatus === 'approved') {
             return (new MailMessage)
                 ->subject('¡Tu tienda ha sido aprobada! - Lyrium BioMarketplace')
-                ->greeting('¡Felicidades, ' . $notifiable->name . '!')
-                ->line('Tu tienda "' . $this->store->trade_name . '" ha sido aprobada.')
+                ->greeting('¡Felicidades, '.$notifiable->name.'!')
+                ->line('Tu tienda "'.$this->store->trade_name.'" ha sido aprobada.')
                 ->line('Ya puedes iniciar sesión y comenzar a gestionar tus productos.')
-                ->action('Iniciar Sesión', config('app.frontend_url') . '/auth')
+                ->action('Iniciar Sesión', config('app.frontend_url').'/auth')
                 ->line('¡Bienvenido a Lyrium BioMarketplace!');
         }
 
         if ($this->newStatus === 'rejected') {
             $mail = (new MailMessage)
                 ->subject('Actualización sobre tu tienda - Lyrium BioMarketplace')
-                ->greeting('Hola, ' . $notifiable->name)
-                ->line('Lamentablemente, tu tienda "' . $this->store->trade_name . '" no fue aprobada.');
+                ->greeting('Hola, '.$notifiable->name)
+                ->line('Lamentablemente, tu tienda "'.$this->store->trade_name.'" no fue aprobada.');
 
             if ($this->reason) {
-                $mail->line('Motivo: ' . $this->reason);
+                $mail->line('Motivo: '.$this->reason);
             }
 
             return $mail->line('Puedes contactarnos si tienes alguna consulta.');
@@ -53,11 +53,11 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
         if ($this->newStatus === 'banned') {
             $mail = (new MailMessage)
                 ->subject('Tu tienda ha sido suspendida - Lyrium BioMarketplace')
-                ->greeting('Hola, ' . $notifiable->name)
-                ->line('Tu tienda "' . $this->store->trade_name . '" ha sido suspendida.');
+                ->greeting('Hola, '.$notifiable->name)
+                ->line('Tu tienda "'.$this->store->trade_name.'" ha sido suspendida.');
 
             if ($this->reason) {
-                $mail->line('Motivo: ' . $this->reason);
+                $mail->line('Motivo: '.$this->reason);
             }
 
             return $mail->line('Si crees que esto es un error, puedes contactarnos.');
@@ -65,7 +65,7 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->subject('Actualización de tu tienda - Lyrium BioMarketplace')
-            ->line('El estado de tu tienda "' . $this->store->trade_name . '" ha cambiado a: ' . $this->newStatus);
+            ->line('El estado de tu tienda "'.$this->store->trade_name.'" ha cambiado a: '.$this->newStatus);
     }
 
     public function toArray(object $notifiable): array

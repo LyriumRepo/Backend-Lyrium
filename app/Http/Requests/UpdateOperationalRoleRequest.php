@@ -19,12 +19,12 @@ final class UpdateOperationalRoleRequest extends FormRequest
         $id = $this->route('operationalRole');
 
         return [
-            'name'         => ['sometimes', 'string', 'max:100'],
-            'code'         => ['sometimes', 'string', 'max:50', 'alpha_dash', Rule::unique('operational_roles', 'code')->ignore($id)],
-            'description'  => ['nullable', 'string', 'max:500'],
-            'is_active'    => ['sometimes', 'boolean'],
-            'modules'      => ['nullable', 'array'],
-            'modules.*'    => ['string', 'max:80'],
+            'name' => ['sometimes', 'string', 'max:100'],
+            'code' => ['sometimes', 'string', 'max:50', 'alpha_dash', Rule::unique('operational_roles', 'code')->ignore($id)],
+            'description' => ['nullable', 'string', 'max:500'],
+            'is_active' => ['sometimes', 'boolean'],
+            'modules' => ['nullable', 'array'],
+            'modules.*' => ['string', 'max:80'],
             'requires_2fa' => ['sometimes', 'boolean'],
         ];
     }
