@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('invoice_number')->unique();
             $table->string('nit')->nullable();
             $table->string('business_name')->nullable();
-            $table->string('provider')->default('rapifac');
+            $table->string('provider')->default('nubefact');
             $table->string('provider_invoice_id')->nullable();
             $table->string('qr_data')->nullable();
             $table->string('pdf_url')->nullable();

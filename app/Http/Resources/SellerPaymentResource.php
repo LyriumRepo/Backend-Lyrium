@@ -18,6 +18,8 @@ final class SellerPaymentResource extends JsonResource
             'order_id' => $this->order_id,
             'status' => $this->status,
             'amount' => $this->amount,
+            'total_con_igv' => round((float) $this->amount * 1.18, 2),
+            'igv' => round((float) $this->amount * 0.18, 2),
             'commission_rate' => $this->commission_rate,
             'commission_amount' => $this->commission_amount,
             'net_amount' => $this->net_amount,

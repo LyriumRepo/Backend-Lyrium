@@ -87,7 +87,7 @@ class AdminUserSeeder extends Seeder
         $logistics->assignRole('logistics_operator');
 
         $store = \App\Models\Store::updateOrCreate(
-            ['ruc' => '20123456789'],
+            ['ruc' => '20123456786'],
             [
                 'owner_id' => $seller2->id,
                 'trade_name' => 'BioTienda Demo',

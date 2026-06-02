@@ -39,54 +39,67 @@ return [
         ],
     ],
 
-    'rapifac' => [
+    'nubefact' => [
         /*
         |--------------------------------------------------------------------------
-        | Rapifac — Facturación Electrónica SUNAT (Perú)
+        | NubeFact — Facturación Electrónica SUNAT (Perú)
         |--------------------------------------------------------------------------
         |
-        | Rapifac es el proveedor de facturación electrónica que permite emitir
+        | NubeFact es el proveedor de facturación electrónica que permite emitir
         | comprobantes (Factura, Boleta, Nota de Crédito) con validación SUNAT.
         |
-        | URLs de API según entorno:
-        |   Testing:
-        |     RAPIFAC_AUTH_URL = https://wsoauth-p1.rapifac.com/oauth2/token
-        |     RAPIFAC_SALES_URL = https://wsventas-p1.rapifac.com/v0/comprobantes
-        |     RAPIFAC_PDF_URL = https://wsventas-p1.rapifac.com/v0/comprobantes
-        |   Producción:
-        |     RAPIFAC_AUTH_URL = https://wsoauth.rapifac.com/oauth2/token
-        |     RAPIFAC_SALES_URL = https://wsventas.rapifac.com/v0/comprobantes
-        |     RAPIFAC_PDF_URL = https://wsventas.rapifac.com/v0/comprobantes
+        | URL de la API de NubeFact (producción o testing):
+        |   NUBEFACT_URL = https://api.nubefact.com/api/v1
         |
-        | Credenciales se obtienen del panel de Rapifac:
-        |   - RUC: RUC de la empresa registrada en Rapifac
-        |   - Usuario/Contraseña: credenciales del panel Rapifac
-        |   - Branch ID: código de local/sucursal (opcional, default 1)
+        | Token de acceso (generado desde el panel de NubeFact):
+        |   NUBEFACT_TOKEN = tu_token_api
         |
-        | Tiempo de vida del token: ~1 hora. El servicio lo cachea y renueva
-        | automáticamente al expirar (refresh automático en 401).
+        | Timeouts configurables para las peticiones HTTP.
         */
-        'auth_url' => env('RAPIFAC_AUTH_URL'),
-        'sales_url' => env('RAPIFAC_SALES_URL'),
-        'ruc' => env('RAPIFAC_RUC'),
-        'user' => env('RAPIFAC_USER'),
-        'password' => env('RAPIFAC_PASSWORD'),
-        'branch_id' => env('RAPIFAC_BRANCH_ID'),
+        'url' => env('NUBEFACT_URL'),
+        'token' => env('NUBEFACT_TOKEN'),
+        'timeout' => env('NUBEFACT_TIMEOUT', 30),
+        'connect_timeout' => env('NUBEFACT_CONNECT_TIMEOUT', 10),
 
         /*
-        | URL base para descarga de PDF de comprobantes.
-        | Normalmente coincide con RAPIFAC_SALES_URL.
-        | Si Rapifac proporciona una URL diferente para PDFs, configúrala aquí.
+        |--------------------------------------------------------------------------
+        | Series de comprobantes registradas en NubeFact
+        |--------------------------------------------------------------------------
+        |
+        | Mapa de series según el tipo de comprobante.
+        | Debe coincidir con lo configurado en NubeFact > Locales y series.
         */
-        'pdf_url' => env('RAPIFAC_PDF_URL'),
+        'series' => [
+            'FACTURA' => 'FFF1',
+            'BOLETA' => 'BBB1',
+            'NOTA_CREDITO' => 'FFF1',
+        ],
+    ],
 
-        /*
-        | Timeouts y reintentos para peticiones HTTP a Rapifac.
-        | Ajusta según la latencia de tu conexión a los servidores de Rapifac.
-        */
-        'timeout' => env('RAPIFAC_TIMEOUT', 30),
-        'connect_timeout' => env('RAPIFAC_CONNECT_TIMEOUT', 10),
-        'retry_attempts' => env('RAPIFAC_RETRY_ATTEMPTS', 3),
+    /*
+    |--------------------------------------------------------------------------
+    | Izipay — Pasarela de Pago (Mi Cuenta Web)
+    |--------------------------------------------------------------------------
+    |
+    | Izipay es la pasarela de pagos para procesar tarjetas de crédito/débito.
+    | Si no se configuran las credenciales, el sistema opera en modo MOCK
+    | para permitir pruebas del flujo de facturación sin conexión real.
+    |
+    | IZIPAY_MOCK=true  → usa el modo simulado (sin conexión real)
+    | IZIPAY_MOCK=false → usa la API REST real de Izipay
+    |
+    | Credenciales: https://micuentaweb.pe
+    */
+    'izipay' => [
+        'mock'      => env('IZIPAY_MOCK', true),
+        'api_url'   => env('IZIPAY_API_URL', 'https://api.micuentaweb.pe/api-payment'),
+        'public_key' => env('IZIPAY_PUBLIC_KEY', ''),
+        'private_key' => env('IZIPAY_PRIVATE_KEY', ''),
+        'username'  => env('IZIPAY_USERNAME', ''),
+        'password'  => env('IZIPAY_PASSWORD', ''),
+        'hmac_key'  => env('IZIPAY_HMAC_KEY', ''),
+        'shop_id'   => env('IZIPAY_SHOP_ID', ''),
     ],
 
 ];
+

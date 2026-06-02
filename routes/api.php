@@ -14,8 +14,10 @@ use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\EventsController;
+use App\Http\Controllers\Api\FinanceAnalyticsController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\IzipayPaymentController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
@@ -88,8 +90,11 @@ Route::get('/config/public', [SystemConfigController::class, 'publicConfigs']);
 // SSE Events
 Route::get('/events', [EventsController::class, 'stream']);
 
-// Webhook Izipay (público)
+// Webhook Izipay (público) - Planes de suscripción
 Route::post('/webhooks/izipay', [PlanRequestController::class, 'webhookIzipay']);
+
+// Webhook Izipay (público) - Órdenes de compra
+Route::post('/webhooks/izipay/order', [IzipayWebhookController::class, 'handleOrderPayment']);
 
 // Shipping público
 Route::get('/shipping/methods', [ShippingController::class, 'methods']);
@@ -238,6 +243,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Invoices
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
     Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
 
@@ -289,6 +295,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings/my', [ServiceController::class, 'myBookings']);
     Route::put('/bookings/{id}/cancel', [ServiceController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/reschedule', [ServiceController::class, 'reschedule']);
+
+    // Izipay Payment
+    Route::prefix('payments/izipay')->group(function () {
+        Route::post('/init/{order}', [IzipayPaymentController::class, 'init']);
+        Route::post('/confirm/{order}', [IzipayPaymentController::class, 'confirm']);
+    });
 
     /*
     |----------------------------------------------------------------------
@@ -484,12 +496,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments/completed', [PaymentController::class, 'sellerCompletedPayments']);
         Route::get('/payments/pending-total', [PaymentController::class, 'sellerPendingTotal']);
 
-        // Facturación / Comprobantes (vendedor)
+        // Analytics financieros
+        Route::get('/seller/finance/analytics', [FinanceAnalyticsController::class, 'analytics']);
+
+        // Facturación / Comprobantes (vendedor - SOLO CONSULTA)
+        // La emisión es automática post-pago vía webhook Izipay
         Route::prefix('seller/invoices')->group(function () {
             Route::get('/', [InvoiceController::class, 'sellerInvoices']);
-            Route::post('/emit', [InvoiceController::class, 'sellerEmit']);
-            Route::post('/{id}/retry', [InvoiceController::class, 'sellerRetry']);
             Route::get('/kpis', [InvoiceController::class, 'sellerKpis']);
+            Route::get('/series', [InvoiceController::class, 'sellerSeries']);
+            Route::get('/orders/{orderId}', [InvoiceController::class, 'sellerOrderData']);
         });
     });
 });

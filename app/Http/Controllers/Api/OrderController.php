@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
+use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
@@ -17,12 +18,14 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class OrderController extends Controller
 {
@@ -370,7 +373,39 @@ final class OrderController extends Controller
         }
 
         if (isset($data['payment_status'])) {
-            $order->update(['payment_status' => $data['payment_status']]);
+            $wasPaid = $order->payment_status === Order::PAYMENT_STATUS_PAID;
+            $newPaymentStatus = $data['payment_status'];
+
+            $order->update(['payment_status' => $newPaymentStatus]);
+
+            // ── Temporal: disparar facturación automática al marcar como pagado ──
+            if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID && !$wasPaid) {
+                $order->refresh();
+
+                Log::info('[FACTURACION] ===== INICIO: pago marcado manualmente =====', [
+                    'order_id'          => $order->id,
+                    'order_number'      => $order->order_number,
+                    'triggered_by'      => $user->id,
+                    'triggered_by_role' => $user->roles->pluck('name')->implode(', '),
+                    'total'             => $order->total,
+                ]);
+
+                event(new OrderPaymentConfirmed(
+                    order: $order,
+                    paymentMethod: 'manual',
+                ));
+
+                $invoiceCount = Invoice::where('order_id', $order->id)->count();
+                Log::info('[FACTURACION] ===== FIN: evento emitido =====', [
+                    'order_id'       => $order->id,
+                    'orden_pagada'   => true,
+                    'evento'         => 'OrderPaymentConfirmed',
+                    'listener'       => 'GenerateInvoicesForOrder',
+                    'invoices_creadas' => $invoiceCount,
+                    'nubefact_llamado' => $invoiceCount > 0 ? 'SI' : 'NO (sin stores o error)',
+                ]);
+            }
+            // ── Fin temporal ──
         }
 
         $order->load(['items.product.store', 'user']);

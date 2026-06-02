@@ -30,6 +30,7 @@ final class ShipmentResource extends JsonResource
             'created_at' => $this->created_at?->toIso8601String(),
             'order' => $this->whenLoaded('order', fn () => [
                 'order_number' => $this->order->order_number,
+                'createdAt' => $this->order->created_at?->toIso8601String(),
             ]),
             'store' => $this->whenLoaded('store', fn () => [
                 'id' => $this->store->id,

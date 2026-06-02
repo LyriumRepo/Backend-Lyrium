@@ -59,18 +59,26 @@ final class Invoice extends Model
         'pdf_url',
         'authorization_code',
         'total',
+        'subtotal_sin_igv',
+        'igv_amount',
         'status',
         'sunat_status',
         'emission_date',
         'history',
+        'xml_url',
+        'cdr_url',
     ];
 
     protected function casts(): array
     {
         return [
             'total' => 'decimal:2',
+            'subtotal_sin_igv' => 'decimal:2',
+            'igv_amount' => 'decimal:2',
             'emission_date' => 'datetime',
             'history' => 'array',
+            'xml_url' => 'string',
+            'cdr_url' => 'string',
         ];
     }
 
