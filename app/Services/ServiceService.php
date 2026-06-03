@@ -7,6 +7,8 @@ use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSchedule;
 use App\Models\Category;
+use App\Models\Order;
+use App\Models\OrderServiceItem;
 use Illuminate\Support\Str;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -311,7 +313,7 @@ final class ServiceService
                     throw new \InvalidArgumentException('El horario seleccionado no está disponible');
                 }
 
-                return \App\Models\ServiceBooking::create([
+                $booking = \App\Models\ServiceBooking::create([
                     'service_id'       => $service->id,
                     'user_id'          => $userId,
                     'schedule_id'      => $schedule->id,
@@ -323,13 +325,49 @@ final class ServiceService
                     'customer_notes'   => $data['customer_notes'] ?? $data['notes'] ?? null,
                     'specialist_id'    => $data['specialist_id'] ?? null,
                 ]);
+
+                // ── Crear o actualizar Order + OrderServiceItem ──
+                $order = Order::create([
+                    'order_number'  => Order::generateOrderNumber(),
+                    'order_type'    => Order::ORDER_TYPE_SERVICE,
+                    'user_id'       => $userId,
+                    'status'        => Order::STATUS_PENDING_SELLER,
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'payment_status' => 'pending',
+                    'subtotal'      => $service->price,
+                    'total'         => $service->price,
+                ]);
+
+                $specialistName = null;
+                if (! empty($data['specialist_id'])) {
+                    $specialist = \App\Models\Specialist::find($data['specialist_id']);
+                    $specialistName = $specialist?->nombres . ' ' . $specialist?->apellidos;
+                }
+
+                OrderServiceItem::create([
+                    'order_id'              => $order->id,
+                    'service_booking_id'    => $booking->id,
+                    'service_id'            => $service->id,
+                    'store_id'              => $service->store_id,
+                    'specialist_id'         => $data['specialist_id'] ?? null,
+                    'service_name'          => $service->name,
+                    'quantity'              => 1,
+                    'unit_price'            => $service->price,
+                    'line_total'            => $service->price,
+                    'status'                => 'pending',
+                    'appointment_date'      => $appointmentDate,
+                    'modality'              => $service->is_home_service ? 'home' : 'in_person',
+                    'duration_minutes'      => $service->duration_minutes,
+                    'service_snapshot'      => $service->toArray(),
+                    'store_name_snapshot'   => $service->store?->store_name ?? $service->store?->trade_name,
+                    'specialist_name_snapshot' => $specialistName,
+                ]);
+
+                return $booking;
             }
         );
 
         // ── Google Calendar va FUERA de la transacción (API externa asíncrona) ──
-        // createEvent() ya se encarga de:
-        //   1. Crear el evento con attendees (cliente, especialista, vendedor).
-        //   2. Enviar BookingConfirmationMail a los 3 (con .ics si GCal falla).
         $eventIds = $this->googleCalendar->createEvent($booking);
 
         $updateData = array_filter([

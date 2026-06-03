@@ -32,6 +32,8 @@ final class MediaController extends Controller
         $media = $product->addMedia($file)
             ->toMediaCollection('images');
 
+        $product->update(['image' => $media->getUrl()]);
+
         return $this->created(new MediaResource($media));
     }
 

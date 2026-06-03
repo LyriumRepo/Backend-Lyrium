@@ -14,29 +14,51 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\ServiceBooking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class OrderController extends Controller
 {
+    private const WITH_RELATIONS = [
+        'items.product.store',
+        'items.store',
+        'serviceItems.service',
+        'serviceItems.store',
+        'serviceItems.specialist',
+        'serviceItems.serviceBooking',
+        'shipments',
+        'user',
+    ];
+    
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
 
+        $storeIds = collect();
+
+        if ($user->hasRole('seller')) {
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique();
+        }
+
         if ($user->hasRole('administrator')) {
-            $orders = Order::with(['items.product.store', 'user'])
+            $orders = Order::with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         } elseif ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id');
-            $orders = Order::whereHas('items', fn($q) => $q->whereIn('store_id', $storeIds))
-                ->with(['items.product.store', 'user'])
+            $orders = Order::where(function ($q) use ($storeIds) {
+                    $q->whereHas('items', fn($q) => $q->whereIn('store_id', $storeIds))
+                      ->orWhereHas('serviceItems', fn($q) => $q->whereIn('store_id', $storeIds));
+                })
+                ->with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         } else {
             $orders = Order::where('user_id', $user->id)
-                ->with(['items.product.store', 'user'])
+                ->with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         }
@@ -56,18 +78,21 @@ final class OrderController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $user = $request->user();
-        $order = Order::with(['items.product.store', 'user'])->findOrFail($id);
+        $order = Order::with(self::WITH_RELATIONS)->findOrFail($id);
 
         if (! $user->hasRole('administrator') && ! $user->hasRole('seller') && $order->user_id !== $user->id) {
             return $this->forbidden('No tienes acceso a esta orden.');
         }
 
         if ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id');
-            $hasAccess = $order->items->every(fn($item) => $storeIds->contains($item->store_id));
-            if (! $hasAccess) {
-                return $this->forbidden('No tienes acceso a esta orden.');
-            }
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique();
+        $hasItems = $order->items->contains(fn($item) => $storeIds->contains($item->store_id));
+        $hasServiceItems = $order->serviceItems->contains(fn($si) => $storeIds->contains($si->store_id));
+        if (! $hasItems && ! $hasServiceItems) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
         }
 
         return $this->success(new OrderResource($order));
@@ -194,7 +219,7 @@ final class OrderController extends Controller
             return $order;
         });
 
-        $order->load(['items.product.store', 'user']);
+        $order->load(self::WITH_RELATIONS);
 
         // Notificar a cada tienda involucrada en la orden
         $order->items->pluck('store_id')->unique()->each(
@@ -212,29 +237,71 @@ final class OrderController extends Controller
             return $this->forbidden('Solo vendedores o administradores pueden confirmar órdenes.');
         }
 
-        $order = Order::with(['items.product.store', 'user'])->findOrFail($id);
+        $order = Order::with(['items.product.store', 'serviceItems.store', 'user'])->findOrFail($id);
 
         if ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id');
-            $hasAccess = $order->items()->whereIn('store_id', $storeIds)->exists();
-            if (! $hasAccess) {
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique();
+            $hasItems = $order->items()->whereIn('store_id', $storeIds)->exists();
+            $hasServices = $order->serviceItems()->whereIn('store_id', $storeIds)->exists();
+            if (! $hasItems && ! $hasServices) {
                 return $this->forbidden('No tienes acceso a esta orden.');
             }
 
-            $order->items()
-                ->whereIn('store_id', $storeIds)
-                ->where('status', OrderItem::STATUS_PENDING_SELLER)
-                ->update(['status' => OrderItem::STATUS_CONFIRMED]);
+            if ($hasItems) {
+                $order->items()
+                    ->where('status', OrderItem::STATUS_PENDING_SELLER)
+                    ->update(['status' => OrderItem::STATUS_CONFIRMED]);
+            }
 
+            if ($hasServices) {
+                $initialStatuses = ['pending', 'pending_seller'];
+
+                $bookingIds = DB::table('order_service_items')
+                    ->where('order_id', $order->id)
+                    ->whereIn('status', $initialStatuses)
+                    ->whereNotNull('service_booking_id')
+                    ->pluck('service_booking_id');
+
+                DB::table('order_service_items')
+                    ->where('order_id', $order->id)
+                    ->whereIn('status', $initialStatuses)
+                    ->update(['status' => 'confirmed']);
+
+                DB::table('service_bookings')
+                    ->whereIn('id', $bookingIds)
+                    ->update(['status' => ServiceBooking::STATUS_CONFIRMED]);
+            }
+
+            $order->refresh();
             $order->refreshGlobalStatus();
         } else {
             $order->items()
                 ->where('status', OrderItem::STATUS_PENDING_SELLER)
                 ->update(['status' => OrderItem::STATUS_CONFIRMED]);
+
+            $initialStatuses = ['pending', 'pending_seller'];
+
+            $bookingIds = DB::table('order_service_items')
+                ->where('order_id', $order->id)
+                ->whereIn('status', $initialStatuses)
+                ->whereNotNull('service_booking_id')
+                ->pluck('service_booking_id');
+
+            DB::table('order_service_items')
+                ->where('order_id', $order->id)
+                ->whereIn('status', $initialStatuses)
+                ->update(['status' => 'confirmed']);
+
+            DB::table('service_bookings')
+                ->whereIn('id', $bookingIds)
+                ->update(['status' => ServiceBooking::STATUS_CONFIRMED]);
+
             $order->update(['status' => Order::STATUS_CONFIRMED]);
         }
 
-        $order->load(['items.product.store', 'user']);
+        $order->load(self::WITH_RELATIONS);
 
         return $this->success(new OrderResource($order));
     }
@@ -243,7 +310,7 @@ final class OrderController extends Controller
     {
         $data = $request->validated();
         $user = $request->user();
-        $order = Order::with('items.product')->findOrFail($id);
+        $order = Order::with(['items.product', 'serviceItems'])->findOrFail($id);
 
         $newStatus = $data['status'];
 
@@ -252,9 +319,12 @@ final class OrderController extends Controller
         }
 
         if ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id');
-            $hasAccess = $order->items()->whereIn('store_id', $storeIds)->exists();
-            if (! $hasAccess) {
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique();
+            $hasItems = $order->items()->whereIn('store_id', $storeIds)->exists();
+            $hasServices = $order->serviceItems()->whereIn('store_id', $storeIds)->exists();
+            if (! $hasItems && ! $hasServices) {
                 return $this->forbidden('No tienes acceso a esta orden.');
             }
 
@@ -277,13 +347,28 @@ final class OrderController extends Controller
 
             if ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
-                    ->whereIn('store_id', $storeIds)
                     ->whereIn('status', [OrderItem::STATUS_PENDING_SELLER, OrderItem::STATUS_CONFIRMED])
                     ->get();
 
                 foreach ($itemsToCancel as $item) {
                     $item->update(['status' => OrderItem::STATUS_CANCELLED]);
                     $item->product->increment('stock', $item->quantity);
+                }
+
+                if ($hasServices) {
+                    $bookingIds = $order->serviceItems()
+                        ->whereIn('status', ['pending', 'confirmed'])
+                        ->whereNotNull('service_booking_id')
+                        ->pluck('service_booking_id');
+
+                    $order->serviceItems()
+                        ->whereIn('status', ['pending', 'confirmed'])
+                        ->update(['status' => 'cancelled']);
+
+                    if ($bookingIds->isNotEmpty()) {
+                        ServiceBooking::whereIn('id', $bookingIds)
+                            ->update(['status' => ServiceBooking::STATUS_CANCELLED]);
+                    }
                 }
             } else {
                 $currentItemStatus = match ($newStatus) {
@@ -295,7 +380,6 @@ final class OrderController extends Controller
 
                 if ($currentItemStatus) {
                     $order->items()
-                        ->whereIn('store_id', $storeIds)
                         ->where('status', $currentItemStatus)
                         ->update(['status' => match ($newStatus) {
                             Order::STATUS_PROCESSING => OrderItem::STATUS_PROCESSING,
@@ -304,12 +388,49 @@ final class OrderController extends Controller
                             default => $newStatus,
                         }]);
                 }
+
+                if ($newStatus === Order::STATUS_PROCESSING) {
+                    $bookingIds = $order->serviceItems()
+                        ->where('status', 'confirmed')
+                        ->whereNotNull('service_booking_id')
+                        ->pluck('service_booking_id');
+
+                    $order->serviceItems()
+                        ->where('status', 'confirmed')
+                        ->update(['status' => 'completed']);
+
+                    if ($bookingIds->isNotEmpty()) {
+                        ServiceBooking::whereIn('id', $bookingIds)
+                            ->update(['status' => ServiceBooking::STATUS_COMPLETED]);
+                    }
+                }
             }
 
+            $order->refresh();
             $order->refreshGlobalStatus();
         } elseif ($user->hasRole('administrator')) {
             $order->update(['status' => $newStatus]);
             $order->items()->update(['status' => $newStatus]);
+
+            $bookingIds = $order->serviceItems()
+                ->whereNotNull('service_booking_id')
+                ->pluck('service_booking_id');
+
+            $order->serviceItems()->update(['status' => match ($newStatus) {
+                Order::STATUS_PROCESSING => 'completed',
+                Order::STATUS_CANCELLED => 'cancelled',
+                default => $newStatus,
+            }]);
+
+            $serviceBookingStatus = match ($newStatus) {
+                Order::STATUS_PROCESSING => ServiceBooking::STATUS_COMPLETED,
+                Order::STATUS_CANCELLED => ServiceBooking::STATUS_CANCELLED,
+                default => $newStatus,
+            };
+
+            if ($bookingIds->isNotEmpty()) {
+                ServiceBooking::whereIn('id', $bookingIds)->update(['status' => $serviceBookingStatus]);
+            }
         } else {
             if ($order->user_id !== $user->id) {
                 return $this->forbidden('No tienes acceso a esta orden.');
@@ -319,6 +440,7 @@ final class OrderController extends Controller
                 $order->items()
                     ->where('status', OrderItem::STATUS_SHIPPED)
                     ->update(['status' => OrderItem::STATUS_DELIVERED]);
+                $order->refresh();
                 $order->refreshGlobalStatus();
             } elseif ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
@@ -334,6 +456,7 @@ final class OrderController extends Controller
                     $item->product->increment('stock', $item->quantity);
                 }
 
+                $order->refresh();
                 $order->refreshGlobalStatus();
             } else {
                 return $this->forbidden('No tienes permiso para cambiar a este estado.');
@@ -344,7 +467,7 @@ final class OrderController extends Controller
             $order->update(['payment_status' => $data['payment_status']]);
         }
 
-        $order->load(['items.product.store', 'user']);
+        $order->load(self::WITH_RELATIONS);
 
         return $this->success(new OrderResource($order));
     }
@@ -361,7 +484,10 @@ final class OrderController extends Controller
         $item = $order->items()->findOrFail($itemId);
 
         if ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id')->toArray();
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique()
+                ->toArray();
             if (! in_array($item->store_id, $storeIds)) {
                 return $this->forbidden('Este item no pertenece a tu tienda.');
             }
@@ -374,7 +500,7 @@ final class OrderController extends Controller
         $item->update(['status' => OrderItem::STATUS_CONFIRMED]);
         $order->refreshGlobalStatus();
 
-        $order->load(['items.product.store', 'user']);
+        $order->load(self::WITH_RELATIONS);
 
         return $this->success(new OrderResource($order));
     }
@@ -392,7 +518,10 @@ final class OrderController extends Controller
         $newStatus = $data['status'];
 
         if ($user->hasRole('seller')) {
-            $storeIds = $user->stores()->pluck('stores.id')->toArray();
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique()
+                ->toArray();
             if (! in_array($item->store_id, $storeIds)) {
                 return $this->forbidden('Este item no pertenece a tu tienda.');
             }
@@ -439,7 +568,7 @@ final class OrderController extends Controller
         }
 
         $order->refreshGlobalStatus();
-        $order->load(['items.product.store', 'user']);
+        $order->load(self::WITH_RELATIONS);
 
         return $this->success(new OrderResource($order));
     }

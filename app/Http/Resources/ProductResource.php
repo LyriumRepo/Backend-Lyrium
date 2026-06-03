@@ -29,6 +29,8 @@ final class ProductResource extends JsonResource
             'stock'             => (int) $this->stock,
             'in_stock'          => $this->stock > 0,
 
+            'image'             => $this->image,
+
             'images' => $this->resource->getMedia('images')->map(fn($m) => [
                 'src'    => $m->getUrl(),
                 'thumb'  => $m->getUrl('thumb'),

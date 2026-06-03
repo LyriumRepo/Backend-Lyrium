@@ -530,6 +530,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
         Route::delete('/stores/{id}/media/gallery/{mediaId}', [MediaController::class, 'deleteStoreGallery']);
 
+        // Agenda del vendedor (eventos pagados)
+        Route::get('/seller/agenda', [\App\Http\Controllers\Api\AgendaController::class, 'index']);
+
         // Rutas que requieren contrato activo para operar
         Route::middleware('auth:sanctum', 'contract.active')->group(function () {
             // Products CRUD

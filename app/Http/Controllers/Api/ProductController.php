@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 final class ProductController extends Controller
 {
@@ -44,7 +45,7 @@ final class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Product::with(self::RELATIONS_LIST);
-        $user  = $request->user();
+        $user  = $request->user() ?? $request->user('sanctum');
         // If user has a store, show all products from that store (including pending)
         if ($user?->store) {
             $query->where('store_id', $user->store->id);
@@ -200,6 +201,9 @@ final class ProductController extends Controller
     public function update(UpdateProductRequest $request, string $id): JsonResponse
     {
         $product = Product::findOrFail($id);
+
+        Gate::authorize('update', $product);
+
         $data    = $request->validated();
 
         $updateData = $this->buildUpdateData($data, $product->type);
