@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Store;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,60 +23,96 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['database'];
+
+        $settings = $notifiable->notificationSetting;
+
+        if ($settings?->wantsEmailOrder() ?? true) {
+            $channels[] = 'mail';
+        }
+
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        if ($this->newStatus === 'approved') {
-            return (new MailMessage)
-                ->subject('¡Tu tienda ha sido aprobada! - Lyrium BioMarketplace')
-                ->greeting('¡Felicidades, ' . $notifiable->name . '!')
-                ->line('Tu tienda "' . $this->store->trade_name . '" ha sido aprobada.')
-                ->line('Ya puedes iniciar sesión y comenzar a gestionar tus productos.')
-                ->action('Iniciar Sesión', config('app.frontend_url') . '/auth')
-                ->line('¡Bienvenido a Lyrium BioMarketplace!');
-        }
-
-        if ($this->newStatus === 'rejected') {
-            $mail = (new MailMessage)
-                ->subject('Actualización sobre tu tienda - Lyrium BioMarketplace')
-                ->greeting('Hola, ' . $notifiable->name)
-                ->line('Lamentablemente, tu tienda "' . $this->store->trade_name . '" no fue aprobada.');
-
-            if ($this->reason) {
-                $mail->line('Motivo: ' . $this->reason);
-            }
-
-            return $mail->line('Puedes contactarnos si tienes alguna consulta.');
-        }
-
-        if ($this->newStatus === 'banned') {
-            $mail = (new MailMessage)
-                ->subject('Tu tienda ha sido suspendida - Lyrium BioMarketplace')
-                ->greeting('Hola, ' . $notifiable->name)
-                ->line('Tu tienda "' . $this->store->trade_name . '" ha sido suspendida.');
-
-            if ($this->reason) {
-                $mail->line('Motivo: ' . $this->reason);
-            }
-
-            return $mail->line('Si crees que esto es un error, puedes contactarnos.');
-        }
+        $greeting = match ($this->newStatus) {
+            'approved' => '¡Felicidades, ' . $notifiable->name . '!',
+            'rejected', 'banned' => 'Hola, ' . $notifiable->name,
+            default => 'Hola, ' . $notifiable->name,
+        };
 
         return (new MailMessage)
-            ->subject('Actualización de tu tienda - Lyrium BioMarketplace')
-            ->line('El estado de tu tienda "' . $this->store->trade_name . '" ha cambiado a: ' . $this->newStatus);
+            ->subject(match ($this->newStatus) {
+                'approved' => '✅ ¡Tu tienda ha sido aprobada! - Lyrium BioMarketplace',
+                'rejected' => 'Actualización sobre tu tienda - Lyrium BioMarketplace',
+                'banned' => '⚠️ Tu tienda ha sido suspendida - Lyrium BioMarketplace',
+                default => 'Actualización de tu tienda - Lyrium BioMarketplace',
+            })
+            ->view('emails.notifications.store-status', [
+                'greeting' => $greeting,
+                'storeName' => $this->store->trade_name,
+                'status' => $this->newStatus,
+                'reason' => $this->reason,
+                'actionUrl' => config('app.frontend_url') . '/seller/settings',
+                'showTagline' => true,
+            ])
+            ->withSymfonyMessage(function ($message) {
+                $iconPath = public_path('images/iconologo.png');
+                $textPath = public_path('images/nombrelogo.png');
+                if (file_exists($iconPath)) {
+                    $message->embedFromPath($iconPath, 'logo-icon');
+                }
+                if (file_exists($textPath)) {
+                    $message->embedFromPath($textPath, 'logo-text');
+                }
+            });
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $statusLabels = [
+            'approved' => 'aprobada',
+            'rejected' => 'rechazada',
+            'banned' => 'suspendida',
+            'pending' => 'pendiente',
+        ];
+
+        $label = $statusLabels[$this->newStatus] ?? $this->newStatus;
+
+        return [
+            'title' => 'Estado de tienda actualizado',
+            'body' => "Tu tienda \"{$this->store->trade_name}\" ha sido {$label}." . ($this->reason ? " Motivo: {$this->reason}" : ''),
+            'data' => [
+                'type' => 'store_status_changed',
+                'store_id' => $this->store->id,
+                'status' => $this->newStatus,
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array
     {
+        $statusLabels = [
+            'approved' => 'aprobada',
+            'rejected' => 'rechazada',
+            'banned' => 'suspendida',
+            'pending' => 'pendiente',
+        ];
+
+        $label = $statusLabels[$this->newStatus] ?? $this->newStatus;
+
         return [
             'store_id' => $this->store->id,
             'store_name' => $this->store->trade_name,
             'status' => $this->newStatus,
             'reason' => $this->reason,
             'type' => 'store_status_changed',
+            'subject' => "Tu tienda \"{$this->store->trade_name}\" ha sido {$label}" . ($this->reason ? " — {$this->reason}" : ''),
         ];
     }
 }

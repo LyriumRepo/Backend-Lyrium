@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 final class UserController extends Controller
 {
@@ -357,4 +358,5 @@ final class UserController extends Controller
 
         return response()->json(['success' => true]);
     }
+
 }

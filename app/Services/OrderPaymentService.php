@@ -126,6 +126,20 @@ final class OrderPaymentService
             ],
         ]);
 
+        $errors = $this->validateInvoiceData($customerDoc, $customerName, $baseGravada, $igvAmount);
+        if (!empty($errors)) {
+            $errorMsg = 'Factura no enviada: ' . implode('; ', $errors);
+            $invoice->addHistoryEntry(Invoice::SUNAT_STATUS_DRAFT, $errorMsg, 'Sistema');
+            $invoice->save();
+            Log::warning('OrderPaymentService: pre-validación fallida', [
+                'invoice_id' => $invoice->id,
+                'store_id' => $store->id,
+                'order_id' => $order->id,
+                'errors' => $errors,
+            ]);
+            return;
+        }
+
         $customItems = [];
         foreach ($storeItems as $item) {
             $lineTotal = (float) $item->line_total;
@@ -186,6 +200,48 @@ final class OrderPaymentService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * @return string[] Lista de errores de validación (vacío si todo ok)
+     */
+    private function validateInvoiceData(string $ruc, string $customerName, float $baseGravada, float $igvAmount): array
+    {
+        $errors = [];
+
+        if (empty(trim($customerName))) {
+            $errors[] = 'Razón social del cliente vacía';
+        }
+
+        if ($baseGravada <= 0) {
+            $errors[] = 'Subtotal base debe ser mayor a 0';
+        }
+
+        $expectedIgv = round($baseGravada * self::IGV_RATE, 2);
+        if (abs($igvAmount - $expectedIgv) > 0.01) {
+            $errors[] = "IGV calculado ({$igvAmount}) no coincide con el esperado ({$expectedIgv})";
+        }
+
+        $digits = preg_replace('/\D/', '', $ruc);
+        if (strlen($digits) !== 11) {
+            $errors[] = "RUC debe tener exactamente 11 dígitos numéricos (recibido: {$ruc})";
+        } else {
+            $sum = 0;
+            $weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+            for ($i = 0; $i < 10; $i++) {
+                $sum += (int) $digits[$i] * $weights[$i];
+            }
+            $remainder = $sum % 11;
+            $checkDigit = $remainder === 0 ? 0 : 11 - $remainder;
+            if ($checkDigit === 10) {
+                $checkDigit = 0;
+            }
+            if ($checkDigit !== (int) $digits[10]) {
+                $errors[] = "Dígito de verificación del RUC inválido ({$ruc})";
+            }
+        }
+
+        return $errors;
     }
 
     private function scheduleCommissionForStore(Order $order, Store $store, float $subtotalSinIgv): void

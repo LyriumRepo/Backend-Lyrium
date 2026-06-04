@@ -29,13 +29,19 @@ final class Service extends Model
         'store_id',
         'category_id',
         'name',
+        'slug',
         'description',
         'price',
         'duration_minutes',
+        'buffer_minutes',           // 👈 Nuevo
+        'is_home_service',         // 👈 Nuevo
+        'booking_advance_hours',    // 👈 Nuevo
+        'max_capacity',
         'status',
         'cancellation_policy',
         'max_cancellations',
         'settings',
+        'google_calendar_id'
     ];
 
     protected function casts(): array
@@ -48,6 +54,11 @@ final class Service extends Model
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
         ];
+    }
+
+    public function specialists(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Specialist::class, 'service_specialist');
     }
 
     public function store(): BelongsTo
@@ -103,7 +114,7 @@ final class Service extends Model
             ->where('schedule_id', $schedule->id)
             ->whereNotIn('status', ['cancelled'])
             ->pluck('appointment_date')
-            ->map(fn ($dt) => $dt->format('H:i'))
+            ->map(fn($dt) => $dt->format('H:i'))
             ->toArray();
 
         $availableSlots = [];

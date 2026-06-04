@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
+use App\Channels\SmsChannel;
 use App\Models\Order;
 use App\Models\Store;
 use Illuminate\Bus\Queueable;
@@ -22,46 +24,90 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['database'];
+
+        $settings = $notifiable->notificationSetting;
+
+        if ($settings?->wantsEmailOrder() ?? true) {
+            $channels[] = 'mail';
+        }
+
+        if ($settings?->wantsSmsOrder() ?? false) {
+            $channels[] = SmsChannel::class;
+        }
+
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
     {
         $storeItems = $this->order->items->where('store_id', $this->store->id);
-        $totalStore = $storeItems->sum('line_total');
 
-        $mail = (new MailMessage)
-            ->subject('Nuevo pedido recibido - Lyrium BioMarketplace')
-            ->greeting('¡Hola, ' . $notifiable->name . '!')
-            ->line('Has recibido un nuevo pedido en tu tienda "' . $this->store->trade_name . '".')
-            ->line('**N° Pedido:** ' . $this->order->order_number)
-            ->line('**Cliente:** ' . ($this->order->shipping_name ?: $this->order->user->name));
+        $items = $storeItems->map(fn($item) => [
+            'name' => $item->product_name,
+            'quantity' => $item->quantity,
+            'line_total' => (float) $item->line_total,
+        ])->toArray();
 
-        $lines = [];
-        foreach ($storeItems as $item) {
-            $lines[] = $item->quantity . 'x ' . $item->product_name . ' — S/ ' . number_format($item->line_total, 2);
-        }
+        return (new MailMessage)
+            ->subject('🆕 Nuevo pedido recibido - Lyrium BioMarketplace')
+            ->view('emails.notifications.new-order', [
+                'name' => $notifiable->name,
+                'storeName' => $this->store->trade_name,
+                'orderNumber' => $this->order->order_number,
+                'customerName' => $this->order->shipping_name ?: $this->order->user->name,
+                'itemsCount' => $storeItems->count(),
+                'total' => (float) $storeItems->sum('line_total'),
+                'items' => $items,
+                'shippingAddress' => $this->order->shipping_address,
+                'actionUrl' => config('app.frontend_url') . '/seller/orders/' . $this->order->id,
+                'showTagline' => true,
+            ])
+            ->withSymfonyMessage(function ($message) {
+                $iconPath = public_path('images/iconologo.png');
+                $textPath = public_path('images/nombrelogo.png');
+                if (file_exists($iconPath)) {
+                    $message->embedFromPath($iconPath, 'logo-icon');
+                }
+                if (file_exists($textPath)) {
+                    $message->embedFromPath($textPath, 'logo-text');
+                }
+            });
+    }
 
-        $mail->line('**Productos:**');
-        foreach ($lines as $line) {
-            $mail->line('• ' . $line);
-        }
+    public function toSms(object $notifiable): string
+    {
+        $storeItems = $this->order->items->where('store_id', $this->store->id);
+        $count = $storeItems->count();
 
-        $mail->line('**Total del pedido (tu tienda):** S/ ' . number_format((float) $totalStore, 2));
+        return "Lyrium: Nuevo pedido #{$this->order->order_number} en {$this->store->trade_name}. {$count} producto(s) - S/ " . number_format((float) $storeItems->sum('line_total'), 2) . ". Revisa tu panel de vendedor.";
+    }
 
-        if ($this->order->shipping_address) {
-            $mail->line('**Dirección de envío:** ' . $this->order->shipping_address);
-        }
+    public function toPush(object $notifiable): array
+    {
+        $storeItems = $this->order->items->where('store_id', $this->store->id);
+        $count = $storeItems->count();
 
-        return $mail
-            ->action('Ver pedido', config('app.frontend_url') . '/seller/orders/' . $this->order->id)
-            ->line('Revisa y confirma el pedido lo antes posible.')
-            ->salutation('Equipo Lyrium');
+        return [
+            'title' => '¡Nuevo pedido recibido!',
+            'body' => "{$count} producto(s) en {$this->store->trade_name} por S/ " . number_format((float) $storeItems->sum('line_total'), 2),
+            'data' => [
+                'type' => 'new_order',
+                'order_id' => $this->order->id,
+                'store_id' => $this->store->id,
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array
     {
         $storeItems = $this->order->items->where('store_id', $this->store->id);
+        $total = (float) $storeItems->sum('line_total');
+        $count = $storeItems->count();
 
         return [
             'type' => 'new_order',
@@ -69,9 +115,10 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
             'order_number' => $this->order->order_number,
             'store_id' => $this->store->id,
             'store_name' => $this->store->trade_name,
-            'total' => (float) $storeItems->sum('line_total'),
-            'items_count' => $storeItems->count(),
+            'total' => $total,
+            'items_count' => $count,
             'customer_name' => $this->order->shipping_name ?: $this->order->user->name,
+            'subject' => "Nuevo pedido #{$this->order->order_number} en {$this->store->trade_name} — S/ {$total} ({$count} producto(s))",
         ];
     }
 }

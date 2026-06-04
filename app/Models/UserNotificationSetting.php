@@ -33,4 +33,29 @@ final class UserNotificationSetting extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function wantsEmailOrder(): bool
+    {
+        return $this->email_order ?? true;
+    }
+
+    public function wantsEmailPromotions(): bool
+    {
+        return $this->email_promotions ?? true;
+    }
+
+    public function wantsEmailNewsletter(): bool
+    {
+        return $this->email_newsletter ?? false;
+    }
+
+    public function wantsSmsOrder(): bool
+    {
+        return $this->sms_order ?? false;
+    }
+
+    public function wantsPush(): bool
+    {
+        return $this->push_notifications ?? true;
+    }
 }

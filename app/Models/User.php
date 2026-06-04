@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -105,5 +106,10 @@ class User extends Authenticatable
             ->withPivot('id', 'created_at')
             ->withTimestamps()
             ->orderByPivot('created_at', 'desc');
+    }
+
+    public function notificationSetting(): HasOne
+    {
+        return $this->hasOne(UserNotificationSetting::class);
     }
 }

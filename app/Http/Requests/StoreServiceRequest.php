@@ -20,9 +20,22 @@ final class StoreServiceRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'duration_minutes' => ['required', 'integer', 'min:15', 'max:480'],
-            'status' => ['sometimes', 'in:active,inactive'],
+
+            // ── NUEVOS CAMPOS DEL FRONTEND ───────────────────────────────────
+            'buffer_minutes' => ['nullable', 'integer', 'min:0', 'max:120'],
+            'is_home_service' => ['nullable', 'boolean'],
+            'booking_advance_hours' => ['nullable', 'integer', 'min:0', 'max:168'],
+            'max_capacity' => ['nullable', 'integer', 'min:1', 'max:100'],
+
+            // Especialistas asignados (Paso 1 del Frontend)
+            'specialist_ids' => ['nullable', 'array'],
+            'specialist_ids.*' => ['required_with:specialist_ids', 'exists:specialists,id'],
+            // ─────────────────────────────────────────────────────────────────
+
+            'status' => ['sometimes', 'in:active,inactive,draft'], // Soportamos "draft" (borrador)
             'cancellation_policy' => ['sometimes', 'in:no_refund,flexible,strict'],
             'max_cancellations' => ['sometimes', 'integer', 'min:1', 'max:10'],
+
             'category_id' => ['nullable', 'exists:categories,id', function ($attribute, $value, $fail) {
                 if ($value) {
                     $category = \App\Models\Category::find($value);
@@ -35,8 +48,13 @@ final class StoreServiceRequest extends FormRequest
             'schedules.*.day_of_week' => ['required_with:schedules', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'schedules.*.start_time' => ['required_with:schedules', 'date_format:H:i'],
             'schedules.*.end_time' => ['required_with:schedules', 'date_format:H:i', 'after:schedules.*.start_time'],
+
+            'schedules.*.specialist_id' => ['required_with:schedules', 'exists:specialists,id'],
+
+
             'schedules.*.max_appointments' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'schedules.*.is_active' => ['sometimes', 'boolean'],
+            'schedules.*.orden_bloque' => ['nullable', 'integer'],
         ];
     }
 

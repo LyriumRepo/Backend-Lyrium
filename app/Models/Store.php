@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 final class Store extends Model implements HasMedia
 {
@@ -61,6 +62,8 @@ final class Store extends Model implements HasMedia
         'layout',
         'profile_status',
         'profile_updated_at',
+        'google_calendar_id',
+        'google_calendar_token',
         'approved_at',
         'banned_at',
         'sla_notified_at',
@@ -209,7 +212,7 @@ final class Store extends Model implements HasMedia
     public function getGalleryUrls(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn ($media) => $media->getUrl())
+            ->map(fn($media) => $media->getUrl())
             ->toArray();
     }
 
@@ -229,5 +232,45 @@ final class Store extends Model implements HasMedia
 
         $this->addMediaCollection('policies')
             ->useDisk('public');
+    }
+
+    public function reviews(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Review::class,
+            Product::class,
+            'store_id',
+            'product_id',
+        );
+    }
+
+    // Cambia esto en app/Models/Store.php
+    public function getAverageRatingAttribute($value): float
+    {
+        // Si $value ya existe (gracias a withAvg), lo usamos. 
+        // Si no existe (cuando consultas una sola tienda sin con conAvg), hace el fallback a la BD.
+        $rating = $value ?? $this->reviews()->avg('rating') ?? 0;
+
+        return round((float) $rating, 1);
+    }
+
+    public function getReviewCountAttribute(): int
+    {
+        return $this->reviews()->count();
+    }
+
+    public function storeReviews(): HasMany
+    {
+        return $this->hasMany(StoreReview::class);
+    }
+
+    public function getStoreAverageRatingAttribute(): float
+    {
+        return round($this->storeReviews()->avg('rating') ?? 0, 1);
+    }
+
+    public function getStoreReviewCountAttribute(): int
+    {
+        return $this->storeReviews()->count();
     }
 }

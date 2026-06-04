@@ -3,99 +3,98 @@
 <head>
   <meta charset="utf-8">
   <style>
-    @page { margin: 20px 25px; }
+    @page { margin: 25px 30px; }
     body {
       font-family: 'DejaVu Sans', sans-serif;
-      font-size: 8.5px;
+      font-size: 8px;
       color: #1a1a1a;
       margin: 0;
       padding: 0;
-      line-height: 1.35;
+      line-height: 1.4;
     }
 
-    /* ===== HEADER ===== */
-    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    .header-table td { vertical-align: top; padding: 0; }
-    .header-left { width: 55%; }
-    .header-right { width: 45%; text-align: right; }
-    .issuer-ruc { font-size: 8px; color: #555; margin-bottom: 1px; }
-    .issuer-ruc strong { color: #1a1a1a; }
-    .issuer-name { font-size: 12px; font-weight: bold; color: #1a1a1a; margin-bottom: 2px; }
-    .issuer-address { font-size: 7.5px; color: #777; line-height: 1.3; }
-    .doc-type-wrapper { margin-bottom: 2px; }
-    .doc-type { font-size: 14px; font-weight: bold; color: #1a1a1a; letter-spacing: 0.5px; }
-    .doc-serienum { font-size: 11px; font-weight: bold; color: #1a1a1a; margin-bottom: 3px; }
-    .doc-meta { font-size: 8px; color: #666; }
-    .header-divider { border: none; border-top: 1.5px solid #333; margin: 0 0 10px 0; }
+    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    .header-table td { vertical-align: middle; padding: 0; }
+    .header-left { width: 50%; }
+    .header-right { width: 50%; text-align: right; }
+    .logo-img { width: 130px; }
+    .issuer-name { font-size: 11px; font-weight: bold; color: #1a1a1a; margin-top: 3px; }
+    .issuer-label { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+    .header-ruc { font-size: 9px; color: #1a1a1a; margin-top: 2px; }
+    .header-ruc strong { font-weight: bold; }
+    .doc-type-box {
+      display: inline-block;
+      text-align: center;
+      border: 2px solid #1a1a1a;
+      padding: 6px 18px;
+      margin-bottom: 4px;
+    }
+    .doc-type { font-size: 13px; font-weight: bold; color: #1a1a1a; letter-spacing: 1px; }
+    .doc-serienum { font-size: 11px; font-weight: bold; color: #1a1a1a; margin-top: 4px; }
+    .doc-meta { font-size: 7.5px; color: #666; margin-top: 3px; }
+    .doc-meta span { color: #1a1a1a; }
 
-    /* ===== SECTION TITLES ===== */
+    .header-divider { border: none; border-top: 2px solid #1a1a1a; margin: 0 0 12px 0; }
+
     .section-title {
-      font-size: 7.5px; font-weight: bold; color: #fff;
-      background-color: #2c2c2c;
-      padding: 4px 7px; text-transform: uppercase;
-      letter-spacing: 0.6px;
+      font-size: 7px; font-weight: bold;
+      background-color: #1a1a1a; color: #fff;
+      padding: 4px 8px; text-transform: uppercase;
+      letter-spacing: 0.8px;
     }
 
-    /* ===== CLIENT INFO ===== */
-    .client-table { width: 100%; border-collapse: collapse; border: 1px solid #bbb; border-top: none; margin-bottom: 12px; }
-    .client-table td { padding: 2.5px 7px; font-size: 8px; }
+    .client-table { width: 100%; border-collapse: collapse; border: 1px solid #ccc; border-top: none; margin-bottom: 12px; }
+    .client-table td { padding: 3px 8px; font-size: 7.5px; }
     .client-table tr:last-child td { border-bottom: none; }
-    .client-label { font-weight: bold; color: #555; width: 100px; }
+    .client-label { font-weight: bold; color: #555; width: 110px; }
     .client-value { color: #1a1a1a; }
 
-    /* ===== ITEMS TABLE ===== */
     .items-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
     .items-table th {
-      background-color: #2c2c2c; color: #fff;
-      font-size: 7px; text-transform: uppercase;
+      background-color: #1a1a1a; color: #fff;
+      font-size: 6.5px; text-transform: uppercase;
       padding: 4px 5px; text-align: center;
-      border: 1px solid #2c2c2c;
+      border: 1px solid #1a1a1a;
       letter-spacing: 0.3px;
     }
     .items-table td {
-      padding: 4px 5px; font-size: 8px;
-      border: 1px solid #bbb;
+      padding: 4px 5px; font-size: 7.5px;
+      border: 1px solid #ccc;
     }
     .items-table .right { text-align: right; }
     .items-table .center { text-align: center; }
     .items-table .left { text-align: left; }
-    .items-table tr:nth-child(even) td { background-color: #fafafa; }
+    .items-table tr:nth-child(even) td { background-color: #f8f8f8; }
 
-    /* ===== TOTALS ===== */
-    .totals-box { width: 52%; margin-left: auto; margin-bottom: 10px; }
-    .totals-table { width: 100%; border-collapse: collapse; }
-    .totals-table td { padding: 2.5px 8px; font-size: 8px; }
-    .totals-table .label-cell { text-align: right; color: #555; width: 60%; padding-right: 8px; }
-    .totals-table .value-cell { text-align: right; font-weight: bold; color: #1a1a1a; width: 40%; }
-    .totals-table .sep td { border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-    .totals-table .igv td { border-bottom: 1px solid #ccc; }
-    .totals-table .grand-total td { border-top: 2px solid #1a1a1a; padding-top: 5px; }
-    .totals-table .grand-total .label-cell { font-size: 10px; color: #1a1a1a; font-weight: bold; }
-    .totals-table .grand-total .value-cell { font-size: 11px; color: #1a1a1a; }
+    .totals-section { width: 100%; margin-bottom: 10px; }
+    .totals-table { width: 50%; margin-left: auto; border-collapse: collapse; }
+    .totals-table td { padding: 2.5px 8px; font-size: 7.5px; }
+    .totals-table .label-cell { text-align: right; color: #555; }
+    .totals-table .value-cell { text-align: right; font-weight: bold; color: #1a1a1a; }
+    .totals-table .border-bottom td { border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .totals-table .border-top td { border-top: 2px solid #1a1a1a; padding-top: 5px; }
+    .totals-table .grand-total .label-cell { font-size: 9px; font-weight: bold; color: #1a1a1a; }
+    .totals-table .grand-total .value-cell { font-size: 10px; font-weight: bold; color: #1a1a1a; }
 
-    /* ===== AMOUNT IN WORDS ===== */
     .amount-box {
       width: 100%;
       text-align: center;
-      font-size: 8.5px;
+      font-size: 8px;
       font-weight: bold;
       color: #1a1a1a;
-      padding: 6px 0;
+      padding: 7px 0;
       border-top: 1px solid #999;
       border-bottom: 1px solid #999;
       margin-bottom: 10px;
     }
-    .amount-box .numeral { font-weight: normal; font-size: 7.5px; color: #666; }
+    .amount-box .numeral { font-weight: normal; font-size: 7px; color: #666; }
 
-    /* ===== FOOTER ===== */
-    .footer { text-align: center; font-size: 6.5px; color: #888; padding-top: 6px; }
+    .footer { text-align: center; font-size: 6px; color: #888; padding-top: 6px; }
     .footer .auth-code { color: #555; margin-bottom: 1px; }
     .footer .auth-code span { font-weight: bold; color: #333; }
     .footer .extra { color: #999; margin-bottom: 1px; }
-    .footer-divider { border: none; border-top: 0.5px dashed #ccc; margin: 6px 0; }
-
-    /* ===== QR ===== */
-    .qr-line { font-size: 6px; color: #999; word-break: break-all; margin-top: 3px; }
+    .footer-divider { border: none; border-top: 0.5px dashed #aaa; margin: 6px 0; }
+    .qr-line { font-size: 5.5px; color: #999; word-break: break-all; margin-top: 3px; }
   </style>
 </head>
 <body>
@@ -114,30 +113,37 @@
   $customerName = $invoice ? $invoice->customer_name : ($order->shipping_name ?: $order->user->name);
   $customerDoc = $invoice ? $invoice->customer_ruc : ($order->user->document_number ?? '00000000');
   $customerDocType = strlen($customerDoc) === 11 ? 'RUC' : 'DNI';
+  $customerAddress = $order->shipping_address ?? ($order->shipping_city ?? '—');
+  $customerEmail = $order->shipping_email ?: $order->user->email;
   $authCode = $invoice ? $invoice->authorization_code : '—';
   $qrData = $invoice ? $invoice->qr_data : '';
   $emissionDate = $invoice ? \Carbon\Carbon::parse($invoice->emission_date) : $order->created_at;
+  $iconPath = public_path('images/iconologo.png');
+  $iconBase64 = file_exists($iconPath) ? base64_encode(file_get_contents($iconPath)) : '';
 @endphp
 
   <!-- ===== HEADER ===== -->
   <table class="header-table">
     <tr>
       <td class="header-left">
-        <div class="issuer-ruc">R.U.C. <strong>{{ $issuerRuc }}</strong></div>
+        @if($iconBase64)
+          <img src="data:image/png;base64,{{ $iconBase64 }}" class="logo-img" alt="Lyrium">
+        @endif
         <div class="issuer-name">{{ $issuerName }}</div>
-        <div class="issuer-address">
+        <div class="header-ruc">R.U.C. <strong>{{ $issuerRuc }}</strong></div>
+        <div class="issuer-address" style="font-size:6.5px;color:#888;margin-top:2px;">
           {{ $issuerAddress }}<br>
           {{ $issuerCity }}
         </div>
       </td>
       <td class="header-right">
-        <div class="doc-type-wrapper">
-          <div class="doc-type">
-            {{ $docType === 'FACTURA' ? 'FACTURA ELECTRÓNICA' : 'BOLETA ELECTRÓNICA' }}
-          </div>
+        <div class="doc-type-box">
+          <div class="doc-type">{{ $docType === 'FACTURA' ? 'FACTURA' : 'BOLETA' }} ELECTRÓNICA</div>
         </div>
         <div class="doc-serienum">{{ $docSeries }}</div>
-        <div class="doc-meta">Fecha de Emisión: {{ $emissionDate->format('d/m/Y') }}</div>
+        <div class="doc-meta">
+          Fecha de Emisión: <span>{{ $emissionDate->format('d/m/Y') }}</span>
+        </div>
       </td>
     </tr>
   </table>
@@ -145,10 +151,10 @@
   <hr class="header-divider">
 
   <!-- ===== CLIENT INFO ===== -->
-  <div class="section-title">INFORMACIÓN DEL CLIENTE</div>
+  <div class="section-title">DATOS DEL CLIENTE</div>
   <table class="client-table">
     <tr>
-      <td class="client-label">Nombre / Razón Social:</td>
+      <td class="client-label">Cliente:</td>
       <td class="client-value">{{ $customerName }}</td>
     </tr>
     <tr>
@@ -161,11 +167,11 @@
     </tr>
     <tr>
       <td class="client-label">Dirección:</td>
-      <td class="client-value">{{ $order->shipping_address ?? ($order->shipping_city ?? '—') }}</td>
+      <td class="client-value">{{ $customerAddress }}</td>
     </tr>
     <tr>
       <td class="client-label">Email:</td>
-      <td class="client-value">{{ $order->shipping_email ?: $order->user->email }}</td>
+      <td class="client-value">{{ $customerEmail }}</td>
     </tr>
   </table>
 
@@ -174,11 +180,11 @@
   <table class="items-table">
     <thead>
       <tr>
-        <th width="7%">Cant.</th>
-        <th width="50%">Descripción</th>
-        <th width="13%">Valor Unit.</th>
-        <th width="10%">Descuento</th>
-        <th width="13%">Importe</th>
+        <th width="8%">Cant.</th>
+        <th width="52%">Descripción</th>
+        <th width="14%">Valor Unit.</th>
+        <th width="8%">Dto.</th>
+        <th width="14%">Importe</th>
       </tr>
     </thead>
     <tbody>
@@ -195,13 +201,13 @@
   </table>
 
   <!-- ===== TOTALS ===== -->
-  <div class="totals-box">
+  <div class="totals-section">
     <table class="totals-table">
-      <tr class="sep">
+      <tr class="border-bottom">
         <td class="label-cell">Valor de Venta (Op. Gravadas):</td>
         <td class="value-cell">S/ {{ number_format($docSubtotal, 2) }}</td>
       </tr>
-      <tr>
+      <tr class="border-bottom">
         <td class="label-cell">Valor de Venta (Op. Inafectas):</td>
         <td class="value-cell">S/ 0.00</td>
       </tr>
@@ -211,11 +217,11 @@
         <td class="value-cell">— S/ {{ number_format((float) $order->discount_amount, 2) }}</td>
       </tr>
       @endif
-      <tr class="igv">
+      <tr class="border-bottom">
         <td class="label-cell">I.G.V. (18%):</td>
         <td class="value-cell">S/ {{ number_format($docIgv, 2) }}</td>
       </tr>
-      <tr class="grand-total">
+      <tr class="border-top grand-total">
         <td class="label-cell">IMPORTE TOTAL:</td>
         <td class="value-cell">S/ {{ number_format($docTotal, 2) }}</td>
       </tr>
@@ -265,7 +271,7 @@
     }
   @endphp
   <div class="amount-box">
-    {{ ucfirst(strtolower($palabras)) }} Y {{ $decimal }}/100 SOLES<br>
+    Son: {{ ucfirst(strtolower($palabras)) }} Y {{ $decimal }}/100 SOLES<br>
     <span class="numeral">(S/ {{ number_format($docTotal, 2) }})</span>
   </div>
 
@@ -283,7 +289,7 @@
       Autorizado mediante resolución Nro. 0340050010017/SUNAT
     </div>
     <div class="extra">
-      Lyrium — Marketplace de productos saludables y sostenibles
+      Lyrium EIRL — RUC {{ $issuerRuc }} — {{ $issuerAddress }}, {{ $issuerCity }}
     </div>
     <div class="extra">
       Este comprobante fue generado el {{ now()->format('d/m/Y H:i:s') }}

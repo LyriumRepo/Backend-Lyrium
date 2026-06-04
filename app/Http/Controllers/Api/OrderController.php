@@ -8,6 +8,9 @@ use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Notifications\OrderCreatedNotification;
+use App\Notifications\NewOrderSellerNotification;
+use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
@@ -52,18 +55,18 @@ final class OrderController extends Controller
         $user = $request->user();
 
         if ($user->hasRole('administrator')) {
-            $orders = Order::with(['items.product.store', 'user'])
+            $orders = Order::with(['items.product', 'items.store', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         } elseif ($user->hasRole('seller')) {
             $storeIds = $user->stores()->pluck('stores.id');
-            $orders = Order::whereHas('items', fn ($q) => $q->whereIn('store_id', $storeIds))
-                ->with(['items.product.store', 'user'])
+            $orders = Order::whereHas('items', fn($q) => $q->whereIn('store_id', $storeIds))
+                ->with(['items.product', 'items.store', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         } else {
             $orders = Order::where('user_id', $user->id)
-                ->with(['items.product.store', 'user'])
+                ->with(['items.product', 'items.store', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->paginate(15);
         }
@@ -83,7 +86,7 @@ final class OrderController extends Controller
     public function show(Request $request, string $id): JsonResponse
     {
         $user = $request->user();
-        $order = Order::with(['items.product.store', 'user'])->findOrFail($id);
+        $order = Order::with(['items.product', 'items.store', 'user'])->findOrFail($id);
 
         if (! $user->hasRole('administrator') && ! $user->hasRole('seller') && $order->user_id !== $user->id) {
             return $this->forbidden('No tienes acceso a esta orden.');
@@ -91,7 +94,7 @@ final class OrderController extends Controller
 
         if ($user->hasRole('seller')) {
             $storeIds = $user->stores()->pluck('stores.id');
-            $hasAccess = $order->items->every(fn ($item) => $storeIds->contains($item->store_id));
+            $hasAccess = $order->items->every(fn($item) => $storeIds->contains($item->store_id));
             if (! $hasAccess) {
                 return $this->forbidden('No tienes acceso a esta orden.');
             }
@@ -143,7 +146,7 @@ final class OrderController extends Controller
             }
 
             if ($subtotal < Order::MIN_ORDER_AMOUNT) {
-                throw new \Exception('El monto mínimo de la orden es S/ '.number_format(Order::MIN_ORDER_AMOUNT, 2).'.');
+                throw new \Exception('El monto mínimo de la orden es S/ ' . number_format(Order::MIN_ORDER_AMOUNT, 2) . '.');
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
@@ -222,12 +225,19 @@ final class OrderController extends Controller
             return $order;
         });
 
-        $order->load(['items.product.store', 'user']);
+        $order->load(['items.product', 'items.store', 'user']);
+
+        $user->notify(new OrderCreatedNotification($order));
 
         // Notificar a cada tienda involucrada en la orden
-        $order->items->pluck('store_id')->unique()->each(
-            fn ($storeId) => broadcast(new NewOrderReceived($order, $storeId))
-        );
+        $order->items->pluck('store_id')->unique()->each(function ($storeId) use ($order) {
+            broadcast(new NewOrderReceived($order, $storeId));
+
+            $store = Store::with('owner')->find($storeId);
+            if ($store && $store->owner) {
+                $store->owner->notify(new NewOrderSellerNotification($order, $store));
+            }
+        });
 
         broadcast(new OrderStatusChanged($order));
 
@@ -589,5 +599,30 @@ final class OrderController extends Controller
         $order->load(['items.product.store', 'user']);
 
         return $this->success(new OrderResource($order));
+    }
+
+    public function resendNotification(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $order = Order::with(['items.product.store', 'user'])->findOrFail($id);
+
+        $memberStoreIds = $user->stores()->pluck('stores.id');
+        $ownedStoreIds = $user->ownedStores()->pluck('stores.id');
+        $storeIds = $memberStoreIds->merge($ownedStoreIds)->unique();
+        $hasAccess = $order->items()->whereIn('store_id', $storeIds)->exists();
+
+        if (! $hasAccess && ! $user->hasRole('administrator')) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $store = $user->ownedStores()->first() ?? $user->stores()->first();
+        if (! $store) {
+            return $this->forbidden('No tienes una tienda asociada.');
+        }
+
+        $user->notify(new NewOrderSellerNotification($order, $store));
+
+        return $this->success(['message' => 'Notificación reenviada a tu correo.']);
     }
 }

@@ -13,37 +13,47 @@ final class CartResource extends JsonResource
     {
         $items = $this->whenLoaded('items', function () {
             return $this->items->map(function ($item) {
-                $price = (float) ($item->product?->sale_price ?? $item->product?->price ?? 0);
-                $lineTotal = $price * $item->quantity;
+                $product  = $item->product;
+                $price    = (float) ($product?->sale_price ?? $product?->price ?? 0);
+                $quantity = (int) $item->quantity;
 
                 return [
-                    'id' => (int) $item->product_id,
-                    'productId' => (int) $item->product_id,
-                    'quantity' => (int) $item->quantity,
+                    'id'        => $item->id,
+                    'productId' => $item->product_id,
+                    'quantity'  => $quantity,
                     'unitPrice' => round($price, 2),
-                    'lineTotal' => round($lineTotal, 2),
-                    'product' => [
-                        'id' => (int) $item->product_id,
-                        'name' => $item->product?->name ?? '',
-                        'slug' => $item->product?->slug ?? '',
-                        'image' => $item->product?->getFirstMediaUrl('images')
-                            ?? $item->product?->image
-                            ?? null,
-                        'price' => round($price, 2),
-                        'regular_price' => (float) ($item->product?->regular_price ?? $item->product?->price ?? 0),
-                        'stock' => (int) ($item->product?->stock ?? 0),
+                    'lineTotal' => round($price * $quantity, 2),
+                    'product'   => [
+                        'id'            => $product?->id,
+                        'name'          => $product?->name ?? '',
+                        'slug'          => $product?->slug ?? '',
+                        'price'         => round($price, 2),
+                        'regular_price' => $product?->regular_price
+                                            ? round((float) $product->regular_price, 2)
+                                            : ($product?->price ? round((float) $product->price, 2) : null),
+                        'stock'         => (int) ($product?->stock ?? 0),
+                        'image'         => $product?->getFirstMediaUrl('images')
+                                            ?? $product?->image
+                                            ?? null,
                     ],
                 ];
             })->all();
         }, []);
 
-        $subtotal = collect($items)->sum('lineTotal');
+        $subtotal = round((float) collect($items)->sum('lineTotal'), 2);
+        $shipping = $subtotal > 0 ? 10.00 : 0.0;
 
         return [
-            'items' => $items,
-            'subtotal' => round($subtotal, 2),
-            'total' => round($subtotal, 2),
-            'itemCount' => (int) $this->item_count,
+            'items'     => $items,
+            'subtotal'  => $subtotal,
+            'shipping'  => $shipping,
+            'discount'  => 0.0,
+            'total'     => round($subtotal + $shipping, 2),
+            'itemCount' => count($items),
+            'meta'      => [
+                'item_count_raw' => (int) $this->item_count,
+            ],
         ];
+    
     }
-}
+}   

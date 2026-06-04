@@ -22,8 +22,43 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    'culqi' => [
+        'public_key'        => env('CULQI_PUBLIC_KEY'),
+        'secret_key'        => env('CULQI_SECRET_KEY'),
+        'mode'              => env('CULQI_MODE', 'test'),
+        'webhook_public_key' => env('CULQI_WEBHOOK_PUBLIC_KEY'),
+    ],
+
+
+    'izipay' => [
+        // Credenciales de autenticación (Basic Auth)
+        'user_id'     => env('IZIPAY_USER_ID', env('IZIPAY_USERNAME', '')),
+        'password'    => env('IZIPAY_PASSWORD', ''),
+        // Modo de operación
+        'mode'        => env('IZIPAY_MODE', 'test'),
+        // Llave para verificación de hash (webhook)
+        'hash_key'    => env('IZIPAY_HASH_KEY', ''),
+        // Modo simulado (HEAD legacy)
+        'mock'        => env('IZIPAY_MOCK', true),
+        'api_url'     => env('IZIPAY_API_URL', 'https://api.micuentaweb.pe/api-payment'),
+        'public_key'  => env('IZIPAY_PUBLIC_KEY', ''),
+        'private_key' => env('IZIPAY_PRIVATE_KEY', ''),
+        'username'    => env('IZIPAY_USERNAME', env('IZIPAY_USER_ID', '')),
+        'hmac_key'    => env('IZIPAY_HMAC_KEY', ''),
+        'shop_id'     => env('IZIPAY_SHOP_ID', ''),
+    ],
+
     'google' => [
-        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Callback dinámico mapeado a la URI de tu controlador
+        'redirect_uri'  => env('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/api/google/callback'),
+    ],
+
+    // ─── GOOGLE SERVICE ACCOUNT (Soporte Fallback / Plan B) ──────────────────
+    'google_calendar' => [
+        'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS_PATH', storage_path('app/google-service-account.json')),
+        'calendar_id'      => env('GOOGLE_CALENDAR_ID', 'primary'),
     ],
 
     'ses' => [
@@ -75,31 +110,5 @@ return [
             'NOTA_CREDITO' => 'FFF1',
         ],
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Izipay — Pasarela de Pago (Mi Cuenta Web)
-    |--------------------------------------------------------------------------
-    |
-    | Izipay es la pasarela de pagos para procesar tarjetas de crédito/débito.
-    | Si no se configuran las credenciales, el sistema opera en modo MOCK
-    | para permitir pruebas del flujo de facturación sin conexión real.
-    |
-    | IZIPAY_MOCK=true  → usa el modo simulado (sin conexión real)
-    | IZIPAY_MOCK=false → usa la API REST real de Izipay
-    |
-    | Credenciales: https://micuentaweb.pe
-    */
-    'izipay' => [
-        'mock'      => env('IZIPAY_MOCK', true),
-        'api_url'   => env('IZIPAY_API_URL', 'https://api.micuentaweb.pe/api-payment'),
-        'public_key' => env('IZIPAY_PUBLIC_KEY', ''),
-        'private_key' => env('IZIPAY_PRIVATE_KEY', ''),
-        'username'  => env('IZIPAY_USERNAME', ''),
-        'password'  => env('IZIPAY_PASSWORD', ''),
-        'hmac_key'  => env('IZIPAY_HMAC_KEY', ''),
-        'shop_id'   => env('IZIPAY_SHOP_ID', ''),
-    ],
-
 ];
 
