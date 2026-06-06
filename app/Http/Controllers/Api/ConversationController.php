@@ -56,19 +56,29 @@ final class ConversationController extends Controller
     {
         $user = $request->user();
 
-        $conversation = Conversation::create([
-            'customer_user_id' => $user->id,
-            'store_id' => $request->input('store_id'),
-            'category' => $request->input('category'),
-            'subject' => $request->input('subject'),
-            'last_message_at' => now(),
-        ]);
+        $conversation = Conversation::where('customer_user_id', $user->id)
+            ->where('store_id', $request->input('store_id'))
+            ->where('category', $request->input('category'))
+            ->where('status', 'active')
+            ->first();
+
+        if (!$conversation) {
+            $conversation = Conversation::create([
+                'customer_user_id' => $user->id,
+                'store_id' => $request->input('store_id'),
+                'category' => $request->input('category'),
+                'subject' => $request->input('subject'),
+                'last_message_at' => now(),
+            ]);
+        }
 
         $message = ConversationMessage::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $user->id,
             'content' => $request->input('message'),
         ]);
+
+        $conversation->update(['last_message_at' => now()]);
 
         $conversation->load(['store.owner', 'latestMessage']);
 

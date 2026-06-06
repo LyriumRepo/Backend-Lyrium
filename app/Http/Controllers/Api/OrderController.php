@@ -536,6 +536,22 @@ final class OrderController extends Controller
         return $pdf->download($filename);
     }
 
+    public function downloadPaymentConfirmation(Request $request, string $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items', 'user'])->findOrFail($id);
+
+        if (! $user->hasRole('administrator') && $order->user_id !== $user->id) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $pdf = Pdf::loadView('pdf.payment-confirmation', ['order' => $order]);
+
+        $filename = 'confirmacion-pago-' . $order->order_number . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
     public function updateItemStatus(Request $request, string $orderId, string $itemId): JsonResponse
     {
         $data = $request->validate([

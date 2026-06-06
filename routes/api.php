@@ -8,10 +8,12 @@ use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BenefitController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\ChatBotController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\EventsController;
 use App\Http\Controllers\Api\FinanceAnalyticsController;
@@ -118,6 +120,9 @@ Route::prefix('rankings')->group(function () {
     Route::get('/products', [RankingController::class, 'products']);
     Route::get('/stores',   [RankingController::class, 'stores']);
 });
+
+// ChatBot — Asistente Virtual Lyrium (público)
+Route::post('/chatbot/ask', [ChatBotController::class, 'ask']);
 
 // Shipping público
 Route::get('/shipping/methods', [ShippingController::class, 'methods']);
@@ -293,7 +298,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
     Route::delete('/cart/clear', [CartController::class, 'clear']);
 
-    // Payment Methods
+    // Devices (FCM push notification tokens)
+    Route::post('/devices', [DeviceController::class, 'register']);
+    Route::delete('/devices', [DeviceController::class, 'unregister']);
+
+    // Payment Methods (tokenize must be before {id} to avoid route conflict)
+    Route::post('/payment-methods/tokenize', [PaymentMethodController::class, 'tokenize']);
     Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
     Route::post('/payment-methods', [PaymentMethodController::class, 'store']);
     Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);
@@ -316,6 +326,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
     Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
+    Route::get('/orders/{id}/payment-confirmation', [OrderController::class, 'downloadPaymentConfirmation']);
     Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
@@ -390,6 +401,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('payments/izipay')->group(function () {
         Route::post('/init/{order}', [IzipayPaymentController::class, 'init']);
         Route::post('/confirm/{order}', [IzipayPaymentController::class, 'confirm']);
+        Route::post('/charge-with-token', [IzipayPaymentController::class, 'chargeWithToken']);
     });
 
     // Google Calendar OAuth

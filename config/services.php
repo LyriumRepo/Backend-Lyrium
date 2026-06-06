@@ -61,6 +61,15 @@ return [
         'calendar_id'      => env('GOOGLE_CALENDAR_ID', 'primary'),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+    ],
+
+    'fcm' => [
+        'server_key' => env('FCM_SERVER_KEY'),
+        'api_url'    => 'https://fcm.googleapis.com/fcm/send',
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

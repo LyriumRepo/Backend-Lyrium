@@ -285,6 +285,157 @@ final class IzipayService
         }
     }
 
+    // ── Tokenización de tarjetas ─────────────────────────────────────────
+
+    /**
+     * Crea una sesión de tokenización en Izipay.
+     * Devuelve formToken + publicKey para renderizar el Smart Form.
+     */
+    public function createTokenizationSession(string $email): array
+    {
+        if ($this->isMock()) {
+            return [
+                'mode'       => 'mock',
+                'public_key' => 'MOCK_PUBLIC_KEY',
+                'form_token' => self::MOCK_PREFIX . 'TOKENIZE-' . bin2hex(random_bytes(16)),
+            ];
+        }
+
+        $url = rtrim($this->apiUrl, '/') . '/V4/Token/Create';
+        $credentials = base64_encode("{$this->userId}:{$this->password}");
+
+        Log::info('IzipayService: creando sesión de tokenización');
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$credentials}",
+                'Content-Type'  => 'application/json',
+            ])
+                ->timeout(30)
+                ->post($url);
+
+            $data = $response->json();
+
+            if (($data['status'] ?? '') === 'SUCCESS' && isset($data['answer']['formToken'])) {
+                Log::info('IzipayService: sesión de tokenización creada');
+                return [
+                    'mode'       => 'izipay',
+                    'public_key' => $this->publicKey,
+                    'form_token' => $data['answer']['formToken'],
+                ];
+            }
+
+            $errorMsg = $data['answer']['errorMessage']
+                ?? $data['answer']['detailedErrorMessage']
+                ?? 'Error al crear sesión de tokenización.';
+
+            Log::error('IzipayService: error en tokenización', [
+                'error' => $errorMsg,
+            ]);
+
+            throw new \RuntimeException($errorMsg);
+        } catch (ConnectionException $e) {
+            Log::error('IzipayService: error de conexión en tokenización', [
+                'error' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('No se pudo conectar con el servidor de pagos.');
+        }
+    }
+
+    /**
+     * Procesa un pago usando un cardToken guardado (sin Smart Form).
+     * Devuelve los datos de la transacción.
+     */
+    public function chargeWithToken(Order $order, string $cardToken, string $email): array
+    {
+        if ($this->isMock()) {
+            return [
+                'success'          => true,
+                'order_id'         => (string) $order->id,
+                'transaction_id'   => self::MOCK_PREFIX . 'TOKEN-' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
+                'transaction_state' => 'PAID',
+                'mock'             => true,
+            ];
+        }
+
+        $amountCents   = IzipayOrderTransaction::toCents($order->total);
+        $izipayOrderId = IzipayOrderTransaction::generateIzipayOrderId($order->id);
+        $credentials   = base64_encode("{$this->userId}:{$this->password}");
+
+        $transaction = IzipayOrderTransaction::create([
+            'order_id'        => $order->id,
+            'user_id'         => $order->user_id,
+            'izipay_order_id' => $izipayOrderId,
+            'status'          => 'pending',
+            'amount_in_cents' => $amountCents,
+            'currency'        => 'PEN',
+            'mode'            => $this->mode,
+        ]);
+
+        $payload = [
+            'amount'   => $amountCents,
+            'currency' => 'PEN',
+            'orderId'  => $izipayOrderId,
+            'customer' => ['email' => $email],
+            'cardToken' => $cardToken,
+            'metadata' => [
+                'order_id'     => (string) $order->id,
+                'order_number' => $order->order_number,
+            ],
+        ];
+
+        Log::info('IzipayService: cobrando con token guardado', [
+            'order_id'        => $order->id,
+            'izipay_order_id' => $izipayOrderId,
+            'amount_cents'    => $amountCents,
+        ]);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$credentials}",
+                'Content-Type'  => 'application/json',
+            ])
+                ->timeout(30)
+                ->post(self::API_URL, $payload);
+
+            $data = $response->json();
+
+            if (($data['status'] ?? '') === 'SUCCESS' && isset($data['answer']['formToken'])) {
+                $transaction->update([
+                    'form_token'      => $data['answer']['formToken'],
+                    'izipay_response' => $data,
+                ]);
+
+                return [
+                    'success'    => true,
+                    'order_id'   => (string) $order->id,
+                    'transaction'=> $transaction,
+                    'form_token' => $data['answer']['formToken'],
+                ];
+            }
+
+            $errorMsg = $data['answer']['errorMessage']
+                ?? $data['answer']['detailedErrorMessage']
+                ?? 'Error al procesar pago con token.';
+
+            $transaction->update([
+                'status'          => 'failed',
+                'error_code'      => (string) ($data['answer']['errorCode'] ?? 'TOKEN_ERROR'),
+                'error_message'   => $errorMsg,
+                'izipay_response' => $data,
+            ]);
+
+            throw new \RuntimeException($errorMsg);
+        } catch (ConnectionException $e) {
+            $transaction->update([
+                'status'        => 'failed',
+                'error_code'    => 'CONNECTION_ERROR',
+                'error_message' => 'No se pudo conectar con Izipay.',
+            ]);
+            throw new \RuntimeException('No se pudo conectar con el servidor de pagos.');
+        }
+    }
+
     // ── Procesar webhook de Izipay ──────────────────────────────────────
 
     /**

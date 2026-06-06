@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Channels\PushChannel;
-use App\Channels\SmsChannel;
 use App\Models\Order;
 use App\Models\Store;
 use Illuminate\Bus\Queueable;
@@ -30,10 +29,6 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
 
         if ($settings?->wantsEmailOrder() ?? true) {
             $channels[] = 'mail';
-        }
-
-        if ($settings?->wantsSmsOrder() ?? false) {
-            $channels[] = SmsChannel::class;
         }
 
         if ($settings?->wantsPush() ?? true) {
@@ -77,14 +72,6 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
                     $message->embedFromPath($textPath, 'logo-text');
                 }
             });
-    }
-
-    public function toSms(object $notifiable): string
-    {
-        $storeItems = $this->order->items->where('store_id', $this->store->id);
-        $count = $storeItems->count();
-
-        return "Lyrium: Nuevo pedido #{$this->order->order_number} en {$this->store->trade_name}. {$count} producto(s) - S/ " . number_format((float) $storeItems->sum('line_total'), 2) . ". Revisa tu panel de vendedor.";
     }
 
     public function toPush(object $notifiable): array

@@ -14,7 +14,6 @@ final class UserNotificationSetting extends Model
         'email_order',
         'email_promotions',
         'email_newsletter',
-        'sms_order',
         'push_notifications',
     ];
 
@@ -24,7 +23,6 @@ final class UserNotificationSetting extends Model
             'email_order' => 'boolean',
             'email_promotions' => 'boolean',
             'email_newsletter' => 'boolean',
-            'sms_order' => 'boolean',
             'push_notifications' => 'boolean',
         ];
     }
@@ -47,11 +45,6 @@ final class UserNotificationSetting extends Model
     public function wantsEmailNewsletter(): bool
     {
         return $this->email_newsletter ?? false;
-    }
-
-    public function wantsSmsOrder(): bool
-    {
-        return $this->sms_order ?? false;
     }
 
     public function wantsPush(): bool

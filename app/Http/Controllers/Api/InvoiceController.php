@@ -134,11 +134,7 @@ final class InvoiceController extends Controller
         $user = $request->user();
 
         $query = Invoice::with('order')
-            ->whereHas('order', fn ($q) => $q->where('user_id', $user->id))
-            ->whereIn('sunat_status', [
-                Invoice::SUNAT_STATUS_ACCEPTED,
-                Invoice::SUNAT_STATUS_SENT_WAIT_CDR,
-            ]);
+            ->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
 
         if ($request->filled('type')) {
             $query->where('type', $request->query('type'));
@@ -224,15 +220,15 @@ final class InvoiceController extends Controller
             ->whereIn('sunat_status', [Invoice::SUNAT_STATUS_SENT_WAIT_CDR, Invoice::SUNAT_STATUS_DRAFT])
             ->count();
 
-        $rejectedCount = $invoices
-            ->whereIn('sunat_status', [Invoice::SUNAT_STATUS_REJECTED, Invoice::SUNAT_STATUS_OBSERVED])
+        $totalComprobantes = $invoices
+            ->where('sunat_status', Invoice::SUNAT_STATUS_ACCEPTED)
             ->count();
 
         return $this->success([
             'totalFacturado' => (float) $totalFacturado,
             'successRate' => round($successRate, 1),
             'pendingCount' => $pendingCount,
-            'rejectedCount' => $rejectedCount,
+            'totalComprobantes' => $totalComprobantes,
         ]);
     }
 
