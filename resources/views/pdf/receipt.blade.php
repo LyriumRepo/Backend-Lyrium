@@ -23,9 +23,11 @@
     /* ===== ENCABEZADO ===== */
     .header-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
     .header-table td { vertical-align: middle; padding: 0; }
-    .header-left { width: 55%; }
-    .header-right { width: 45%; text-align: right; }
-    .logo-img { width: 120px; margin-bottom: 8px; }
+    .header-left { width: 58%; }
+    .header-right { width: 42%; text-align: right; }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .logo-icon { width: 70px; height: 70px; flex-shrink: 0; }
+    .logo-img { width: 160px; }
     .issuer-name { font-size: 13px; font-weight: bold; color: #2A5A4D; margin-bottom: 2px; }
     .issuer-ruc { font-size: 8px; color: #1a1a1a; font-weight: bold; margin-bottom: 1px; }
     .issuer-ruc span { font-weight: normal; color: #6b7280; }
@@ -37,7 +39,7 @@
       border: 1.5px solid #2A5A4D;
       border-radius: 4px;
       padding: 10px 22px;
-      background: #E8F5F0;
+      background: linear-gradient(135deg, #ffffff 0%, #f4faf7 100%);
     }
     .doc-type { font-size: 12px; font-weight: bold; color: #2A5A4D; letter-spacing: 0.5px; }
     .doc-serienum { font-size: 14px; font-weight: bold; color: #1a1a1a; margin-top: 5px; }
@@ -186,37 +188,35 @@
   $authCode = $invoice ? $invoice->authorization_code : '—';
   $qrData = $invoice ? $invoice->qr_data : '';
   $emissionDate = $invoice ? \Carbon\Carbon::parse($invoice->emission_date) : $order->created_at;
-  $iconPath = public_path('images/iconologo.png');
+  $iconPath = public_path('images/nombrelogo.png');
   $iconBase64 = '';
   if (file_exists($iconPath)) {
       $iconBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($iconPath));
   }
+  $bolitaPath = public_path('images/iconologo.png');
+  $bolitaBase64 = '';
+  if (file_exists($bolitaPath)) {
+      $bolitaBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($bolitaPath));
+  }
 
   $shippingCost = (float) $order->shipping_cost;
 
-  $comisionTotal = 0;
-  $comisionStoreId = $invoice ? $invoice->store_id : null;
-  $comisionTasaMin = 1;
-  $comisionTasaMax = 0;
+  $sumItemsConIgv = 0;
   foreach ($order->items as $item) {
-      if ($comisionStoreId && (int) $item->store_id !== (int) $comisionStoreId) {
-          continue;
-      }
-      $valorItem = (float) $item->line_total;
-      $tasa = match (true) {
-          $valorItem <= 400   => 0.15,
-          $valorItem <= 800   => 0.14,
-          $valorItem <= 1200  => 0.13,
-          default             => 0.12,
-      };
-      $comisionTasaMin = min($comisionTasaMin, $tasa);
-      $comisionTasaMax = max($comisionTasaMax, $tasa);
-      $comisionTotal += round($valorItem * $tasa, 2);
+      $sumItemsConIgv += (float) $item->line_total;
   }
-  $comisionTasaMin = $comisionTasaMin === 1 ? 0 : $comisionTasaMin;
-  $comisionTasaTexto = $comisionTasaMin === $comisionTasaMax
-      ? round($comisionTasaMin * 100) . '%'
-      : round($comisionTasaMin * 100) . '%-' . round($comisionTasaMax * 100) . '%';
+  $baseConIgv = $sumItemsConIgv + $shippingCost;
+  $baseSinIgv = $baseConIgv / 1.18;
+  $tasaComision = match (true) {
+      $baseSinIgv <= 400   => 0.15,
+      $baseSinIgv <= 800   => 0.14,
+      $baseSinIgv <= 1200  => 0.13,
+      default              => 0.12,
+  };
+  $comisionSinIgv = round($baseSinIgv * $tasaComision, 2);
+  $comisionIgv = round($comisionSinIgv * 0.18, 2);
+  $comisionTotal = $comisionSinIgv + $comisionIgv;
+  $comisionTasaTexto = round($tasaComision * 100) . '%';
 
   $qrBase64 = '';
   if (!empty($qrData)) {
@@ -235,9 +235,14 @@
   <table class="header-table">
     <tr>
       <td class="header-left">
-        @if($iconBase64)
-          <img src="{{ $iconBase64 }}" class="logo-img" alt="Lyrium">
-        @endif
+        <div class="logo-row">
+          @if($bolitaBase64)
+            <img src="{{ $bolitaBase64 }}" class="logo-icon" alt="Lyrium">
+          @endif
+          @if($iconBase64)
+            <img src="{{ $iconBase64 }}" class="logo-img" alt="Lyrium">
+          @endif
+        </div>
         <div class="issuer-name">{{ $issuerName }}</div>
         <div class="issuer-ruc">RUC <span>{{ $issuerRuc }}</span></div>
         <div class="issuer-detail">
@@ -312,6 +317,15 @@
           <td class="right">S/ {{ number_format((float) $item->line_total, 2) }}</td>
         </tr>
         @endforeach
+        @if((float) $shippingCost > 0)
+        <tr style="background-color: #F5FBF8;">
+          <td class="center">—</td>
+          <td class="left" style="font-style: italic;">Costo de Envío</td>
+          <td class="right">—</td>
+          <td class="right">—</td>
+          <td class="right">S/ {{ number_format($shippingCost, 2) }}</td>
+        </tr>
+        @endif
       </tbody>
     </table>
   </div>
@@ -337,6 +351,10 @@
       </tr>
       @endif
       <tr>
+        <td class="label-cell">Envío</td>
+        <td class="value-cell">S/ {{ number_format($shippingCost, 2) }}</td>
+      </tr>
+      <tr>
         <td class="label-cell">I.G.V. (18%)</td>
         <td class="value-cell">S/ {{ number_format($docIgv, 2) }}</td>
       </tr>
@@ -347,16 +365,24 @@
       </tr>
       <tr class="separator"><td colspan="2"><hr></td></tr>
       <tr>
-        <td class="label-cell info-label">Envío</td>
-        <td class="value-cell info-value">S/ {{ number_format($shippingCost, 2) }}</td>
+        <td class="label-cell info-label">Base Cálculo Comisión (sin IGV)</td>
+        <td class="value-cell info-value">S/ {{ number_format($baseSinIgv, 2) }}</td>
       </tr>
       <tr>
-        <td class="label-cell info-label">Comisión Referencial Lyrium ({{ $comisionTasaTexto }})</td>
+        <td class="label-cell info-label">Comisión Lyrium ({{ $comisionTasaTexto }})</td>
+        <td class="value-cell info-value">S/ {{ number_format($comisionSinIgv, 2) }}</td>
+      </tr>
+      <tr>
+        <td class="label-cell info-label">I.G.V. de Comisión (18%)</td>
+        <td class="value-cell info-value">S/ {{ number_format($comisionIgv, 2) }}</td>
+      </tr>
+      <tr>
+        <td class="label-cell info-label">Comisión Total</td>
         <td class="value-cell info-value">S/ {{ number_format($comisionTotal, 2) }}</td>
       </tr>
     </table>
     <div class="commission-note">
-      Comisión calculada de forma referencial según la tabla vigente.<br>
+      Comisión calculada sobre (Valor Venta + Envío) ÷ 1.18 según tabla vigente.<br>
       No modifica los importes fiscales del comprobante.
     </div>
   </div>

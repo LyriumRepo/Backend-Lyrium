@@ -239,7 +239,7 @@ final class OrderController extends Controller
             }
         });
 
-        broadcast(new OrderStatusChanged($order));
+        event(new OrderStatusChanged($order));
 
         return $this->created(new OrderResource($order));
     }
@@ -276,7 +276,7 @@ final class OrderController extends Controller
 
         $order->load(['items.product.store', 'user']);
 
-        broadcast(new OrderStatusChanged($order));
+        event(new OrderStatusChanged($order));
 
         return $this->success(new OrderResource($order));
     }
@@ -420,7 +420,7 @@ final class OrderController extends Controller
 
         $order->load(['items.product.store', 'user']);
 
-        broadcast(new OrderStatusChanged($order));
+        event(new OrderStatusChanged($order));
 
         return $this->success(new OrderResource($order));
     }

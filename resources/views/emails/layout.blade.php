@@ -309,12 +309,14 @@
         <div class="email-container">
 
             {{-- HEADER --}}
+            @if(!isset($hideHeader) || !$hideHeader)
             <div class="email-header">
                 <img src="cid:logo-text" alt="Lyrium" class="logo-img" />
                 @if(isset($showTagline) ? $showTagline : true)
                 <div class="tagline">BioMarketplace · Salud y Bienestar</div>
                 @endif
             </div>
+            @endif
 
             {{-- BODY --}}
             <div class="email-body">
