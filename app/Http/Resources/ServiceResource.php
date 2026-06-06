@@ -40,6 +40,11 @@ final class ServiceResource extends JsonResource
                 fn () => $this->store->store_name ?? $this->store->trade_name ?? '',
                 ''
             ),
+            'store_logo' => $this->whenLoaded(
+                'store',
+                fn () => $this->store->getMediaUrl('logo'),
+                null
+            ),
 
             // ── Contenido ───────────────────────────────────────────────────
             'name' => $this->name,
@@ -56,7 +61,11 @@ final class ServiceResource extends JsonResource
             // ── Categoría ────────────────────────────────────────────────────
             'category' => $this->whenLoaded(
                 'category',
-                fn () => $this->category?->name ?? '',
+                fn () => $this->category
+                    ? ($this->category->parent
+                        ? $this->category->parent->name.' > '.$this->category->name
+                        : $this->category->name)
+                    : '',
                 ''
             ),
             'category_id' => $this->category_id,
@@ -76,6 +85,13 @@ final class ServiceResource extends JsonResource
 
                 return $this->image ?? null;
             }),
+
+            // ── Sticker / Etiquetas ──────────────────────────────────────────
+            'sticker' => $this->sticker,
+            'discount_percentage' => $this->discount_percentage
+                ? (float) $this->discount_percentage
+                : null,
+            'settings' => $settings,
 
             // ── Estado ───────────────────────────────────────────────────────
             'status' => $this->status,

@@ -40,6 +40,7 @@ final class Store extends Model implements HasMedia
         'seller_type',
         'strikes',
         'commission_rate',
+        'lirios_percent',
         'rep_legal_nombre',
         'rep_legal_dni',
         'rep_legal_foto',
@@ -212,7 +213,7 @@ final class Store extends Model implements HasMedia
     public function getGalleryUrls(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn ($media) => $media->getUrl())
+            ->map(fn($media) => $media->getUrl())
             ->toArray();
     }
 
@@ -272,5 +273,13 @@ final class Store extends Model implements HasMedia
     public function getStoreReviewCountAttribute(): int
     {
         return $this->storeReviews()->count();
+    }
+    // app/Models/Store.php
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('status', 'active')
+            ->where('ends_at', '>=', now())
+            ->latestOfMany();
     }
 }

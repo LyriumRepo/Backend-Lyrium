@@ -23,6 +23,7 @@ final class ExpenseResource extends JsonResource
             'voucher_number' => $this->voucher_number,
             'file_url' => $this->file_url,
             'notes' => $this->notes,
+            'scan_data' => $this->scan_data,
             'created_at' => $this->created_at->toISOString(),
 
             // Supplier snapshot

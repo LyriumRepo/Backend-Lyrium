@@ -13,50 +13,42 @@ final class EventsController extends Controller
     public function stream(Request $request): Response
     {
         $channel = $request->query('channel', 'global');
-        $userId = $request->query('user_id');
+        $userId  = $request->query('user_id');
 
-        $request->headers->set('Content-Type', 'text/event-stream');
-        $request->headers->set('Cache-Control', 'no-cache');
-        $request->headers->set('Connection', 'keep-alive');
+        $origin = $request->headers->get('Origin', 'http://localhost:3000');
 
         $response = new Response(null, 200, [
-            'Content-Type' => 'text/event-stream',
-            'Cache-Control' => 'no-cache',
-            'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no',
+            'Content-Type'                     => 'text/event-stream',
+            'Cache-Control'                    => 'no-cache',
+            'Connection'                       => 'keep-alive',
+            'X-Accel-Buffering'                => 'no',
+            'Access-Control-Allow-Origin'      => $origin,  // ← NUEVO
+            'Access-Control-Allow-Credentials' => 'true',   // ← NUEVO
         ]);
 
         $response->send();
 
-        $sentEvents = [];
-
         echo "event: conectado\n";
-        echo 'data: '.json_encode([
-            'channel' => $channel,
-            'user_id' => $userId,
+        echo 'data: ' . json_encode([
+            'channel'   => $channel,
+            'user_id'   => $userId,
             'timestamp' => now()->toIso8601String(),
-        ])."\n\n";
+        ]) . "\n\n";
         flush();
+        if (ob_get_level()) ob_flush();
 
-        if (ob_get_level()) {
-            ob_flush();
-        }
-
-        $maxDuration = 300;
-        $startTime = time();
-        $lastHeartbeat = time();
+        $maxDuration    = 300;
+        $startTime      = time();
+        $lastHeartbeat  = time();
 
         while ((time() - $startTime) < $maxDuration) {
-            if (connection_aborted()) {
-                break;
-            }
+            if (connection_aborted()) break;
 
             if (time() - $lastHeartbeat >= 30) {
                 echo ": heartbeat\n\n";
                 $lastHeartbeat = time();
                 flush();
             }
-
             usleep(100000);
         }
 

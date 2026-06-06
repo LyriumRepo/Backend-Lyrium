@@ -48,7 +48,6 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
     {
         $serviceName = $this->booking->service?->name ?? 'Consulta';
         $date = Carbon::parse($this->booking->appointment_date)
-            ->setTimezone('America/Lima')
             ->translatedFormat('l d \d\e F \d\e Y \a \l\a\s H:i');
 
         $subject = match ($this->role) {
@@ -63,6 +62,10 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $isHomeService = $this->booking->service?->is_home_service ?? false;
+        $store = $this->booking->service?->store;
+        $branch = $store?->branches()?->where('is_principal', true)->first();
+
         return new Content(
             view: 'emails.booking-confirmation',
             with: [
@@ -75,19 +78,19 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
                 'serviceName' => $this->booking->service?->name ?? 'Consulta',
                 'specialistName' => $this->booking->specialist?->nombre_completo ?? '—',
                 'clientName' => $this->booking->user?->name ?? '—',
-                'storeName' => $this->booking->service?->store?->trade_name
-                    ?? $this->booking->service?->store?->store_name
-                    ?? '—',
+                'storeName' => $store?->trade_name ?? $store?->store_name ?? '—',
                 'appointmentDate' => Carbon::parse($this->booking->appointment_date)
-                    ->setTimezone('America/Lima')
                     ->translatedFormat('l d \d\e F \d\e Y'),
                 'appointmentTime' => Carbon::parse($this->booking->appointment_date)
-                    ->setTimezone('America/Lima')
                     ->format('H:i'),
                 'duration' => $this->booking->service?->duration_minutes ?? 30,
                 'price' => number_format((float) $this->booking->total_price, 2),
                 'status' => $this->booking->status,
                 'customerNotes' => $this->booking->customer_notes,
+                // Ubicación
+                'isHomeService' => $isHomeService,
+                'serviceAddress' => $this->booking->service_address,
+                'storeAddress' => $branch?->address ?? $store?->address ?? null,
             ]
         );
     }
@@ -104,7 +107,7 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
 
         return [
             Attachment::fromData(
-                fn () => $this->icsContent,
+                fn() => $this->icsContent,
                 'cita-lyrium.ics'
             )->withMime('text/calendar'),
         ];

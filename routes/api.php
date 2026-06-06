@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\Api\AdminSellerController;
 use App\Http\Controllers\Api\AdminTicketController;
+use App\Http\Controllers\Api\AdminVendedorController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BenefitController;
@@ -22,13 +23,16 @@ use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\IzipayBookingController;
 use App\Http\Controllers\Api\IzipayController;
+use App\Http\Controllers\Api\LiriosController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
+use App\Http\Controllers\Api\NubefactController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OperationalRoleController;
 use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PlanRequestController;
@@ -94,6 +98,7 @@ Route::prefix('cart')->group(function () {
     Route::post('add-service', [CartServiceController::class, 'addServiceHold']);
     Route::get('service-holds', [CartServiceController::class, 'verifyHolds']);
     Route::delete('service-holds/{holdId}', [CartServiceController::class, 'removeServiceHold']);
+    Route::patch('service-holds/{holdId}', [CartServiceController::class, 'updateServiceHold']);
 });
 
 /*
@@ -101,6 +106,8 @@ Route::prefix('cart')->group(function () {
 | Público (sin auth)
 |--------------------------------------------------------------------------
 */
+Route::get('/health', fn () => response()->json(['status' => 'ok', 'timestamp' => now()]));
+
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/mega-menu', [CategoryController::class, 'megaMenu']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
@@ -143,6 +150,7 @@ Route::post('/webhooks/culqi', [CulqiController::class, 'webhook']);
 Route::prefix('rankings')->group(function () {
     Route::get('/products', [RankingController::class, 'products']);
     Route::get('/stores', [RankingController::class, 'stores']);
+    Route::get('/services', [RankingController::class, 'services']);
 });
 
 // Shipping público
@@ -203,6 +211,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::post('/create-booking-session', [IzipayBookingController::class, 'createSession']);
         Route::put('/booking-data/{transactionId}', [IzipayBookingController::class, 'updateBookingData']);
+        Route::post('/confirm-booking', [IzipayBookingController::class, 'confirmBooking']);
         Route::get('/booking-status/{transactionId}', [IzipayBookingController::class, 'status']);
     });
 
@@ -216,7 +225,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('suppliers', SupplierController::class);
 
     // ── Gestión de Gastos / Recibos ───────────────────────────────────────
-    Route::get('/expenses/stats', [ExpenseController::class, 'stats']);  // Antes del resource
+    Route::get('/expenses/stats', [ExpenseController::class, 'stats']);
+    Route::post('/expenses/upload', [ExpenseController::class, 'upload']);
+    Route::post('/expenses/scan', [ExpenseController::class, 'scan']);
     Route::apiResource('expenses', ExpenseController::class);
 
     // ── Roles Operativos ──────────────────────────────────────────────────
@@ -296,6 +307,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
 
+    // Lirios
+    Route::get('/lirios/balance', [LiriosController::class, 'balance']);
+    Route::get('/lirios/checkout-eligibility', [LiriosController::class, 'checkoutEligibility']);
+    Route::get('/lirios/transactions', [LiriosController::class, 'transactions']);
+    Route::post('/lirios/accrue', [LiriosController::class, 'accrue']);
+
+    // Admin Lirios
+    Route::middleware('role:administrator')->prefix('lirios')->group(function () {
+        Route::get('/admin/accounts', [LiriosController::class, 'adminAccounts']);
+        Route::put('/admin/accounts/{userId}', [LiriosController::class, 'adminUpdateBalance']);
+    });
+
     // Loyalty
     Route::get('/loyalty/account', [LoyaltyController::class, 'account']);
     Route::get('/loyalty/status', [LoyaltyController::class, 'status']);
@@ -324,6 +347,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
+
+    // Nubefact
+    Route::post('/nubefact/emitir', [NubefactController::class, 'emitir']);
+    Route::get('/nubefact/comprobantes', [NubefactController::class, 'listar']);
+    Route::get('/nubefact/comprobantes/{id}', [NubefactController::class, 'mostrar']);
+    Route::get('/nubefact/kpis', [NubefactController::class, 'kpis']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -433,6 +462,29 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/plan-requests/{id}/reject', [PlanRequestController::class, 'reject']);
         Route::get('/admin/plan-requests/stream', [PlanRequestController::class, 'stream']);
 
+        // Planes - Admin (CRUD) — bind por slug en lugar de id
+        Route::get('/admin/plans', [PlanController::class, 'adminIndex']);
+        Route::post('/admin/plans', [PlanController::class, 'store']);
+        Route::get('/admin/plans/{plan:slug}', [PlanController::class, 'adminShow']);
+        Route::put('/admin/plans/{plan:slug}', [PlanController::class, 'update']);
+        Route::delete('/admin/plans/{plan:slug}', [PlanController::class, 'destroy']);
+        Route::put('/admin/plans/{plan:slug}/toggle-active', [PlanController::class, 'toggleActive']);
+        Route::put('/admin/plans/{plan:slug}/icon', [PlanController::class, 'updateIcon']);
+
+        // Colores botones planes - Admin
+        Route::get('/admin/plan-colors', [PlanController::class, 'getColors']);
+        Route::put('/admin/plan-colors', [PlanController::class, 'saveColors']);
+        Route::delete('/admin/plan-colors', [PlanController::class, 'resetColors']);
+
+        // Vendedores - Admin
+        Route::get('/admin/vendedores', [AdminVendedorController::class, 'index']);
+        Route::get('/admin/vendedores/stats', [AdminVendedorController::class, 'stats']);
+        Route::get('/admin/vendedores/{id}', [AdminVendedorController::class, 'show']);
+
+        // Pagos planes - Admin
+        Route::get('/admin/pagos', [PagoController::class, 'adminHistory']);
+        Route::get('/admin/pagos/vendedor/{storeId}', [PagoController::class, 'adminVendedorPagos']);
+
         // System Config - Admin
         Route::get('/admin/config', [SystemConfigController::class, 'index']);
         Route::get('/admin/config/{key}', [SystemConfigController::class, 'show']);
@@ -505,6 +557,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/stats', [TransactionController::class, 'stats']);
             Route::get('/{id}', [TransactionController::class, 'show']);
         });
+
+        // Finanzas — Admin (dashboard con KPIs)
+        Route::get('/admin/finance', [\App\Http\Controllers\Api\AdminFinanceController::class, 'index']);
     });
 
     /*
@@ -549,7 +604,7 @@ Route::middleware('auth:sanctum')->group(function () {
             // Products Media (upload image)
             Route::post('/products/{id}/media', [MediaController::class, 'uploadProductMedia']);
             Route::get('/products/{id}/media', [MediaController::class, 'getProductMedia']);
-            Route::delete('/products/{id}/media/{id}', [MediaController::class, 'deleteProductMedia']);
+            Route::delete('/products/{id}/media/{mediaId}', [MediaController::class, 'deleteProductMedia']);
             Route::put('/products/{id}/media/reorder', [MediaController::class, 'reorderProductMedia']);
 
             // Services (vendedor)

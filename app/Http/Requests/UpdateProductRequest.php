@@ -33,23 +33,23 @@ final class UpdateProductRequest extends FormRequest
 
             // Atributos principales (ficha de características)
             'mainAttributes' => 'nullable|array',
-            'mainAttributes.*.values' => 'required_with:mainAttributes|array',
-            'mainAttributes.*.values.label' => 'required_with:mainAttributes|string|max:100',
-            'mainAttributes.*.values.value' => 'required_with:mainAttributes|string|max:255',
+            'mainAttributes.*.values' => 'present|array',
+            'mainAttributes.*.values.0' => 'string|max:100',
+            'mainAttributes.*.values.1' => 'string|max:255',
 
             // Atributos adicionales (uso, beneficios, etc.)
             'additionalAttributes' => 'nullable|array',
-            'additionalAttributes.*.values' => 'required_with:additionalAttributes|array',
-            'additionalAttributes.*.values.label' => 'required_with:additionalAttributes|string|max:100',
-            'additionalAttributes.*.values.value' => 'required_with:additionalAttributes|string|max:255',
+            'additionalAttributes.*.values' => 'present|array',
+            'additionalAttributes.*.values.0' => 'string|max:100',
+            'additionalAttributes.*.values.1' => 'string|max:255',
 
             // Ficha nutricional                             ← nuevo
             'servingNote' => 'nullable|string|max:200',
             'nutritionalAttributes' => 'nullable|array',
-            'nutritionalAttributes.*.values' => 'required_with:nutritionalAttributes|array',
-            'nutritionalAttributes.*.values.label' => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.value' => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.daily_value' => 'nullable|string|max:20',
+            'nutritionalAttributes.*.values' => 'present|array',
+            'nutritionalAttributes.*.values.0' => 'string|max:100',
+            'nutritionalAttributes.*.values.1' => 'string|max:100',
+            'nutritionalAttributes.*.values.2' => 'nullable|string|max:20',
         ];
 
         if ($type === 'physical') {

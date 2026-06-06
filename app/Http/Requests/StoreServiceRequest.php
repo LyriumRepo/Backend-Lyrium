@@ -38,6 +38,10 @@ final class StoreServiceRequest extends FormRequest
             'cancellation_policy' => ['sometimes', 'in:no_refund,flexible,strict'],
             'max_cancellations' => ['sometimes', 'integer', 'min:1', 'max:10'],
 
+            'sticker' => ['nullable', 'string', 'in:nuevo,descuento,oferta,liquidacion,bestseller,envio_gratis'],
+            'discount_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'settings' => ['nullable', 'array'],
+
             'category_id' => [
                 'nullable',
                 'exists:categories,id',

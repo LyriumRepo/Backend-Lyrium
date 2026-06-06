@@ -49,7 +49,7 @@ final class ProductResource extends JsonResource
                 'id' => (string) $this->store->id,
                 'name' => $this->store->store_name,
                 'slug' => $this->store->slug,
-                'logo' => $this->store->logo,
+                'logo' => $this->store->getMediaUrl('logo'),
                 'email' => $this->store->corporate_email,
                 'phone' => $this->store->phone,
             ]),

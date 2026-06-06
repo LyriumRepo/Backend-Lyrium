@@ -59,6 +59,13 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'nubefact' => [
+        'route' => env('NUBEFACT_ROUTE', 'https://api.nubefact.com/api/v1/06259bc7-b074-43bd-8981-53fa863f787f'),
+        'token' => env('NUBEFACT_TOKEN', 'a4e2903adce14230ac2f744c2e785b6681ad211178484c498faf0740aeeac05e'),
+        'ruc' => env('NUBEFACT_RUC', '20600695771'),
+        'branch_id' => env('NUBEFACT_BRANCH_ID', '0'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

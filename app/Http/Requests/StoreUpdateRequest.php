@@ -52,6 +52,7 @@ final class StoreUpdateRequest extends FormRequest
             'policies' => ['nullable', 'string'],
             'gallery' => ['nullable', 'array'],
             'gallery.*' => ['string', 'max:500'],
+            'lirios_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ];
     }
 

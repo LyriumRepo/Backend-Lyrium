@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -55,6 +56,8 @@ final class Service extends Model
         'max_cancellations',
         'settings',
         'google_calendar_id',
+        'sticker',
+        'discount_percentage',
     ];
 
     protected function casts(): array
@@ -66,6 +69,7 @@ final class Service extends Model
             'is_home_service' => 'boolean',
             'max_capacity' => 'integer',
             'settings' => 'array',
+            'discount_percentage' => 'decimal:2',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
@@ -109,6 +113,18 @@ final class Service extends Model
         return $this->hasMany(ServiceBooking::class);
     }
 
+    public function reviews(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Review::class,
+            ServiceBooking::class,
+            'service_id',
+            'service_booking_id',
+            'id',
+            'id',
+        );
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public function isActive(): bool
@@ -124,6 +140,13 @@ final class Service extends Model
     public function isFlexibleCancellation(): bool
     {
         return $this->cancellation_policy === self::CANCELLATION_FLEXIBLE;
+    }
+
+    public function finalPrice(): float
+    {
+        $price = (float) $this->price;
+        $discount = (float) ($this->discount_percentage ?? 0);
+        return $discount > 0 ? round($price * (1 - $discount / 100), 2) : $price;
     }
 
     public function scopeActive($query)

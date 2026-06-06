@@ -17,11 +17,13 @@ namespace App\Services;
  * Para eso, el Controller ahora extrae el raw body y lo pasa al servicio.
  */
 
+use App\Events\NewBookingReceived;
 use App\Mail\OrderConfirmationMail;
 use App\Models\IzipayOrderTransaction;
 use App\Models\Order;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSlotHold;
+use App\Notifications\BookingCreatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -39,8 +41,9 @@ final class IzipayService
 
     private string $hashKey;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly GoogleCalendarService $googleCalendar,
+    ) {
         $this->userId = (string) config('services.izipay.user_id', '');
         $this->password = (string) config('services.izipay.password', '');
         $this->mode = (string) config('services.izipay.mode', 'test');
@@ -51,20 +54,15 @@ final class IzipayService
 
     public function createPaymentSession(Order $order, string $email, string $cartToken = ''): IzipayOrderTransaction
     {
-        // Calculate total including service holds if cart_token provided
-        $serviceTotal = 0;
+        // Service prices are already included in order->total (see OrderController::store)
         $holdIds = [];
 
         if ($cartToken) {
             $holds = ServiceSlotHold::active()->forCart($cartToken)->with('service')->get();
             $holdIds = $holds->pluck('id')->toArray();
-            foreach ($holds as $hold) {
-                $serviceTotal += (float) ($hold->service?->price ?? 0);
-            }
         }
 
-        $totalWithServices = (float) $order->total + $serviceTotal;
-        $amountCents = IzipayOrderTransaction::toCents($totalWithServices);
+        $amountCents = IzipayOrderTransaction::toCents((float) $order->total);
         $izipayOrderId = IzipayOrderTransaction::generateIzipayOrderId($order->id);
 
         $transaction = IzipayOrderTransaction::create([
@@ -89,6 +87,17 @@ final class IzipayService
             $metadata['holds'] = json_encode(array_map(function ($id) {
                 return (string) $id;
             }, $holdIds));
+
+            // Include service addresses for webhook processing
+            $addresses = [];
+            foreach ($holds as $hold) {
+                if ($hold->service_address) {
+                    $addresses[(string) $hold->id] = $hold->service_address;
+                }
+            }
+            if (! empty($addresses)) {
+                $metadata['hold_addresses'] = json_encode($addresses);
+            }
         }
 
         $payload = [
@@ -268,20 +277,39 @@ final class IzipayService
                 'amount' => $txData['amount'] ?? null,
             ]);
 
-            // ── Send order confirmation email ──────────────────────────────
+            // ── Accrue Lirios points ──────────────────────────────────────────
             try {
-                Mail::to($order->user?->email)->queue(new OrderConfirmationMail($order));
-            } catch (\Throwable $mailEx) {
-                Log::warning('Error enviando correo de confirmación de orden', [
+                $liriosService = app(\App\Services\LiriosService::class);
+                $liriosService->accrue($order->user_id, (float) $order->total, $order);
+                Log::info('IzipayService: Lirios acumulados', [
                     'order_id' => $order->id,
-                    'error' => $mailEx->getMessage(),
+                    'total' => $order->total,
                 ]);
+            } catch (\Throwable $liriosEx) {
+                Log::error('IzipayService: error acumulando Lirios', [
+                    'order_id' => $order->id,
+                    'error' => $liriosEx->getMessage(),
+                ]);
+            }
+
+            // ── Send order confirmation email (only if there are product items) ──
+            if ($order->items()->exists()) {
+                try {
+                    Mail::to($order->user?->email)->send(new OrderConfirmationMail($order));
+                } catch (\Throwable $mailEx) {
+                    Log::warning('Error enviando correo de confirmación de orden', [
+                        'order_id' => $order->id,
+                        'error' => $mailEx->getMessage(),
+                        'trace' => $mailEx->getTraceAsString(),
+                    ]);
+                }
             }
 
             // ── Create ServiceBookings from holds ──────────────────────────
             $holdIds = $this->extractHoldIdsFromMetadata($answer);
             if (! empty($holdIds)) {
-                $this->createBookingsFromHolds($holdIds, $order);
+                $holdAddresses = $this->extractHoldAddressesFromMetadata($answer);
+                $this->createBookingsFromHolds($holdIds, $holdAddresses, $order);
             }
 
             return ['success' => true, 'message' => 'Pago confirmado'];
@@ -417,10 +445,32 @@ final class IzipayService
     }
 
     /**
-     * Create ServiceBooking records from paid holds.
-     * Runs inside a DB transaction.
+     * Extract hold addresses from Izipay metadata.
      */
-    private function createBookingsFromHolds(array $holdIds, Order $order): void
+    private function extractHoldAddressesFromMetadata(array $answer): array
+    {
+        $metadata = $answer['transactions'][0]['metadata']
+            ?? $answer['metadata']
+            ?? [];
+
+        $raw = $metadata['hold_addresses'] ?? '';
+        if (empty($raw)) {
+            return [];
+        }
+
+        $addresses = json_decode($raw, true);
+        if (! is_array($addresses)) {
+            return [];
+        }
+
+        return $addresses;
+    }
+
+    /**
+     * Create ServiceBooking records from paid holds,
+     * sync with Google Calendar, send notifications and emails.
+     */
+    private function createBookingsFromHolds(array $holdIds, array $holdAddresses, Order $order): void
     {
         $holds = ServiceSlotHold::whereIn('id', $holdIds)
             ->active()
@@ -433,9 +483,9 @@ final class IzipayService
             return;
         }
 
-        DB::transaction(function () use ($holds, $order) {
-            $serviceTotal = 0;
+        $bookings = [];
 
+        DB::transaction(function () use ($holds, $holdAddresses, $order, &$bookings) {
             foreach ($holds as $hold) {
                 $service = $hold->service;
 
@@ -449,32 +499,57 @@ final class IzipayService
                     $hold->appointment_date->format('Y-m-d').' '.$hold->start_time
                 );
 
-                ServiceBooking::create([
+                $address = $holdAddresses[(string) $hold->id] ?? $hold->service_address;
+
+                $booking = ServiceBooking::create([
                     'service_id' => $service->id,
                     'user_id' => $order->user_id,
                     'schedule_id' => $hold->schedule_id,
                     'specialist_id' => $hold->specialist_id,
                     'appointment_date' => $appointmentDate,
                     'status' => ServiceBooking::STATUS_CONFIRMED,
-                    'total_price' => $service->price,
+                    'total_price' => $service->finalPrice(),
                     'payment_method' => 'izipay_'.($order->payment_method ?? 'card'),
                     'payment_status' => 'paid',
                     'customer_notes' => $hold->customer_notes,
+                    'service_address' => $address,
                     'confirmed_at' => now(),
                 ]);
 
-                $serviceTotal += (float) $service->price;
+                $bookings[] = $booking;
                 $hold->delete();
-            }
-
-            // Update order total to reflect service charges
-            if ($serviceTotal > 0) {
-                $order->increment('total', $serviceTotal);
             }
         });
 
-        $count = $holds->count();
-        Log::info("IzipayService: {$count} ServiceBooking(s) creados desde holds", [
+        // Post-creation: Google Calendar + notifications + broadcast (outside transaction)
+        foreach ($bookings as $booking) {
+            $booking->loadMissing(['service.store', 'user', 'specialist']);
+
+            // Google Calendar event + confirmation emails
+            $eventIds = $this->googleCalendar->createEvent($booking);
+
+            $updateData = array_filter([
+                'google_event_id' => $eventIds['specialist'],
+                'google_event_id_client' => $eventIds['client'],
+                'google_event_id_seller' => $eventIds['seller'],
+            ]);
+
+            if (! empty($updateData)) {
+                $booking->update($updateData);
+            }
+
+            // WebSocket broadcast
+            broadcast(new NewBookingReceived($booking));
+
+            // Database notification to store owner
+            $storeUser = $booking->service?->store?->owner;
+            if ($storeUser) {
+                $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+            }
+        }
+
+        $count = count($bookings);
+        Log::info("IzipayService: {$count} ServiceBooking(s) creados desde holds con Google Calendar", [
             'order_id' => $order->id,
             'hold_ids' => $holdIds,
         ]);

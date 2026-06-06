@@ -61,21 +61,9 @@ final class StoreSpecialistRequest extends FormRequest
             'numero_colegiatura' => ['nullable', 'string', 'max:100'],
 
             // ── Estado y foto ─────────────────────────────────────────────
-            'availability' => ['sometimes', 'in:Disponible,Indispuesto'],
-            'foto' => ['nullable', 'string'],
+            'availability' => ['sometimes', 'in:Disponible,Indispuesto,Ocupado'],
 
-            // google_calendar_id: se autorrellena con el email si no se provee
-            'google_calendar_id' => ['nullable', 'string', 'max:255'],
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'email.unique' => 'Ya existe un especialista registrado con este email.',
-            'anios_experiencia.max' => 'Los años de experiencia no pueden superar 30.',
-            'document_type.in' => 'El tipo de documento debe ser DNI, CE o PASAPORTE.',
-            'availability.in' => 'El estado debe ser Disponible o Indispuesto.',
+            'availability.in' => 'El estado debe ser Disponible, Indispuesto u Ocupado.',
             'category_id.exists' => 'La categoría seleccionada no existe.',
         ];
     }

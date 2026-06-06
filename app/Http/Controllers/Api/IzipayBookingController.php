@@ -72,6 +72,20 @@ final class IzipayBookingController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function confirmBooking(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'transaction_id' => ['required', 'integer', 'exists:izipay_booking_transactions,id'],
+        ]);
+
+        $result = $this->izipayBookingService->confirmBooking(
+            transactionId: (int) $data['transaction_id'],
+            userId: $request->user()->id,
+        );
+
+        return response()->json($result, $result['success'] ? 200 : 422);
+    }
+
     public function status(Request $request, int $transactionId): JsonResponse
     {
         $transaction = $this->izipayBookingService->getStatus($transactionId);

@@ -66,18 +66,10 @@ final class UpdateSpecialistRequest extends FormRequest
             'sub_especialidad' => ['nullable', 'string', 'max:255'],
             'anios_experiencia' => ['nullable', 'integer', 'min:0', 'max:30'],
             'numero_colegiatura' => ['nullable', 'string', 'max:100'],
-            'availability' => ['sometimes', 'in:Disponible,Indispuesto'],
-            'foto' => ['nullable', 'string'],
-            'google_calendar_id' => ['nullable', 'string', 'max:255'],
-        ];
-    }
+            'availability' => ['sometimes', 'in:Disponible,Indispuesto,Ocupado'],
 
-    public function messages(): array
-    {
-        return [
-            'email.unique' => 'Ya existe otro especialista registrado con este email.',
-            'anios_experiencia.max' => 'Los años de experiencia no pueden superar 30.',
-            'availability.in' => 'El estado debe ser Disponible o Indispuesto.',
+            // ── Mensajes personalizados ────────────────────────────────────────
+            'availability.in' => 'El estado debe ser Disponible, Indispuesto u Ocupado.',
             'category_id.exists' => 'La categoría seleccionada no existe.',
         ];
     }

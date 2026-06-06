@@ -15,8 +15,14 @@ final class Invoice extends Model
     protected $fillable = [
         'order_id',
         'invoice_number',
+        'document_type',
+        'series',
+        'number',
         'nit',
         'business_name',
+        'customer_document_type',
+        'customer_address',
+        'customer_email',
         'provider',
         'provider_invoice_id',
         'qr_data',
@@ -24,12 +30,16 @@ final class Invoice extends Model
         'authorization_code',
         'total',
         'status',
+        'nubefact_response',
+        'items',
     ];
 
     protected function casts(): array
     {
         return [
             'total' => 'decimal:2',
+            'nubefact_response' => 'array',
+            'items' => 'array',
         ];
     }
 

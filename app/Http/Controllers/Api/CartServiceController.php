@@ -32,6 +32,7 @@ final class CartServiceController extends Controller
             'appointment_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'start_time' => ['required', 'date_format:H:i'],
             'customer_notes' => ['nullable', 'string', 'max:1000'],
+            'service_address' => ['nullable', 'string', 'max:500'],
             'cart_token' => ['required', 'string', 'min:8'],
         ]);
 
@@ -86,6 +87,7 @@ final class CartServiceController extends Controller
             'appointment_date' => $data['appointment_date'],
             'start_time' => $data['start_time'],
             'customer_notes' => $data['customer_notes'] ?? null,
+            'service_address' => $data['service_address'] ?? null,
             'cart_token' => $data['cart_token'],
             'expires_at' => now()->addMinutes(15),
         ]);
@@ -95,7 +97,7 @@ final class CartServiceController extends Controller
                 'id' => $hold->id,
                 'service_id' => $hold->service_id,
                 'service_name' => $service->name,
-                'service_price' => (float) $service->price,
+                'service_price' => $service->finalPrice(),
                 'service_image' => $service->image,
                 'specialist_id' => $specialist->id,
                 'specialist_name' => trim($specialist->nombres.' '.$specialist->apellidos),
@@ -103,6 +105,7 @@ final class CartServiceController extends Controller
                 'appointment_date' => $hold->appointment_date->format('Y-m-d'),
                 'start_time' => $hold->start_time,
                 'customer_notes' => $hold->customer_notes,
+                'service_address' => $hold->service_address,
                 'expires_at' => $hold->expires_at->toIso8601String(),
                 'seconds_remaining' => now()->diffInSeconds($hold->expires_at, false),
             ],
@@ -128,7 +131,7 @@ final class CartServiceController extends Controller
                 'id' => $h->id,
                 'service_id' => $h->service_id,
                 'service_name' => $h->service?->name ?? '',
-                'service_price' => (float) ($h->service?->price ?? 0),
+                'service_price' => (float) ($h->service?->finalPrice() ?? 0),
                 'service_image' => $h->service?->image,
                 'schedule_id' => $h->schedule_id,
                 'specialist_id' => $h->specialist_id,
@@ -136,6 +139,7 @@ final class CartServiceController extends Controller
                 'appointment_date' => $h->appointment_date->format('Y-m-d'),
                 'start_time' => $h->start_time,
                 'customer_notes' => $h->customer_notes,
+                'service_address' => $h->service_address,
                 'expires_at' => $h->expires_at->toIso8601String(),
                 'seconds_remaining' => max(0, now()->diffInSeconds($h->expires_at, false)),
             ]),
@@ -163,5 +167,31 @@ final class CartServiceController extends Controller
         $hold->delete();
 
         return response()->json(['message' => 'Hold liberado.']);
+    }
+
+    public function updateServiceHold(Request $request, int $holdId): JsonResponse
+    {
+        $data = $request->validate([
+            'cart_token' => ['required', 'string', 'min:8'],
+            'service_address' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $hold = ServiceSlotHold::where('id', $holdId)
+            ->where('cart_token', $data['cart_token'])
+            ->first();
+
+        if (! $hold) {
+            return response()->json(['message' => 'Hold no encontrado.'], 404);
+        }
+
+        if (array_key_exists('service_address', $data)) {
+            $hold->service_address = $data['service_address'];
+        }
+        $hold->save();
+
+        return response()->json(['hold' => [
+            'id' => $hold->id,
+            'service_address' => $hold->service_address,
+        ]]);
     }
 }

@@ -8,6 +8,7 @@ use App\Events\NewBookingReceived;
 use App\Models\IzipayBookingTransaction;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceSchedule;
 use App\Notifications\BookingCreatedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -38,7 +39,14 @@ final class IzipayBookingService
     {
         $service = Service::findOrFail($serviceId);
 
-        $amountCents = IzipayBookingTransaction::toCents($service->price);
+        // Aplicar descuento si el servicio tiene discount_percentage
+        $finalPrice = $service->price;
+        $discountPct = $service->discount_percentage ? (float) $service->discount_percentage : 0;
+        if ($discountPct > 0) {
+            $finalPrice = $service->price * (1 - $discountPct / 100);
+        }
+
+        $amountCents = IzipayBookingTransaction::toCents($finalPrice);
         $izipayOrderId = IzipayBookingTransaction::generateIzipayOrderId($service->id);
 
         $appointmentDate = null;
@@ -224,7 +232,7 @@ final class IzipayBookingService
                     'specialist_id' => $tx->specialist_id,
                     'appointment_date' => $tx->appointment_date,
                     'status' => ServiceBooking::STATUS_PENDING,
-                    'total_price' => $tx->service->price,
+                    'total_price' => $tx->amount_in_cents / 100,
                     'payment_method' => 'izipay_'.strtolower($tx->payment_method_type ?? 'card'),
                     'payment_status' => 'paid',
                     'customer_notes' => $tx->customer_notes,
@@ -260,6 +268,137 @@ final class IzipayBookingService
             ]);
 
             return null;
+        }
+    }
+
+    /**
+     * Confirm a booking directly from the frontend after Izipay SDK onSubmit success.
+     * This bypasses the webhook (useful in dev where Izipay can't reach localhost).
+     * The transaction must be in 'pending' status and owned by the given user.
+     */
+    public function confirmBooking(int $transactionId, int $userId): array
+    {
+        Log::info('IzipayBookingService: confirmBooking iniciado', [
+            'transaction_id' => $transactionId,
+            'user_id' => $userId,
+        ]);
+
+        $transaction = IzipayBookingTransaction::find($transactionId);
+
+        if (! $transaction) {
+            Log::warning('IzipayBookingService: transacción no encontrada', [
+                'transaction_id' => $transactionId,
+            ]);
+            return ['success' => false, 'message' => 'Transacción no encontrada'];
+        }
+
+        if ($transaction->user_id !== $userId) {
+            Log::warning('IzipayBookingService: usuario no autorizado', [
+                'transaction_id' => $transactionId,
+                'transaction_user_id' => $transaction->user_id,
+                'request_user_id' => $userId,
+            ]);
+            return ['success' => false, 'message' => 'No autorizado'];
+        }
+
+        if ($transaction->isPaid()) {
+            $booking = $transaction->booking;
+            if ($booking) {
+                Log::info('IzipayBookingService: ya procesado con booking', [
+                    'transaction_id' => $transactionId,
+                    'booking_id' => $booking->id,
+                ]);
+                return [
+                    'success' => true,
+                    'message' => 'Ya procesado',
+                    'booking_id' => $booking->id,
+                ];
+            }
+            // Paid but no booking — create it now
+            Log::warning('IzipayBookingService: transacción pagada sin booking, creando ahora', [
+                'transaction_id' => $transactionId,
+            ]);
+        }
+
+        if (! $transaction->isPaid() && $transaction->status !== 'pending') {
+            Log::warning('IzipayBookingService: estado no esperado', [
+                'transaction_id' => $transactionId,
+                'status' => $transaction->status,
+            ]);
+            return ['success' => false, 'message' => 'La transacción no está pendiente'];
+        }
+
+        try {
+            Log::info('IzipayBookingService: creando booking', [
+                'transaction_id' => $transactionId,
+                'service_id' => $transaction->service_id,
+                'schedule_id' => $transaction->schedule_id,
+                'appointment_date' => $transaction->appointment_date?->toDateTimeString(),
+            ]);
+
+            $booking = DB::transaction(function () use ($transaction) {
+                $transaction->update(['status' => 'paid']);
+
+                $schedule = ServiceSchedule::lockForUpdate()->findOrFail($transaction->schedule_id);
+
+                if (! $schedule->isAvailableForBooking($transaction->appointment_date->toDateTimeString())) {
+                    throw new \InvalidArgumentException('El horario ya no está disponible');
+                }
+
+                $booking = ServiceBooking::create([
+                    'service_id' => $transaction->service_id,
+                    'user_id' => $transaction->user_id,
+                    'schedule_id' => $transaction->schedule_id,
+                    'specialist_id' => $transaction->specialist_id,
+                    'appointment_date' => $transaction->appointment_date,
+                    'status' => ServiceBooking::STATUS_PENDING,
+                    'total_price' => $transaction->amount_in_cents / 100,
+                    'payment_method' => $transaction->payment_method_type
+                        ? 'izipay_'.strtolower($transaction->payment_method_type)
+                        : 'izipay_card',
+                    'payment_status' => 'paid',
+                    'customer_notes' => $transaction->customer_notes,
+                ]);
+
+                $transaction->update(['booking_id' => $booking->id]);
+
+                return $booking;
+            });
+
+            if ($booking) {
+                $booking->load(['service.store', 'user', 'specialist']);
+
+                $eventIds = $this->googleCalendar->createEvent($booking);
+
+                $updateData = array_filter([
+                    'google_event_id' => $eventIds['specialist'],
+                    'google_event_id_client' => $eventIds['client'],
+                    'google_event_id_seller' => $eventIds['seller'],
+                ]);
+
+                if (! empty($updateData)) {
+                    $booking->update($updateData);
+                }
+
+                broadcast(new NewBookingReceived($booking));
+
+                $storeUser = $booking->service?->store?->owner;
+                if ($storeUser) {
+                    $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                }
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Reserva confirmada',
+                'booking_id' => $booking->id,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('IzipayBookingService: error en confirmBooking', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            return ['success' => false, 'message' => $e->getMessage()];
         }
     }
 

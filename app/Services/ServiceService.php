@@ -31,7 +31,7 @@ final class ServiceService
 
         return Service::query()
             ->where('store_id', $storeId)
-            ->with(['schedules', 'category'])
+            ->with(['schedules', 'category.parent', 'specialists'])
             ->latest()
             ->paginate($perPage);
     }
@@ -42,7 +42,7 @@ final class ServiceService
 
         $query = Service::query()
             ->where('status', Service::STATUS_ACTIVE)
-            ->with(['store', 'schedules', 'category', 'specialists']);
+            ->with(['store', 'schedules', 'category.parent', 'specialists']);
 
         if (! empty($filters['category_id'])) {
             $ids = $this->getDescendantIds((int) $filters['category_id']);
@@ -102,7 +102,7 @@ final class ServiceService
         return Service::query()
             ->where('store_id', $storeId)
             ->where('status', Service::STATUS_ACTIVE)
-            ->with(['category', 'schedules' => function ($query) {
+            ->with(['category.parent', 'schedules' => function ($query) {
                 $query->where('is_active', true);
             }])
             ->get();
@@ -111,14 +111,14 @@ final class ServiceService
     public function findOrFail(int $id): Service
     {
         return Service::query()
-            ->with(['store', 'schedules', 'category'])
+            ->with(['store', 'schedules', 'category.parent', 'specialists'])
             ->findOrFail($id);
     }
 
     public function findBySlug(string $slug): Service
     {
         return Service::query()
-            ->with(['store', 'schedules', 'category', 'specialists.schedules'])
+            ->with(['store', 'schedules', 'category.parent', 'specialists.schedules'])
             ->where('slug', $slug)
             ->firstOrFail();
     }
@@ -151,7 +151,11 @@ final class ServiceService
                 'cancellation_policy' => $data['cancellation_policy'] ?? 'flexible',
                 'max_cancellations' => $data['max_cancellations'] ?? 3,
                 'settings' => $data['settings'] ?? null,
+                'sticker' => $data['sticker'] ?? null,
+                'discount_percentage' => $data['discount_percentage'] ?? null,
             ]);
+
+
 
             // 3. Asociar Especialistas asignados (Muchos a Muchos)
             if (! empty($data['specialist_ids'])) {

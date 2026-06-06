@@ -17,6 +17,7 @@ final class ServiceSlotHold extends Model
         'start_time',
         'cart_token',
         'customer_notes',
+        'service_address',
         'expires_at',
     ];
 

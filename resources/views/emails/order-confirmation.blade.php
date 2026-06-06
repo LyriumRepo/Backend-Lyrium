@@ -225,9 +225,9 @@
                 <tr>
                     {{-- Facebook --}}
                     <td style="padding:0 14px;text-align:center;vertical-align:top;">
-                        <a href="https://facebook.com/lyrium.pe" target="_blank"
+                        <a href="https://www.facebook.com/people/Lyrium-Biomarketplace/61579938364350/" target="_blank"
                             style="text-decoration:none;display:inline-block;">
-                            <img src="https://cdn-icons-png.flaticon.com/256/124/124010.png"
+                            <img src="https://fv5-4.files.fm/thumb_show.php?i=726g592gj8&view&v=1&PHPSESSID=53ba53ad2030b8e5aae3cf48c4ba83f8e248150a"
                                 width="48" height="48" alt="Facebook"
                                 style="display:block;margin:0 auto;" />
                         </a>
@@ -239,9 +239,9 @@
 
                     {{-- Instagram --}}
                     <td style="padding:0 14px;text-align:center;vertical-align:top;">
-                        <a href="https://instagram.com/lyrium.pe" target="_blank"
+                        <a href="https://www.instagram.com/lyrium_biomarketplace/" target="_blank"
                             style="text-decoration:none;display:inline-block;">
-                            <img src="https://cdn-icons-png.flaticon.com/256/174/174855.png"
+                            <img src="https://cdn-icons-png.flaticon.com/128/4138/4138124.png" ;
                                 width="48" height="48" alt="Instagram"
                                 style="display:block;margin:0 auto;border-radius:10px;" />
                         </a>
@@ -253,9 +253,9 @@
 
                     {{-- WhatsApp --}}
                     <td style="padding:0 14px;text-align:center;vertical-align:top;">
-                        <a href="https://wa.me/51{{ config('lyrium.whatsapp', '999999999') }}"
+                        <a href="https://wa.me/51937093420{{ config('lyrium.whatsapp', '999999999') }}"
                             target="_blank" style="text-decoration:none;display:inline-block;">
-                            <img src="https://cdn-icons-png.flaticon.com/512/5968/5968841.png"
+                            <img src="https://cdn-icons-png.flaticon.com/128/15713/15713434.png"
                                 width="48" height="48" alt="WhatsApp"
                                 style="display:block;margin:0 auto;" />
                         </a>

@@ -113,7 +113,7 @@ final class ServiceController extends Controller
             storeId: $store->id,
             data: $request->validated()
         );
-        $service->load(['schedules', 'category', 'store']);
+        $service->load(['schedules', 'category.parent', 'store', 'specialists']);
 
         return response()->json(
             new ServiceResource($service),
@@ -172,7 +172,7 @@ final class ServiceController extends Controller
 
         $service = $this->serviceService->update($id, $request->validated());
 
-        $service->load(['schedules', 'category', 'store']);
+        $service->load(['schedules', 'category.parent', 'store', 'specialists']);
 
         return response()->json(new ServiceResource($service));
     }

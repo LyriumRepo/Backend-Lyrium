@@ -527,6 +527,7 @@ final class GoogleCalendarService
                 'summary' => ($booking->service?->name ?? 'Consulta').' — '.
                     ($booking->specialist?->nombre_completo ?? 'Especialista'),
                 'description' => $this->buildEventDescription($booking),
+                'location' => $this->buildEventLocation($booking),
                 'start' => new EventDateTime([
                     'dateTime' => $start->toRfc3339String(),
                     'timeZone' => self::TIMEZONE,
@@ -566,6 +567,7 @@ final class GoogleCalendarService
 
     private function buildEventDescription(ServiceBooking $booking): string
     {
+        $isHome = $booking->service?->is_home_service ?? false;
         $lines = [
             'Servicio: '.($booking->service?->name ?? '—'),
             'Especialista: '.($booking->specialist?->nombre_completo ?? '—'),
@@ -573,11 +575,36 @@ final class GoogleCalendarService
             'Estado: '.ucfirst($booking->status),
         ];
 
+        if ($isHome && $booking->service_address) {
+            $lines[] = 'Dirección del servicio: '.$booking->service_address;
+        } elseif (! $isHome) {
+            $store = $booking->service?->store;
+            $branch = $store?->branches()?->where('is_principal', true)->first();
+            $lines[] = 'Ubicación: '.($branch?->address ?? $store?->address ?? 'En tienda');
+        }
+
         if ($booking->customer_notes) {
             $lines[] = 'Notas del cliente: '.$booking->customer_notes;
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Build the event location string based on service type.
+     */
+    private function buildEventLocation(ServiceBooking $booking): string
+    {
+        $isHome = $booking->service?->is_home_service ?? false;
+
+        if ($isHome && $booking->service_address) {
+            return $booking->service_address;
+        }
+
+        $store = $booking->service?->store;
+        $branch = $store?->branches()?->where('is_principal', true)->first();
+
+        return $branch?->address ?? $store?->address ?? '';
     }
 
     private function trySendMail(
@@ -588,6 +615,15 @@ final class GoogleCalendarService
         ?string $icsContent,
         bool $gcalOk,
     ): void {
+        // Validar formato de email antes de encolar
+        if (! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Log::warning("GoogleCalendar: Email inválido para [{$role}]", [
+                'booking_id' => $booking->id,
+                'to' => $to,
+            ]);
+            return;
+        }
+
         try {
             Mail::to($to)->queue(
                 new BookingConfirmationMail(

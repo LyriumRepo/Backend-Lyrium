@@ -140,6 +140,7 @@ final class ProductController extends Controller
             'price' => $data['price'],
             'stock' => $data['stock'] ?? 0,
             'image' => $data['image'] ?? null,
+            'sticker' => $data['sticker'] ?? null,
             'discount_percentage' => $data['discountPercentage'] ?? null,
             'status' => 'pending_review',
         ];
@@ -219,10 +220,10 @@ final class ProductController extends Controller
         $product = Product::findOrFail($id);
 
         $validated = $request->validate([
-            'quantity' => 'required|integer|min:0',
+            'stock_quantity' => 'required|integer|min:0',
         ]);
 
-        $product->update(['stock' => $validated['quantity']]);
+        $product->update(['stock' => $validated['stock_quantity']]);
         $product->load(self::RELATIONS_DETAIL);
 
         return response()->json(new ProductResource($product));
@@ -366,9 +367,23 @@ final class ProductController extends Controller
             }
 
             foreach ($data[$key] as $attr) {
+                $values = $attr['values'] ?? [];
+
+                // Normalizar: si el frontend envía [label, value, daily_value?], convertir a objeto
+                if (is_array($values) && isset($values[0]) && ! isset($values['label'])) {
+                    $normalized = [
+                        'label' => $values[0] ?? '',
+                        'value' => $values[1] ?? '',
+                    ];
+                    if ($type === 'nutritional' && ! empty($values[2])) {
+                        $normalized['daily_value'] = $values[2];
+                    }
+                    $values = $normalized;
+                }
+
                 $product->attributes()->create([
                     'type' => $type,
-                    'values' => $attr['values'] ?? [],
+                    'values' => $values,
                 ]);
             }
         }

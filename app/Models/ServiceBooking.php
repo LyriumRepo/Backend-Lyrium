@@ -35,10 +35,13 @@ final class ServiceBooking extends Model
         'payment_method',
         'payment_status',
         'customer_notes',
+        'service_address',
         'seller_notes',
         'specialist_id',
         'reschedule_token',
         'google_event_id',
+        'google_event_id_client',
+        'google_event_id_seller',
         'confirmed_at',
         'cancelled_at',
     ];
