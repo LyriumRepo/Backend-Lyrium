@@ -14,6 +14,7 @@ use App\Models\Conversation;
 use App\Models\ConversationMessage;
 use App\Models\ConversationMessageAttachment;
 use App\Models\Store;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -56,7 +57,13 @@ final class ConversationController extends Controller
     {
         $user = $request->user();
 
-        $conversation = Conversation::where('customer_user_id', $user->id)
+        $customerUserId = match (true) {
+            $user->hasRole('customer') => $user->id,
+            $request->has('customer_user_id') => (int) $request->input('customer_user_id'),
+            default => $user->id,
+        };
+
+        $conversation = Conversation::where('customer_user_id', $customerUserId)
             ->where('store_id', $request->input('store_id'))
             ->where('category', $request->input('category'))
             ->where('status', 'active')
@@ -64,7 +71,7 @@ final class ConversationController extends Controller
 
         if (!$conversation) {
             $conversation = Conversation::create([
-                'customer_user_id' => $user->id,
+                'customer_user_id' => $customerUserId,
                 'store_id' => $request->input('store_id'),
                 'category' => $request->input('category'),
                 'subject' => $request->input('subject'),
@@ -80,13 +87,13 @@ final class ConversationController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
-        $conversation->load(['store.owner', 'latestMessage']);
+        $conversation->load(['store.owner', 'customer', 'latestMessage']);
 
         $store = Store::find($request->input('store_id'));
 
         broadcast(new NewConversationMessage(
             message: $message->loadMissing(['sender', 'conversation']),
-            customerUserId: $user->id,
+            customerUserId: $customerUserId,
             storeId: $store?->id ?? 0,
         ));
 
@@ -322,6 +329,59 @@ final class ConversationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Conversación archivada.',
+        ]);
+    }
+
+    public function myStores(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasRole('customer')) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $stores = $user->stores()
+            ->whereIn('status', ['approved', 'active'])
+            ->get(['id', 'trade_name', 'nombre_comercial', 'razon_social']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $stores->map(fn ($s) => [
+                'id' => (string) $s->id,
+                'name' => $s->trade_name ?? $s->nombre_comercial ?? $s->razon_social ?? '',
+            ]),
+        ]);
+    }
+
+    public function customers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->hasRole('seller') && !$user->hasRole('administrator')) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $storeIds = $user->stores()->pluck('stores.id')
+            ->merge(Store::where('owner_id', $user->id)->pluck('id'))
+            ->unique();
+
+        $search = $request->query('q');
+
+        $customers = User::whereHas('conversations', fn ($q) => $q->whereIn('store_id', $storeIds))
+            ->when($search, fn ($q) => $q->where(function ($qq) use ($search) {
+                $qq->where('name', 'like', "%{$search}%")
+                   ->orWhere('email', 'like', "%{$search}%");
+            }))
+            ->limit(20)
+            ->get(['id', 'name', 'email']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $customers->map(fn ($u) => [
+                'id' => (string) $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+            ]),
         ]);
     }
 

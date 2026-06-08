@@ -29,10 +29,6 @@ final class AddressController extends Controller
         $data = $request->validated();
         $data['user_id'] = $request->user()->id;
 
-        if ($data['is_default'] ?? false) {
-            Address::where('user_id', $data['user_id'])->update(['is_default' => false]);
-        }
-
         $address = Address::create($data);
 
         return $this->created(new AddressResource($address));
@@ -50,12 +46,6 @@ final class AddressController extends Controller
 
         $address = Address::where('user_id', $request->user()->id)->findOrFail($id);
 
-        if ($data['is_default'] ?? false) {
-            Address::where('user_id', $request->user()->id)
-                ->where('id', '!=', $address->id)
-                ->update(['is_default' => false]);
-        }
-
         $address->update($data);
 
         return $this->success(new AddressResource($address->fresh()));
@@ -72,15 +62,7 @@ final class AddressController extends Controller
     {
         $address = Address::where('user_id', $request->user()->id)->findOrFail($id);
 
-        if ($address->is_default) {
-            $address->update(['is_default' => false]);
-        } else {
-            Address::where('user_id', $request->user()->id)
-                ->where('id', '!=', $address->id)
-                ->update(['is_default' => false]);
-
-            $address->update(['is_default' => true]);
-        }
+        $address->update(['is_default' => !$address->is_default]);
 
         return $this->success(new AddressResource($address->fresh()));
     }

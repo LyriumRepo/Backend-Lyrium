@@ -150,7 +150,7 @@ final class OrderController extends Controller
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
-            $taxRate = 0.16;
+            $taxRate = 0.18;
             $taxAmount = round($subtotal * $taxRate, 2);
             $discountAmount = 0;
             $couponId = null;

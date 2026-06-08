@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Events\OrderPaymentConfirmed;
 use App\Models\IzipayOrderTransaction;
 use App\Models\Order;
 use Illuminate\Http\Client\ConnectionException;
@@ -531,6 +532,11 @@ final class IzipayService
                 'payment_status' => Order::PAYMENT_STATUS_PAID,
                 'payment_method' => 'izipay_' . strtolower($txData['paymentMethodType'] ?? 'card'),
             ]);
+
+            event(new OrderPaymentConfirmed(
+                order: $transaction->order,
+                paymentMethod: 'izipay',
+            ));
 
             Log::info('IzipayService webhook: pago confirmado ✓', [
                 'order_id'  => $transaction->order_id,

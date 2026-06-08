@@ -105,12 +105,11 @@ class TestNotifications extends Command
             $this->line("   │ email_order          │ " . ($settings->wantsEmailOrder() ? "✅ ON " : "❌ OFF") . " │");
             $this->line("   │ email_promotions     │ " . ($settings->wantsEmailPromotions() ? "✅ ON " : "❌ OFF") . " │");
             $this->line("   │ email_newsletter     │ " . ($settings->wantsEmailNewsletter() ? "✅ ON " : "❌ OFF") . " │");
-            $this->line("   │ sms_order            │ " . ($settings->wantsSmsOrder() ? "✅ ON " : "❌ OFF") . " │");
             $this->line("   │ push_notifications   │ " . ($settings->wantsPush() ? "✅ ON " : "❌ OFF") . " │");
             $this->line("   └──────────────────────┴───────┘");
         } else {
             $this->line("   ⚠️  Sin registro en user_notification_settings — se usan defaults:");
-            $this->line("   email_order=ON, email_promotions=ON, email_newsletter=OFF, sms_order=OFF, push=ON");
+            $this->line("   email_order=ON, email_promotions=ON, email_newsletter=OFF, push=ON");
         }
     }
 

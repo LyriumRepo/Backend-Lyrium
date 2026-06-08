@@ -20,6 +20,7 @@ final class StoreConversationRequest extends FormRequest
             'category' => ['required', 'string', 'in:informacion,positivo,negativo,logistica,facturacion'],
             'subject' => ['required', 'string', 'max:500'],
             'message' => ['required', 'string', 'max:5000'],
+            'customer_user_id' => ['sometimes', 'integer', 'exists:users,id'],
         ];
     }
 

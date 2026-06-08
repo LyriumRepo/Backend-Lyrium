@@ -8,6 +8,7 @@ namespace App\Services;
  * ARCHIVO: app/Services/CulqiService.php
  */
 
+use App\Events\OrderPaymentConfirmed;
 use App\Models\CulqiTransaction;
 use App\Models\Order;
 use Illuminate\Support\Facades\Http;
@@ -119,6 +120,11 @@ final class CulqiService
                     'payment_status' => Order::PAYMENT_STATUS_PAID,
                     'payment_method' => 'culqi_' . ($card['iin']['card_brand'] ?? 'card'),
                 ]);
+
+                event(new OrderPaymentConfirmed(
+                    order: $order,
+                    paymentMethod: 'culqi',
+                ));
 
                 return $transaction;
             }
@@ -236,6 +242,11 @@ final class CulqiService
         ]);
 
         $transaction->order->update(['payment_status' => Order::PAYMENT_STATUS_PAID]);
+
+        event(new OrderPaymentConfirmed(
+            order: $transaction->order,
+            paymentMethod: 'culqi',
+        ));
 
         Log::info('Culqi webhook: cargo confirmado', ['order_id' => $transaction->order_id]);
     }

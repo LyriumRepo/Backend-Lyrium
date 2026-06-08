@@ -27,6 +27,7 @@ final class ConversationResource extends JsonResource
             'status' => $this->status,
             'category' => $this->category,
             'subject' => $this->subject,
+            'customer_id' => (string) $this->customer_user_id,
             'customer_name' => $this->whenLoaded('customer', fn () => $this->customer?->name ?? ''),
             'customer_email' => $this->whenLoaded('customer', fn () => $this->customer?->email ?? ''),
             'customer_document_number' => $this->whenLoaded('customer', fn () => $this->customer?->document_number ?? ''),

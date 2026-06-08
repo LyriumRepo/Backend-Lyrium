@@ -259,7 +259,6 @@ final class UserController extends Controller
                 'email_order' => true,
                 'email_promotions' => true,
                 'email_newsletter' => false,
-                'sms_order' => false,
                 'push_notifications' => true,
             ]
         );
@@ -277,7 +276,6 @@ final class UserController extends Controller
             'email_order' => 'sometimes|boolean',
             'email_promotions' => 'sometimes|boolean',
             'email_newsletter' => 'sometimes|boolean',
-            'sms_order' => 'sometimes|boolean',
             'push_notifications' => 'sometimes|boolean',
         ]);
 
@@ -289,7 +287,6 @@ final class UserController extends Controller
                 'email_order' => true,
                 'email_promotions' => true,
                 'email_newsletter' => false,
-                'sms_order' => false,
                 'push_notifications' => true,
             ]
         );

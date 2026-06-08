@@ -46,7 +46,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     public function via(object $notifiable): array
     {
-        return ['mail'];
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
