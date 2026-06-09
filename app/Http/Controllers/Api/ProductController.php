@@ -308,7 +308,16 @@ final class ProductController extends Controller
 
         if ($categorySlug = $request->query('category')) {
 
-        $category = Category::where('slug', $categorySlug)->first();
+            $category = Category::where('slug', $categorySlug)->first();
+
+            // Fallback: try last segment of compound slug path
+            if (! $category && str_contains($categorySlug, '-')) {
+                $parts = explode('-', $categorySlug);
+                $lastSegment = end($parts);
+                $category = Category::where('slug', $lastSegment)
+                    ->orWhere('slug', 'like', "%-{$lastSegment}")
+                    ->first();
+            }
 
             if ($category) {
 
