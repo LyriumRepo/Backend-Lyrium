@@ -16,11 +16,16 @@ final class UpdateSellerProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'display_name' => ['sometimes', 'string', 'min:2', 'max:100'],
             'name' => ['sometimes', 'string', 'min:2', 'max:100'],
             'username' => ['sometimes', 'string', 'min:3', 'max:30', 'unique:users,username,'.auth()->id()],
-            'email' => ['sometimes', 'email', 'max:255'],
+            'email' => ['sometimes', 'email', 'unique:users,email,'.auth()->id()],
             'phone' => ['nullable', 'string', 'max:20'],
-            'avatar' => ['nullable', 'string', 'max:500'],
+            'phone_2' => ['nullable', 'string', 'max:20'],
+            'secondary_email' => ['nullable', 'email', 'max:255'],
+            'landline' => ['nullable', 'string', 'max:20'],
+            'birthday' => ['nullable', 'date'],
+            'avatar' => ['nullable', 'string'],
             'document_type' => ['nullable', 'string', 'max:10'],
             'document_number' => ['nullable', 'string', 'max:20'],
         ];

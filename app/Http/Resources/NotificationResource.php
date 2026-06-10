@@ -18,6 +18,7 @@ final class NotificationResource extends JsonResource
             'type' => $this->type,
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
+            'order_id' => $data['order_id'] ?? null,
             'ticket_id' => $data['ticket_id'] ?? null,
             'ticket_number' => $data['ticket_number'] ?? null,
             'subject' => $data['subject'] ?? null,

@@ -67,9 +67,49 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
+        /* Header */
+        .email-header {
+            background: linear-gradient(135deg, #1a3a2a 0%, #2d5e42 100%);
+            padding: 32px 40px;
+            text-align: center;
+        }
+
+        .email-header .logo-img {
+            display: block;
+            margin: 0 auto;
+            max-width: 180px;
+            height: auto;
+        }
+
+        .email-header .tagline {
+            font-size: 13px;
+            color: #a7c9b3;
+            margin-top: 8px;
+            letter-spacing: 0.5px;
+        }
+
         /* Body */
         .email-body {
-            padding: 0 0 32px;
+            padding: 40px 40px 32px;
+        }
+
+        /* Footer */
+        .email-footer {
+            background-color: #F8FAFC;
+            border-top: 1px solid #E2E8F0;
+            padding: 24px 40px;
+            text-align: center;
+        }
+
+        .email-footer p {
+            font-size: 12px;
+            color: #94A3B8;
+            line-height: 1.7;
+        }
+
+        .email-footer a {
+            color: #2d5e42;
+            text-decoration: none;
         }
 
         /* Typography */
@@ -83,7 +123,7 @@
         h2 {
             font-size: 16px;
             font-weight: 600;
-            color: #1E3A5F;
+            color: #1a3a2a;
             margin-bottom: 12px;
         }
 
@@ -162,9 +202,9 @@
 
         /* Highlight box */
         .highlight-box {
-            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-            border: 1px solid #BFDBFE;
-            border-left: 4px solid #2563EB;
+            background: linear-gradient(135deg, #e8f5ee 0%, #d0ebda 100%);
+            border: 1px solid #a7c9b3;
+            border-left: 4px solid #2d5e42;
             border-radius: 10px;
             padding: 16px 20px;
             margin-bottom: 24px;
@@ -173,7 +213,7 @@
         .highlight-box p {
             margin: 0;
             font-size: 14px;
-            color: #1E40AF;
+            color: #1a3a2a;
             font-weight: 500;
         }
 
@@ -199,7 +239,7 @@
             width: fit-content;
             margin: 0 auto 24px;
             padding: 14px 36px;
-            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
+            background: linear-gradient(135deg, #1a3a2a 0%, #2d5e42 100%);
             color: #FFFFFF !important;
             font-size: 15px;
             font-weight: 700;
@@ -241,6 +281,16 @@
 <body>
     <div class="email-wrapper">
         <div class="email-container">
+
+            {{-- HEADER --}}
+            @if(!isset($hideHeader) || !$hideHeader)
+            <div class="email-header">
+                <img src="cid:logo-text" alt="Lyrium" class="logo-img" />
+                @if(isset($showTagline) ? $showTagline : true)
+                <div class="tagline">BioMarketplace · Salud y Bienestar</div>
+                @endif
+            </div>
+            @endif
 
             {{-- BODY --}}
             <div class="email-body">

@@ -4,6 +4,7 @@
 use App\Http\Controllers\Api\AdminSellerController;
 use App\Http\Controllers\Api\AdminTicketController;
 use App\Http\Controllers\Api\AdminVendedorController;
+use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BenefitController;
@@ -12,17 +13,22 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CartServiceController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ChatBotController;
 use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\CulqiController;
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\EventsController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\FinanceAnalyticsController;
 use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\IzipayBookingController;
 use App\Http\Controllers\Api\IzipayController;
+use App\Http\Controllers\Api\IzipayPaymentController;
 use App\Http\Controllers\Api\LiriosController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
@@ -34,6 +40,7 @@ use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PagoController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PaymentMethodController;
 use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PlanRequestController;
 use App\Http\Controllers\Api\ProductController;
@@ -52,6 +59,7 @@ use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,28 +87,17 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::prefix('cart')->group(function () {
-    // Obtener el carrito (R19/R20)
     Route::get('/', [CartController::class, 'index']);
-
-    // Agregar producto al carrito (R19)
     Route::post('items', [CartController::class, 'addItem']);
-
-    // Actualizar cantidad (R20)
     Route::put('items/{productId}', [CartController::class, 'updateItem']);
-
-    // Eliminar un producto (R20)
     Route::delete('items/{productId}', [CartController::class, 'removeItem']);
-
-    // Vaciar todo el carrito
     Route::delete('clear', [CartController::class, 'clear']);
 
-    // ── Service Slot Holds ──────────────────────────────────────────────
     Route::post('add-service', [CartServiceController::class, 'addServiceHold']);
     Route::get('service-holds', [CartServiceController::class, 'verifyHolds']);
     Route::delete('service-holds/{holdId}', [CartServiceController::class, 'removeServiceHold']);
     Route::patch('service-holds/{holdId}', [CartServiceController::class, 'updateServiceHold']);
 });
-
 /*
 |--------------------------------------------------------------------------
 | Público (sin auth)
@@ -140,7 +137,6 @@ Route::get('/config/public', [SystemConfigController::class, 'publicConfigs']);
 Route::get('/events', [EventsController::class, 'stream']);
 
 // Webhook Izipay (público)
-
 Route::post('/webhooks/izipay/plan', [PlanRequestController::class, 'webhookIzipay']);
 Route::post('/webhooks/izipay/order', [IzipayController::class, 'webhook']);
 Route::post('/webhooks/izipay/booking', [IzipayBookingController::class, 'webhook']);
@@ -153,6 +149,9 @@ Route::prefix('rankings')->group(function () {
     Route::get('/stores', [RankingController::class, 'stores']);
     Route::get('/services', [RankingController::class, 'services']);
 });
+
+Route::post('/chatbot/ask', [ChatBotController::class, 'ask']);
+
 
 // Shipping público
 Route::get('/shipping/methods', [ShippingController::class, 'methods']);
@@ -260,9 +259,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users
     Route::get('/users/me', [UserController::class, 'me']);
     Route::put('/users/profile', [UserController::class, 'updateProfile']);
+    Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
+    Route::get('/users/settings', [UserController::class, 'getSettings']);
+    Route::put('/users/settings', [UserController::class, 'updateSettings']);
+    Route::post('/users/avatar', [UserController::class, 'uploadAvatar']);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::put('/users/{id}', [UserController::class, 'update']);
-    Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
 
     // Stores - propia del usuario autenticado
     Route::get('/stores/me', [StoreController::class, 'me']);
@@ -330,14 +332,46 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loyalty/validate-code', [LoyaltyController::class, 'validateCode']);
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
 
+    // Cart
+    Route::get('/cart', [CartController::class, 'index']);
+    Route::post('/cart/items', [CartController::class, 'addItem']);
+    Route::put('/cart/items/{productId}', [CartController::class, 'updateItem']);
+    Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
+    Route::delete('/cart/clear', [CartController::class, 'clear']);
+
+    // Devices (FCM push notification tokens)
+    Route::post('/devices', [DeviceController::class, 'register']);
+    Route::delete('/devices', [DeviceController::class, 'unregister']);
+
+    // Payment Methods (tokenize must be before {id} to avoid route conflict)
+    Route::post('/payment-methods/tokenize', [PaymentMethodController::class, 'tokenize']);
+    Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
+    Route::post('/payment-methods', [PaymentMethodController::class, 'store']);
+    Route::get('/payment-methods/{id}', [PaymentMethodController::class, 'show']);
+    Route::put('/payment-methods/{id}', [PaymentMethodController::class, 'update']);
+    Route::delete('/payment-methods/{id}', [PaymentMethodController::class, 'destroy']);
+
+    // Addresses
+    Route::get('/addresses', [AddressController::class, 'index']);
+    Route::post('/addresses', [AddressController::class, 'store']);
+    Route::get('/addresses/{id}', [AddressController::class, 'show']);
+    Route::put('/addresses/{id}', [AddressController::class, 'update']);
+    Route::delete('/addresses/{id}', [AddressController::class, 'destroy']);
+    Route::put('/addresses/{id}/default', [AddressController::class, 'setDefault']);
+
     // Orders
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/active-count', [OrderController::class, 'activeCount']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
+    Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
+    Route::get('/orders/{id}/payment-confirmation', [OrderController::class, 'downloadPaymentConfirmation']);
+    Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
+    Route::post('/orders/{id}/resend-notification', [OrderController::class, 'resendNotification']);
 
     // Reviews
     Route::post('/reviews', [ReviewController::class, 'store']);
@@ -347,7 +381,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Invoices
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
+    Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
 
     // Nubefact
     Route::post('/nubefact/emitir', [NubefactController::class, 'emitir']);
@@ -375,6 +411,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/disputes/{id}', [DisputeController::class, 'show']);
     Route::post('/disputes/{id}/messages', [DisputeController::class, 'addMessage']);
 
+    // Chat con Vendedores
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations', [ConversationController::class, 'store']);
+    Route::get('/conversations/stores', [ConversationController::class, 'stores']);
+    Route::get('/conversations/customers', [ConversationController::class, 'customers']);
+    Route::get('/conversations/my-stores', [ConversationController::class, 'myStores']);
+    Route::get('/conversations/{id}', [ConversationController::class, 'show']);
+    Route::post('/conversations/{id}/messages', [ConversationController::class, 'sendMessage']);
+    Route::get('/conversations/{id}/messages', [ConversationController::class, 'getMessages']);
+    Route::post('/conversations/{id}/messages/attachments', [ConversationController::class, 'sendMessageWithAttachment']);
+    Route::put('/conversations/{id}/read', [ConversationController::class, 'markRead']);
+    Route::put('/conversations/{id}/archive', [ConversationController::class, 'archive']);
+
+    // Chat file attachments
+    Route::get('/chat/attachments/{id}/download', [ConversationController::class, 'downloadAttachment']);
+
+    // Wishlist
+    Route::get('/wishlist', [WishlistController::class, 'index']);
+    Route::post('/wishlist', [WishlistController::class, 'store']);
+    Route::get('/wishlist/check', [WishlistController::class, 'check']);
+    Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
+
     // Services (Citas/Servicios)
     //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
@@ -390,6 +448,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{id}/reschedule', [ServiceController::class, 'reschedule']);
     Route::post('/bookings/{id}/rate', [ServiceController::class, 'rateBooking']);
     Route::put('/bookings/{id}/confirm-completion', [ServiceController::class, 'confirmCompletion']);
+
+    // Izipay Payment
+    Route::prefix('payments/izipay')->group(function () {
+        Route::post('/init/{order}', [IzipayPaymentController::class, 'init']);
+        Route::post('/confirm/{order}', [IzipayPaymentController::class, 'confirm']);
+        Route::post('/charge-with-token', [IzipayPaymentController::class, 'chargeWithToken']);
+    });
 
     // Google Calendar OAuth
     Route::prefix('google')->group(function () {
@@ -664,5 +729,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments/pending', [PaymentController::class, 'sellerPendingPayments']);
         Route::get('/payments/completed', [PaymentController::class, 'sellerCompletedPayments']);
         Route::get('/payments/pending-total', [PaymentController::class, 'sellerPendingTotal']);
+
+        // Analytics financieros
+        Route::get('/seller/finance/analytics', [FinanceAnalyticsController::class, 'analytics']);
+
+        // Facturación / Comprobantes (vendedor - SOLO CONSULTA)
+        // La emisión es automática post-pago vía webhook Izipay
+        Route::prefix('seller/invoices')->group(function () {
+            Route::get('/', [InvoiceController::class, 'sellerInvoices']);
+            Route::get('/kpis', [InvoiceController::class, 'sellerKpis']);
+            Route::get('/series', [InvoiceController::class, 'sellerSeries']);
+            Route::get('/orders/{orderId}', [InvoiceController::class, 'sellerOrderData']);
+        });
     });
 });

@@ -18,23 +18,23 @@ final class CartResource extends JsonResource
                 $quantity = (int) $item->quantity;
 
                 return [
-                    'id' => $item->id,           // int, no string compuesta
-                    'productId' => $item->product_id,   // camelCase
+                    'id' => $item->id,
+                    'productId' => $item->product_id,
                     'quantity' => $quantity,
                     'unitPrice' => round($price, 2),
                     'lineTotal' => round($price * $quantity, 2),
-                    'product' => [                    // objeto anidado
+                    'product' => [
                         'id' => $product?->id,
                         'name' => $product?->name ?? '',
                         'slug' => $product?->slug ?? '',
                         'price' => round($price, 2),
-                        'regular_price' => $product?->price
-                                            ? round((float) $product->price, 2)
-                                            : null,
+                        'regular_price' => $product?->regular_price
+                                            ? round((float) $product->regular_price, 2)
+                                            : ($product?->price ? round((float) $product->price, 2) : null),
                         'stock' => (int) ($product?->stock ?? 0),
                         'image' => $product?->getFirstMediaUrl('images')
-                                            ?: $product?->image
-                                            ?: null,
+                                            ?? $product?->image
+                                            ?? null,
                     ],
                 ];
             })->all();
@@ -42,12 +42,18 @@ final class CartResource extends JsonResource
 
         $subtotal = round((float) collect($items)->sum('lineTotal'), 2);
 
+        $shipping = (float) ($this->shipping ?? 0);
+
         return [
             'items' => $items,
             'subtotal' => $subtotal,
+            'shipping' => $shipping,
             'discount' => 0.0,
-            'total' => $subtotal,
-            'itemCount' => count($items),   // camelCase para coincidir con TS
+            'total' => round($subtotal + $shipping, 2),
+            'itemCount' => count($items),
+            'meta' => [
+                'item_count_raw' => (int) $this->item_count,
+            ],
         ];
 
     }

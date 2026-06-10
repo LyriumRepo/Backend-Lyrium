@@ -49,6 +49,8 @@ final class Product extends Model implements HasMedia
     {
         return [
             'price' => 'decimal:2',
+            'regular_price' => 'decimal:2',
+            'sale_price' => 'decimal:2',
             'stock' => 'integer',
             'weight' => 'decimal:2',
             'discount_percentage' => 'decimal:2',

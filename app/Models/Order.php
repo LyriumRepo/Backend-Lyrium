@@ -331,4 +331,9 @@ final class Order extends Model
     {
         return $this->hasOne(IzipayOrderTransaction::class)->latestOfMany();
     }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

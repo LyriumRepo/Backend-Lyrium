@@ -15,6 +15,17 @@ final class PaymentSchedulerService
 
     private const MAX_PER_PAGE = 100;
 
+    /**
+     * Programa un pago para un vendedor.
+     *
+     * La comisión se calcula sobre el subtotal SIN IGV.
+     * NO debe pasarse el total con IGV como $amount.
+     *
+     * @param  int     $storeId        ID de la tienda
+     * @param  float   $amount         Subtotal sin IGV (NO incluye IGV)
+     * @param  int|null $orderId       ID de la orden asociada
+     * @param  float   $commissionRate Tasa de comisión en porcentaje (ej: 15 para 15%)
+     */
     public function schedulePayment(
         int $storeId,
         float $amount,
@@ -108,34 +119,56 @@ final class PaymentSchedulerService
         return $payment->fresh();
     }
 
-    public function getStorePayments(int $storeId, int $perPage = self::DEFAULT_PER_PAGE): LengthAwarePaginator
+    public function getStorePayments(int $storeId, int $perPage = self::DEFAULT_PER_PAGE, ?string $startDate = null, ?string $endDate = null): LengthAwarePaginator
     {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return SellerPayment::query()
+        $query = SellerPayment::query()
             ->where('store_id', $storeId)
-            ->with(['order'])
-            ->latest()
-            ->paginate($perPage);
+            ->with(['order.user']);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        return $query->latest()->paginate($perPage);
     }
 
-    public function getStorePendingPayments(int $storeId): Collection
+    public function getStorePendingPayments(int $storeId, ?string $startDate = null, ?string $endDate = null): Collection
     {
-        return SellerPayment::query()
+        $query = SellerPayment::query()
             ->where('store_id', $storeId)
             ->where('status', SellerPayment::STATUS_PENDING)
-            ->with(['order'])
-            ->get();
+            ->with(['order']);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        return $query->get();
     }
 
-    public function getStoreCompletedPayments(int $storeId): Collection
+    public function getStoreCompletedPayments(int $storeId, ?string $startDate = null, ?string $endDate = null): Collection
     {
-        return SellerPayment::query()
+        $query = SellerPayment::query()
             ->where('store_id', $storeId)
             ->where('status', SellerPayment::STATUS_COMPLETED)
-            ->with(['order'])
-            ->orderBy('processed_at', 'desc')
-            ->get();
+            ->with(['order']);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        return $query->orderBy('processed_at', 'desc')->get();
     }
 
     public function getAllPayments(
@@ -161,17 +194,25 @@ final class PaymentSchedulerService
 
     public function getTotalPendingAmount(): float
     {
-        return SellerPayment::query()
+        return (float) SellerPayment::query()
             ->where('status', SellerPayment::STATUS_PENDING)
             ->sum('net_amount');
     }
 
-    public function getTotalPendingAmountByStore(int $storeId): float
+    public function getTotalPendingAmountByStore(int $storeId, ?string $startDate = null, ?string $endDate = null): float
     {
-        return SellerPayment::query()
+        $query = SellerPayment::query()
             ->where('store_id', $storeId)
-            ->where('status', SellerPayment::STATUS_PENDING)
-            ->sum('net_amount');
+            ->where('status', SellerPayment::STATUS_PENDING);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        return (float) $query->sum('net_amount');
     }
 
     public function cancelPayment(int $paymentId): SellerPayment

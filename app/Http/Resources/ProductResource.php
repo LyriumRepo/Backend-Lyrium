@@ -28,9 +28,7 @@ final class ProductResource extends JsonResource
                 : null,
             'stock' => (int) $this->stock,
             'in_stock' => $this->stock > 0,
-
             'image' => $this->image,
-
             'images' => $this->resource->getMedia('images')->map(fn ($m) => [
                 'src' => $m->getUrl(),
                 'thumb' => $m->getUrl('thumb'),
@@ -133,6 +131,11 @@ final class ProductResource extends JsonResource
             $data['serviceModality'] = $this->service_modality;
             $data['serviceLocation'] = $this->service_location;
         }
+
+        $data['is_wishlisted'] = $this->when(
+            $request->user() !== null,
+            fn () => $request->user()->wishlists()->where('product_id', (int) $this->id)->exists(),
+        );
 
         return $data;
     }

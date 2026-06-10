@@ -20,15 +20,14 @@ final class UpdateProductRequest extends FormRequest
         $type = $this->input('type', $product?->type ?? 'physical');
 
         $rules = [
-            // Campos base
             'name' => 'sometimes|string|min:3|max:200',
             'description' => 'nullable|string|max:5000',
-            'short_description' => 'nullable|string|max:300',      // ← nuevo
+            'short_description' => 'nullable|string|max:300',
             'price' => 'sometimes|numeric|min:0',
             'stock' => 'sometimes|integer|min:0',
             'category' => 'nullable|string',
             'image' => 'nullable|string',
-            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis',
+            'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis,organic,natural,eco,premium,vegan',
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
 
             // Atributos principales (ficha de características)
@@ -83,7 +82,7 @@ final class UpdateProductRequest extends FormRequest
             'additionalAttributes.*.values.value.required_with' => 'Cada atributo adicional debe tener un valor.',
             'nutritionalAttributes.*.values.label.required_with' => 'Cada fila nutricional debe tener un nombre.',
             'nutritionalAttributes.*.values.value.required_with' => 'Cada fila nutricional debe tener un valor.',
-            'sticker.in' => 'El sticker debe ser: liquidacion, oferta, descuento, nuevo, bestseller o envio_gratis.',
+            'sticker.in' => 'El sticker seleccionado no es válido.',
             'serviceModality.in' => 'La modalidad debe ser: presencial, virtual o domicilio.',
             'expirationDate.after' => 'La fecha de vencimiento debe ser posterior a hoy.',
             'short_description.max' => 'La descripción corta no puede superar los 300 caracteres.',

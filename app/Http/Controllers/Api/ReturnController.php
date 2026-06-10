@@ -17,6 +17,12 @@ final class ReturnController extends Controller
         private readonly ReturnService $returnService,
     ) {}
 
+    private function getStore($user): ?\App\Models\Store
+    {
+        return $user->stores()->first()
+            ?? $user->ownedStores()->first();
+    }
+
     public function myReturns(Request $request): JsonResponse
     {
         $returns = $this->returnService->getUserReturns(
@@ -89,7 +95,7 @@ final class ReturnController extends Controller
     public function sellerReturns(Request $request): JsonResponse
     {
         $user = $request->user();
-        $store = $user->stores()->first();
+        $store = $this->getStore($user);
 
         if (! $store) {
             return response()->json([
@@ -119,7 +125,7 @@ final class ReturnController extends Controller
         $user = $request->user();
         $return = $this->returnService->findOrFail($id);
 
-        if ($return->store_id !== $user->stores()->first()?->id && ! $user->hasRole('administrator')) {
+        if ($return->store_id !== $this->getStore($user)?->id && ! $user->hasRole('administrator')) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes acceso a esta devolución',
@@ -145,7 +151,7 @@ final class ReturnController extends Controller
         $user = $request->user();
         $return = $this->returnService->findOrFail($id);
 
-        if ($return->store_id !== $user->stores()->first()?->id && ! $user->hasRole('administrator')) {
+        if ($return->store_id !== $this->getStore($user)?->id && ! $user->hasRole('administrator')) {
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes acceso a esta devolución',
