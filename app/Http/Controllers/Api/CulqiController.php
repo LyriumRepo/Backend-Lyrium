@@ -29,8 +29,8 @@ final class CulqiController extends Controller
 
     public function charge(CulqiChargeRequest $request): JsonResponse
     {
-        $user  = $request->user();
-        $data  = $request->validated();
+        $user = $request->user();
+        $data = $request->validated();
 
         // 1. Obtener la orden y verificar que pertenece al usuario
         $order = Order::with('items.product')->findOrFail($data['order_id']);
@@ -64,16 +64,16 @@ final class CulqiController extends Controller
         // 5. Responder según resultado
         if ($transaction->isPaid()) {
             return $this->success([
-                'paid'           => true,
-                'order_id'       => (string) $order->id,
-                'order_number'   => $order->order_number,
-                'amount'         => (float) $transaction->amount,
-                'currency'       => $transaction->currency,
-                'charge_id'      => $transaction->culqi_charge_id,
-                'card_brand'     => $transaction->card_brand,
+                'paid' => true,
+                'order_id' => (string) $order->id,
+                'order_number' => $order->order_number,
+                'amount' => (float) $transaction->amount,
+                'currency' => $transaction->currency,
+                'charge_id' => $transaction->culqi_charge_id,
+                'card_brand' => $transaction->card_brand,
                 'card_last_four' => $transaction->card_last_four,
                 'payment_status' => $order->fresh()->payment_status,
-                'message'        => '¡Pago realizado con éxito!',
+                'message' => '¡Pago realizado con éxito!',
             ]);
         }
 
@@ -82,7 +82,7 @@ final class CulqiController extends Controller
             $transaction->error_message ?? 'No se pudo procesar el pago. Verifica los datos de tu tarjeta.',
             422,
             [
-                'paid'       => false,
+                'paid' => false,
                 'error_code' => $transaction->error_code,
             ]
         );
@@ -99,16 +99,17 @@ final class CulqiController extends Controller
 
         if (! $this->isValidCulqiSignature($request, $culqiSignature)) {
             Log::warning('Culqi webhook: firma inválida', [
-                'ip'        => $request->ip(),
+                'ip' => $request->ip(),
                 'signature' => $culqiSignature,
             ]);
+
             return response()->json(['message' => 'Firma inválida'], 401);
         }
 
         $payload = $request->all();
 
         Log::info('Culqi webhook recibido', [
-            'type'      => $payload['type'] ?? 'unknown',
+            'type' => $payload['type'] ?? 'unknown',
             'charge_id' => $payload['data']['id'] ?? null,
         ]);
 
@@ -117,9 +118,10 @@ final class CulqiController extends Controller
             $this->culqiService->processWebhookEvent($payload);
         } catch (\Throwable $e) {
             Log::error('Culqi webhook error procesando evento', [
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
                 'payload' => $payload,
             ]);
+
             // Devolver 200 igual — si devuelves 500, Culqi reintenta
             return response()->json(['message' => 'Error procesando evento'], 200);
         }
@@ -145,16 +147,16 @@ final class CulqiController extends Controller
         $transaction = $order->culqiTransactions()->latest()->first();
 
         return $this->success([
-            'order_id'       => (string) $order->id,
-            'order_number'   => $order->order_number,
+            'order_id' => (string) $order->id,
+            'order_number' => $order->order_number,
             'payment_status' => $order->payment_status,
-            'total'          => (float) $order->total,
-            'transaction'    => $transaction ? [
-                'charge_id'      => $transaction->culqi_charge_id,
-                'status'         => $transaction->status,
-                'card_brand'     => $transaction->card_brand,
+            'total' => (float) $order->total,
+            'transaction' => $transaction ? [
+                'charge_id' => $transaction->culqi_charge_id,
+                'status' => $transaction->status,
+                'card_brand' => $transaction->card_brand,
                 'card_last_four' => $transaction->card_last_four,
-                'paid_at'        => $transaction->updated_at?->toIso8601String(),
+                'paid_at' => $transaction->updated_at?->toIso8601String(),
             ] : null,
         ]);
     }
@@ -177,7 +179,7 @@ final class CulqiController extends Controller
         }
 
         $publicKey = config('services.culqi.webhook_public_key', '');
-        $body      = $request->getContent();
+        $body = $request->getContent();
 
         $result = openssl_verify(
             $body,

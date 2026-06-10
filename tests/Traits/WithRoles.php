@@ -53,13 +53,13 @@ trait WithRoles
 
         Contract::create([
             'contract_number' => 'CTR-TEST-001',
-            'store_id'        => $ownedStore->id,
-            'company'         => $ownedStore->trade_name,
-            'ruc'             => $ownedStore->ruc,
-            'type'            => 'Convenio Digital',
-            'modality'        => 'Digital',
-            'status'          => 'ACTIVE',
-            'start_date'      => now()->toDateString(),
+            'store_id' => $ownedStore->id,
+            'company' => $ownedStore->trade_name,
+            'ruc' => $ownedStore->ruc,
+            'type' => 'Convenio Digital',
+            'modality' => 'Digital',
+            'status' => 'ACTIVE',
+            'start_date' => now()->toDateString(),
         ]);
 
         return $user;

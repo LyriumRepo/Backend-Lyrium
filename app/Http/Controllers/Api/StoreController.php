@@ -410,21 +410,21 @@ final class StoreController extends Controller
 
         $contractNumber = ContractDocumentService::generateContractNumber();
 
-        $service  = new ContractDocumentService();
+        $service = new ContractDocumentService;
         $filePath = $service->generate($store, $contractNumber);
 
         $contract = Contract::create([
             'contract_number' => $contractNumber,
-            'store_id'        => $store->id,
-            'company'         => $store->razon_social ?? $store->trade_name,
-            'ruc'             => $store->ruc,
-            'representative'  => $store->rep_legal_nombre,
-            'type'            => 'Convenio Digital',
-            'modality'        => 'Digital',
-            'status'          => 'PENDING',
-            'start_date'      => now()->toDateString(),
-            'end_date'        => null,
-            'file_path'       => $filePath,
+            'store_id' => $store->id,
+            'company' => $store->razon_social ?? $store->trade_name,
+            'ruc' => $store->ruc,
+            'representative' => $store->rep_legal_nombre,
+            'type' => 'Convenio Digital',
+            'modality' => 'Digital',
+            'status' => 'PENDING',
+            'start_date' => now()->toDateString(),
+            'end_date' => null,
+            'file_path' => $filePath,
         ]);
 
         $contract->addAuditEntry(

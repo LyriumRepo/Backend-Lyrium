@@ -25,7 +25,7 @@ final class ContractDocumentService
     {
         $store->load('subscription.plan');
 
-        $templateAbs = storage_path('app/private/' . self::TEMPLATE_PATH);
+        $templateAbs = storage_path('app/private/'.self::TEMPLATE_PATH);
 
         if (file_exists($templateAbs)) {
             return $this->generateFromTemplate($store, $contractNumber, $templateAbs);
@@ -65,21 +65,21 @@ final class ContractDocumentService
     {
         $store->load('subscription.plan');
 
-        $planName   = $store->subscription?->plan?->name ?? 'EMPRENDE';
+        $planName = $store->subscription?->plan?->name ?? 'EMPRENDE';
         $commission = $store->subscription?->plan?->commission_rate
-            ? number_format((float) $store->subscription->plan->commission_rate * 100, 0) . '%'
+            ? number_format((float) $store->subscription->plan->commission_rate * 100, 0).'%'
             : '5%';
 
-        $company      = $store->razon_social ?? $store->trade_name ?? 'Sin razón social';
-        $ruc          = $store->ruc ?? '—';
-        $repNombre    = $store->rep_legal_nombre ?? '—';
-        $repDni       = $store->rep_legal_dni ?? '—';
-        $direccion    = $store->direccion_fiscal ?? $store->address ?? '—';
-        $email        = $store->corporate_email ?? '—';
-        $fechaInicio  = now()->format('d/m/Y');
-        $ciudad       = 'Lima';
+        $company = $store->razon_social ?? $store->trade_name ?? 'Sin razón social';
+        $ruc = $store->ruc ?? '—';
+        $repNombre = $store->rep_legal_nombre ?? '—';
+        $repDni = $store->rep_legal_dni ?? '—';
+        $direccion = $store->direccion_fiscal ?? $store->address ?? '—';
+        $email = $store->corporate_email ?? '—';
+        $fechaInicio = now()->format('d/m/Y');
+        $ciudad = 'Lima';
 
-        $phpWord = new PhpWord();
+        $phpWord = new PhpWord;
         $phpWord->setDefaultFontName('Arial');
         $phpWord->setDefaultFontSize(11);
 
@@ -87,15 +87,15 @@ final class ContractDocumentService
         $phpWord->addTitleStyle(1, ['bold' => true, 'size' => 14, 'color' => '1a5276'], ['alignment' => Jc::CENTER]);
         $phpWord->addTitleStyle(2, ['bold' => true, 'size' => 11, 'color' => '1a5276'], ['spaceAfter' => 60]);
 
-        $boldStyle   = ['bold' => true];
+        $boldStyle = ['bold' => true];
         $normalStyle = ['size' => 11];
-        $paraStyle   = ['spaceAfter' => 120, 'lineHeight' => 1.5];
-        $centerPara  = ['alignment' => Jc::CENTER, 'spaceAfter' => 80];
+        $paraStyle = ['spaceAfter' => 120, 'lineHeight' => 1.5];
+        $centerPara = ['alignment' => Jc::CENTER, 'spaceAfter' => 80];
 
         $section = $phpWord->addSection([
-            'marginLeft'   => 1134,
-            'marginRight'  => 1134,
-            'marginTop'    => 1134,
+            'marginLeft' => 1134,
+            'marginRight' => 1134,
+            'marginTop' => 1134,
             'marginBottom' => 1134,
         ]);
 
@@ -251,7 +251,7 @@ final class ContractDocumentService
         $cellRight = $table->addCell(4000);
         $cellRight->addText('____________________________', $normalStyle, ['alignment' => Jc::CENTER]);
         $cellRight->addText($repNombre !== '—' ? $repNombre : 'Representante Legal', $boldStyle, ['alignment' => Jc::CENTER]);
-        $cellRight->addText('EL VENDEDOR — RUC: ' . $ruc, $normalStyle, ['alignment' => Jc::CENTER]);
+        $cellRight->addText('EL VENDEDOR — RUC: '.$ruc, $normalStyle, ['alignment' => Jc::CENTER]);
 
         [$absDir, $relDir, $filename] = $this->resolvePaths($store, $contractNumber);
 
@@ -275,24 +275,24 @@ final class ContractDocumentService
     {
         $store->loadMissing('subscription.plan');
 
-        $planName   = $store->subscription?->plan?->name ?? 'EMPRENDE';
+        $planName = $store->subscription?->plan?->name ?? 'EMPRENDE';
         $commission = $store->subscription?->plan?->commission_rate
-            ? number_format((float) $store->subscription->plan->commission_rate * 100, 0) . '%'
+            ? number_format((float) $store->subscription->plan->commission_rate * 100, 0).'%'
             : '5%';
 
         return [
             'contract_number' => $contractNumber,
-            'company'         => $store->razon_social ?? $store->trade_name ?? 'Sin razón social',
-            'ruc'             => $store->ruc ?? '—',
-            'rep_nombre'      => $store->rep_legal_nombre ?? '—',
-            'rep_dni'         => $store->rep_legal_dni ?? '—',
-            'direccion'       => $store->direccion_fiscal ?? $store->address ?? '—',
-            'email'           => $store->corporate_email ?? '—',
-            'plan'            => $planName,
-            'commission'      => $commission,
-            'fecha_inicio'    => now()->format('d/m/Y'),
-            'ciudad'          => 'Lima',
-            'year'            => (string) now()->year,
+            'company' => $store->razon_social ?? $store->trade_name ?? 'Sin razón social',
+            'ruc' => $store->ruc ?? '—',
+            'rep_nombre' => $store->rep_legal_nombre ?? '—',
+            'rep_dni' => $store->rep_legal_dni ?? '—',
+            'direccion' => $store->direccion_fiscal ?? $store->address ?? '—',
+            'email' => $store->corporate_email ?? '—',
+            'plan' => $planName,
+            'commission' => $commission,
+            'fecha_inicio' => now()->format('d/m/Y'),
+            'ciudad' => 'Lima',
+            'year' => (string) now()->year,
         ];
     }
 
@@ -302,12 +302,12 @@ final class ContractDocumentService
      */
     private function resolvePaths(Store $store, string $contractNumber): array
     {
-        $company     = $store->razon_social ?? $store->trade_name ?? 'empresa';
+        $company = $store->razon_social ?? $store->trade_name ?? 'empresa';
         $companySlug = preg_replace('/[^a-zA-Z0-9_]/', '_', $company);
-        $year        = now()->year;
-        $relDir      = "contracts/{$companySlug}/{$year}";
-        $absDir      = storage_path("app/private/{$relDir}");
-        $filename    = "convenio_{$contractNumber}.docx";
+        $year = now()->year;
+        $relDir = "contracts/{$companySlug}/{$year}";
+        $absDir = storage_path("app/private/{$relDir}");
+        $filename = "convenio_{$contractNumber}.docx";
 
         return [$absDir, $relDir, $filename];
     }
@@ -317,14 +317,14 @@ final class ContractDocumentService
      */
     public static function generateContractNumber(): string
     {
-        $year         = now()->year;
+        $year = now()->year;
         $lastContract = Contract::where('contract_number', 'like', "CTR-{$year}-%")
             ->orderBy('id', 'desc')
             ->first();
 
         $nextNumber = 1;
         if ($lastContract) {
-            $parts      = explode('-', $lastContract->contract_number);
+            $parts = explode('-', $lastContract->contract_number);
             $nextNumber = ((int) end($parts)) + 1;
         }
 

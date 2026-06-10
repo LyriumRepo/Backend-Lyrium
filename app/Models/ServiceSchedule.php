@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -50,12 +50,12 @@ final class ServiceSchedule extends Model
     protected function casts(): array
     {
         return [
-            'specialist_id'    => 'integer',   // ← NUEVO
-            'orden_bloque'     => 'integer',   // ← NUEVO
-            'start_time'       => 'string',
-            'end_time'         => 'string',
+            'specialist_id' => 'integer',   // ← NUEVO
+            'orden_bloque' => 'integer',   // ← NUEVO
+            'start_time' => 'string',
+            'end_time' => 'string',
             'max_appointments' => 'integer',
-            'is_active'        => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -134,7 +134,7 @@ final class ServiceSchedule extends Model
      * la agenda del Dr. Juan bloquee slots disponibles de la Dra. María
      * cuando ambos tienen el mismo schedule_id o el mismo slot horario.
      *
-     * @param string $dateTime  'YYYY-MM-DD HH:MM:SS' o 'YYYY-MM-DD HH:MM'
+     * @param  string  $dateTime  'YYYY-MM-DD HH:MM:SS' o 'YYYY-MM-DD HH:MM'
      */
     public function isAvailableForBooking(string $dateTime): bool
     {
@@ -142,13 +142,14 @@ final class ServiceSchedule extends Model
             Log::warning('BookingValidation: Horario inactivo.', [
                 'schedule_id' => $this->id,
             ]);
+
             return false;
         }
 
         $date = Carbon::parse($dateTime);
 
         // ── 1. Verificar día de la semana ──────────────────────────────────
-        $dayOfWeek   = strtolower($date->format('l'));
+        $dayOfWeek = strtolower($date->format('l'));
         $scheduleDow = $this->normalizeDay(
             $this->getRawOriginal('day_of_week') ?? $this->attributes['day_of_week']
         );
@@ -158,20 +159,22 @@ final class ServiceSchedule extends Model
                 'esperado' => $scheduleDow,
                 'recibido' => $dayOfWeek,
             ]);
+
             return false;
         }
 
         // ── 2. Verificar rango horario ─────────────────────────────────────
-        $slotHHMM  = $date->format('H:i');
-        $slotTime  = Carbon::createFromFormat('H:i', $slotHHMM);
+        $slotHHMM = $date->format('H:i');
+        $slotTime = Carbon::createFromFormat('H:i', $slotHHMM);
         $startTime = Carbon::createFromFormat('H:i', $this->start_time);
-        $endTime   = Carbon::createFromFormat('H:i', $this->end_time);
+        $endTime = Carbon::createFromFormat('H:i', $this->end_time);
 
         if ($slotTime->lt($startTime) || $slotTime->gte($endTime)) {
             Log::warning('BookingValidation: Hora fuera del rango.', [
-                'rango'      => "{$this->start_time} – {$this->end_time}",
+                'rango' => "{$this->start_time} – {$this->end_time}",
                 'solicitado' => $slotHHMM,
             ]);
+
             return false;
         }
 
@@ -199,11 +202,12 @@ final class ServiceSchedule extends Model
 
         if ($bookedCount >= $maxPerSlot) {
             Log::warning('BookingValidation: Slot lleno.', [
-                'max_permitido'       => $maxPerSlot,
+                'max_permitido' => $maxPerSlot,
                 'reservados_actuales' => $bookedCount,
-                'specialist_id'       => $this->specialist_id,
-                'fecha_hora'          => $dateTime,
+                'specialist_id' => $this->specialist_id,
+                'fecha_hora' => $dateTime,
             ]);
+
             return false;
         }
 

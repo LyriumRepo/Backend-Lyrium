@@ -28,7 +28,7 @@ final class UpdateSupplierRequest extends FormRequest
                 'nullable',
                 'string',
                 'size:11',
-                Rule::unique('suppliers', 'ruc')->ignore($supplierId)
+                Rule::unique('suppliers', 'ruc')->ignore($supplierId),
             ],
 
             'tipo' => 'nullable|string|in:Economista,Contador,Ingeniero',

@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Migración 2/4 — Horarios por Especialista
@@ -50,7 +50,7 @@ return new class extends Migration
         // ── PASO B: Migrar datos existentes ───────────────────────────────
         // Para cada horario sin specialist_id, buscar el primer especialista
         // asignado al mismo servicio en el pivot service_specialist.
-        DB::statement("
+        DB::statement('
             UPDATE service_schedules ss
             INNER JOIN (
                 SELECT service_id, MIN(specialist_id) AS first_specialist_id
@@ -59,7 +59,7 @@ return new class extends Migration
             ) sp ON ss.service_id = sp.service_id
             SET ss.specialist_id = sp.first_specialist_id
             WHERE ss.specialist_id IS NULL
-        ");
+        ');
 
         // ── PASO C: Añadir la FK ahora que los datos están migrados ───────
         // Solo se añade si todos los registros tienen specialist_id resuelto.

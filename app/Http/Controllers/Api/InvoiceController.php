@@ -75,7 +75,7 @@ final class InvoiceController extends Controller
             'invoice_number' => Invoice::generateInvoiceNumber(),
             'nit' => $data['nit'] ?? null,
             'business_name' => $data['business_name'] ?? null,
-            'provider' => 'rapifac',
+            'provider' => 'nubefact',
             'total' => $order->total,
             'status' => 'pending',
         ]);

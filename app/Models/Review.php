@@ -18,6 +18,8 @@ final class Review extends Model
         'user_id',
         'product_id',
         'order_id',
+        'service_booking_id',
+        'specialist_id',
         'rating',
         'title',
         'comment',
@@ -28,7 +30,7 @@ final class Review extends Model
     protected function casts(): array
     {
         return [
-            'rating'               => 'integer',
+            'rating' => 'integer',
             'is_verified_purchase' => 'boolean',
             'reported_count' => 'integer',
         ];
@@ -48,6 +50,17 @@ final class Review extends Model
     {
         return $this->belongsTo(Order::class);
     }
+
+    public function serviceBooking(): BelongsTo
+    {
+        return $this->belongsTo(ServiceBooking::class);
+    }
+
+    public function specialist(): BelongsTo
+    {
+        return $this->belongsTo(Specialist::class);
+    }
+
     public function reports(): HasMany
     {
         return $this->hasMany(ReviewReport::class);
@@ -85,7 +98,7 @@ final class Review extends Model
 
         return [
             'average' => (float) ($rows->average ?? 0),
-            'count'   => $total,
+            'count' => $total,
             'distribution' => [
                 5 => (int) ($rows->r5 ?? 0),
                 4 => (int) ($rows->r4 ?? 0),

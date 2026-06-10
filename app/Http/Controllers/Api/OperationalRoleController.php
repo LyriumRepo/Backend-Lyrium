@@ -51,7 +51,7 @@ final class OperationalRoleController extends Controller
 
         $role = OperationalRole::create([
             ...$data,
-            'code'      => $data['code'] ?? Str::snake($data['name']),
+            'code' => $data['code'] ?? Str::snake($data['name']),
             'is_active' => $data['is_active'] ?? true,
         ]);
 
@@ -71,7 +71,7 @@ final class OperationalRoleController extends Controller
      */
     public function update(UpdateOperationalRoleRequest $request, int $id): JsonResponse
     {
-        $role    = OperationalRole::findOrFail($id);
+        $role = OperationalRole::findOrFail($id);
         $oldData = $role->toArray();
 
         $role->update($request->validated());

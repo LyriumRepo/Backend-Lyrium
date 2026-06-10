@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Services;
 
 use App\Models\Service;
@@ -9,10 +8,13 @@ use App\Models\ServiceSchedule;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderServiceItem;
-use Illuminate\Support\Str;
+use App\Notifications\BookingCancelledNotification;
+use App\Notifications\BookingConfirmedNotification;
+use App\Notifications\BookingCreatedNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class ServiceService
 {
@@ -33,7 +35,7 @@ final class ServiceService
 
         return Service::query()
             ->where('store_id', $storeId)
-            ->with(['schedules', 'category'])
+            ->with(['schedules', 'category.parent', 'specialists'])
             ->latest()
             ->paginate($perPage);
     }
@@ -44,19 +46,20 @@ final class ServiceService
 
         $query = Service::query()
             ->where('status', Service::STATUS_ACTIVE)
-            ->with(['store', 'schedules', 'category']);
+            ->with(['store', 'schedules', 'category.parent', 'specialists']);
 
         if (! empty($filters['category_id'])) {
-            $query->where('category_id', $filters['category_id']);
+            $ids = $this->getDescendantIds((int) $filters['category_id']);
+            $query->whereIn('category_id', $ids);
         }
 
         if (! empty($filters['category_slug'])) {
             $category = Category::where('slug', $filters['category_slug'])->first();
-
             if ($category) {
-                $ids = $this->getDescendantIds($category);
-
-                $query->whereIn('category_id', array_merge([$category->id], $ids));
+                $ids = $this->getDescendantIds($category->id);
+                $query->whereIn('category_id', $ids);
+            } else {
+                $query->whereRaw('1 = 0');
             }
         }
 
@@ -74,12 +77,36 @@ final class ServiceService
         return $query->latest()->paginate($perPage);
     }
 
+    private function getDescendantIds(int $categoryId): array
+    {
+        $allIds = [$categoryId];
+        $toSearch = [$categoryId];
+        $maxDepth = 5;
+        $depth = 0;
+
+        while (! empty($toSearch) && $depth < $maxDepth) {
+            $children = \App\Models\Category::whereIn('parent_id', $toSearch)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($children)) {
+                break;
+            }
+
+            $allIds = array_merge($allIds, $children);
+            $toSearch = $children;
+            $depth++;
+        }
+
+        return array_unique($allIds);
+    }
+
     public function getActiveByStore(int $storeId): Collection
     {
         return Service::query()
             ->where('store_id', $storeId)
             ->where('status', Service::STATUS_ACTIVE)
-            ->with(['category', 'schedules' => function ($query) {
+            ->with(['category.parent', 'schedules' => function ($query) {
                 $query->where('is_active', true);
             }])
             ->get();
@@ -88,37 +115,51 @@ final class ServiceService
     public function findOrFail(int $id): Service
     {
         return Service::query()
-            ->with(['store', 'schedules', 'category'])
+            ->with(['store', 'schedules', 'category.parent', 'specialists'])
             ->findOrFail($id);
+    }
+
+    public function findBySlug(string $slug): Service
+    {
+        return Service::query()
+            ->with(['store', 'schedules', 'category.parent', 'specialists.schedules'])
+            ->where('slug', $slug)
+            ->firstOrFail();
     }
 
     public function createForStore(int $storeId, array $data): Service
     {
         return DB::transaction(function () use ($storeId, $data) {
             // 1. Unificar el store_id y generar un slug dinámico
-            $slug = Str::slug($data['name']) . '-' . uniqid();
+            $slug = Str::slug($data['name']).'-'.uniqid();
 
             // 2. Crear el objeto de Servicio principal con los nuevos campos
             $service = Service::create([
-                'store_id'              => $storeId,
-                'category_id'           => $data['category_id'] ?? null,
-                'name'                  => $data['name'],
-                'slug'                  => $slug,
-                'description'           => $data['description'] ?? null,
-                'price'                 => $data['price'],
-                'duration_minutes'      => $data['duration_minutes'],
+                'store_id' => $storeId,
+                'category_id' => $data['category_id'] ?? null,
+                'name' => $data['name'],
+                'slug' => $slug,
+                'description' => $data['description'] ?? null,
+                'benefits' => $data['benefits'] ?? null,
+                'image' => $data['image'] ?? null,
+                'price' => $data['price'],
+                'duration_minutes' => $data['duration_minutes'],
 
                 // Nuevas configuraciones del Frontend
-                'buffer_minutes'        => $data['buffer_minutes'] ?? 10,
-                'is_home_service'       => $data['is_home_service'] ?? false,
+                'buffer_minutes' => $data['buffer_minutes'] ?? 10,
+                'is_home_service' => $data['is_home_service'] ?? false,
                 'booking_advance_hours' => $data['booking_advance_hours'] ?? 24,
-                'max_capacity'          => $data['max_capacity'] ?? 1,
+                'max_capacity' => $data['max_capacity'] ?? 1,
 
-                'status'                => $data['status'] ?? 'draft',
-                'cancellation_policy'   => $data['cancellation_policy'] ?? 'flexible',
-                'max_cancellations'     => $data['max_cancellations'] ?? 3,
-                'settings'              => $data['settings'] ?? null,
+                'status' => $data['status'] ?? 'draft',
+                'cancellation_policy' => $data['cancellation_policy'] ?? 'flexible',
+                'max_cancellations' => $data['max_cancellations'] ?? 3,
+                'settings' => $data['settings'] ?? null,
+                'sticker' => $data['sticker'] ?? null,
+                'discount_percentage' => $data['discount_percentage'] ?? null,
             ]);
+
+
 
             // 3. Asociar Especialistas asignados (Muchos a Muchos)
             if (! empty($data['specialist_ids'])) {
@@ -135,7 +176,7 @@ final class ServiceService
                     3 => 'thursday',
                     4 => 'friday',
                     5 => 'saturday',
-                    6 => 'sunday'
+                    6 => 'sunday',
                 ];
 
                 foreach ($data['schedules'] as $schedule) {
@@ -147,15 +188,15 @@ final class ServiceService
                         : strtolower((string) $dayInput);
 
                     $service->schedules()->create([
-                        'day_of_week'      => $dayValue,
-                        'start_time'       => $schedule['start_time'],
-                        'end_time'         => $schedule['end_time'],
+                        'day_of_week' => $dayValue,
+                        'start_time' => $schedule['start_time'],
+                        'end_time' => $schedule['end_time'],
                         'max_appointments' => $schedule['max_appointments'] ?? $data['max_capacity'] ?? 1,
-                        'is_available'     => $schedule['is_active'] ?? $schedule['is_available'] ?? true,
+                        'is_available' => $schedule['is_active'] ?? $schedule['is_available'] ?? true,
 
                         // ── LAS DOS LÍNEAS QUE SOLUCIONAN TU PROBLEMA ──
-                        'specialist_id'    => $schedule['specialist_id'] ?? null,
-                        'orden_bloque'     => $schedule['orden_bloque'] ?? 1,
+                        'specialist_id' => $schedule['specialist_id'] ?? null,
+                        'orden_bloque' => $schedule['orden_bloque'] ?? 1,
                     ]);
                 }
             }
@@ -170,6 +211,10 @@ final class ServiceService
         $service = $this->findOrFail($id);
         $service->update($data);
 
+        if (! empty($data['specialist_ids'])) {
+            $service->specialists()->sync($data['specialist_ids']);
+        }
+
         if (isset($data['schedules'])) {
             $service->schedules()->delete();
             foreach ($data['schedules'] as $schedule) {
@@ -177,7 +222,7 @@ final class ServiceService
             }
         }
 
-        return $service->fresh(['schedules']);
+        return $service->fresh(['schedules', 'specialists']);
     }
 
     public function delete(int $id): bool
@@ -209,17 +254,17 @@ final class ServiceService
 
         // 2. Generar todos los intervalos teóricos iterando por cada bloque horario
         $duration = (int) $service->duration_minutes;
-        $buffer   = (int) ($service->buffer_minutes ?? 10);
-        $step     = $duration + $buffer;
+        $buffer = (int) ($service->buffer_minutes ?? 10);
+        $step = $duration + $buffer;
 
         $allSlots = [];
 
         foreach ($schedules as $schedule) {
             $startStr = (string) $schedule->start_time;
-            $endStr   = (string) $schedule->end_time;
+            $endStr = (string) $schedule->end_time;
 
-            $startTime = \Carbon\Carbon::createFromFormat('H:i:s', strlen($startStr) === 5 ? $startStr . ':00' : $startStr);
-            $endTime   = \Carbon\Carbon::createFromFormat('H:i:s', strlen($endStr) === 5 ? $endStr . ':00' : $endStr);
+            $startTime = \Carbon\Carbon::createFromFormat('H:i:s', strlen($startStr) === 5 ? $startStr.':00' : $startStr);
+            $endTime = \Carbon\Carbon::createFromFormat('H:i:s', strlen($endStr) === 5 ? $endStr.':00' : $endStr);
 
             $current = $startTime->copy();
 
@@ -228,7 +273,7 @@ final class ServiceService
                 $allSlots[] = [
                     'time' => $current->format('H:i'),
                     'carbon_start' => $date->copy()->setTimeFromTimeString($current->format('H:i:00')),
-                    'carbon_end' => $date->copy()->setTimeFromTimeString($current->copy()->addMinutes($duration)->format('H:i:00'))
+                    'carbon_end' => $date->copy()->setTimeFromTimeString($current->copy()->addMinutes($duration)->format('H:i:00')),
                 ];
                 $current->addMinutes($step);
             }
@@ -245,6 +290,14 @@ final class ServiceService
             ->whereDate('appointment_date', $date->toDateString())
             ->whereNotIn('status', [\App\Models\ServiceBooking::STATUS_CANCELLED])
             ->get();
+
+        // 4b. Obtener holds activos para excluir slots tomados temporalmente
+        $activeHolds = \App\Models\ServiceSlotHold::where('service_id', $serviceId)
+            ->where('specialist_id', $specialistId)
+            ->where('appointment_date', $date->toDateString())
+            ->active()
+            ->pluck('start_time')
+            ->toArray();
 
         // 5. Filtrar el cruce de disponibilidades
         $availableHours = [];
@@ -267,12 +320,17 @@ final class ServiceService
                 continue;
             }
 
+            // B2. Excluir slots con holds activos (en carrito de otro usuario)
+            if (in_array($slotTimeStr, $activeHolds, true)) {
+                continue;
+            }
+
             // C. Cruzar contra Google Calendar FreeBusy
             $isGoogleBusy = false;
             foreach ($googleBusySlots as $busyRange) {
                 $busyStart = \Carbon\Carbon::createFromFormat('H:i', $busyRange['start']);
-                $busyEnd   = \Carbon\Carbon::createFromFormat('H:i', $busyRange['end']);
-                $slotTime  = \Carbon\Carbon::createFromFormat('H:i', $slotTimeStr);
+                $busyEnd = \Carbon\Carbon::createFromFormat('H:i', $busyRange['end']);
+                $slotTime = \Carbon\Carbon::createFromFormat('H:i', $slotTimeStr);
 
                 if ($slotTime->gte($busyStart) && $slotTime->lt($busyEnd)) {
                     $isGoogleBusy = true;
@@ -291,7 +349,6 @@ final class ServiceService
         return $availableHours;
     }
 
-
     /**
      * Crear una reserva para un servicio, validando la disponibilidad del horario.
      */
@@ -299,8 +356,8 @@ final class ServiceService
     {
         $service = $this->findOrFail($serviceId);
 
-        $startTime       = $data['start_time'] ?? request('start_time') ?? '00:00';
-        $appointmentDate = \Carbon\Carbon::parse($data['appointment_date'] . ' ' . $startTime);
+        $startTime = $data['start_time'] ?? request('start_time') ?? '00:00';
+        $appointmentDate = \Carbon\Carbon::parse($data['appointment_date'].' '.$startTime);
 
         $booking = \Illuminate\Support\Facades\DB::transaction(
             function () use ($service, $appointmentDate, $userId, $data) {
@@ -313,17 +370,17 @@ final class ServiceService
                     throw new \InvalidArgumentException('El horario seleccionado no está disponible');
                 }
 
-                $booking = \App\Models\ServiceBooking::create([
+                $booking = ServiceBooking::create([
                     'service_id'       => $service->id,
                     'user_id'          => $userId,
                     'schedule_id'      => $schedule->id,
                     'appointment_date' => $appointmentDate,
-                    'status'           => \App\Models\ServiceBooking::STATUS_PENDING,
-                    'total_price'      => $service->price,
-                    'payment_method'   => $data['payment_method'] ?? null,
-                    'payment_status'   => 'pending',
-                    'customer_notes'   => $data['customer_notes'] ?? $data['notes'] ?? null,
-                    'specialist_id'    => $data['specialist_id'] ?? null,
+                    'status' => \App\Models\ServiceBooking::STATUS_PENDING,
+                    'total_price' => $service->price,
+                    'payment_method' => $data['payment_method'] ?? null,
+                    'payment_status' => 'pending',
+                    'customer_notes' => $data['customer_notes'] ?? $data['notes'] ?? null,
+                    'specialist_id' => $data['specialist_id'] ?? null,
                 ]);
 
                 // ── Crear o actualizar Order + OrderServiceItem ──
@@ -371,7 +428,7 @@ final class ServiceService
         $eventIds = $this->googleCalendar->createEvent($booking);
 
         $updateData = array_filter([
-            'google_event_id'        => $eventIds['specialist'],
+            'google_event_id' => $eventIds['specialist'],
             'google_event_id_client' => $eventIds['client'],
             'google_event_id_seller' => $eventIds['seller'],
         ]);
@@ -381,12 +438,17 @@ final class ServiceService
             $booking->fill($updateData);
         }
 
+        $storeUser = $booking->service?->store?->owner;
+        if ($storeUser) {
+            $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+        }
+
+        if ($booking->user) {
+            $booking->user->notify(new BookingCreatedNotification($booking, 'client'));
+        }
+
         return $booking;
     }
-
-
-
-
 
     public function confirmBooking(int $bookingId): ServiceBooking
     {
@@ -403,7 +465,15 @@ final class ServiceService
             'confirmed_at' => now(),
         ]);
 
-        return $booking->fresh();
+        $booking = $booking->fresh();
+
+        \App\Events\BookingConfirmed::dispatch($booking);
+
+        if ($booking->user) {
+            $booking->user->notify(new BookingConfirmedNotification($booking));
+        }
+
+        return $booking;
     }
 
     public function cancelBooking(int $bookingId): ServiceBooking
@@ -425,13 +495,25 @@ final class ServiceService
         $this->googleCalendar->deleteEvent($booking->fresh(['service.store']));
 
         $booking->update([
-            'status'       => ServiceBooking::STATUS_CANCELLED,
+            'status' => ServiceBooking::STATUS_CANCELLED,
             'cancelled_at' => now(),
         ]);
 
-        return $booking->fresh();
-    }
+        $booking = $booking->fresh();
 
+        \App\Events\BookingCancelled::dispatch($booking);
+
+        $storeUser = $booking->service?->store?->owner;
+        if ($storeUser) {
+            $storeUser->notify(new BookingCancelledNotification($booking, 'seller'));
+        }
+
+        if ($booking->user) {
+            $booking->user->notify(new BookingCancelledNotification($booking, 'client'));
+        }
+
+        return $booking;
+    }
 
     public function markAsNoShow(int $bookingId): ServiceBooking
     {
@@ -451,6 +533,51 @@ final class ServiceService
         if ($store && $store->strikes !== null) {
             $store->addStrike();
         }
+
+        return $booking->fresh();
+    }
+
+    public function completeBooking(int $bookingId): ServiceBooking
+    {
+        $booking = ServiceBooking::query()
+            ->with(['service'])
+            ->findOrFail($bookingId);
+
+        if (! $booking->canComplete()) {
+            throw new \InvalidArgumentException('Solo se puede completar reservas confirmadas o en camino');
+        }
+
+        $booking->update(['status' => ServiceBooking::STATUS_COMPLETED]);
+
+        return $booking->fresh();
+    }
+
+    public function markAsOnTheWay(int $bookingId): ServiceBooking
+    {
+        $booking = ServiceBooking::query()
+            ->with(['service'])
+            ->findOrFail($bookingId);
+
+        if (! $booking->canMarkOnTheWay()) {
+            throw new \InvalidArgumentException('Solo se puede marcar como en camino reservas confirmadas');
+        }
+
+        $booking->markAsOnTheWay();
+
+        return $booking->fresh();
+    }
+
+    public function confirmCompletion(int $bookingId): ServiceBooking
+    {
+        $booking = ServiceBooking::query()
+            ->with(['service'])
+            ->findOrFail($bookingId);
+
+        if (! $booking->canComplete()) {
+            throw new \InvalidArgumentException('Esta reserva no puede ser confirmada por el cliente');
+        }
+
+        $booking->update(['status' => ServiceBooking::STATUS_COMPLETED]);
 
         return $booking->fresh();
     }
@@ -482,7 +609,11 @@ final class ServiceService
         $this->googleCalendar->updateEvent($booking->fresh(['service.store', 'user']));
         // ───────────────────────────────────────────────────────────────────
 
-        return $booking->fresh();
+        $booking = $booking->fresh();
+
+        \App\Events\BookingRescheduled::dispatch($booking);
+
+        return $booking;
     }
 
     public function getUserBookings(int $userId, int $perPage = self::DEFAULT_PER_PAGE): LengthAwarePaginator
@@ -491,7 +622,7 @@ final class ServiceService
 
         return ServiceBooking::query()
             ->where('user_id', $userId)
-            ->with(['service', 'schedule'])
+            ->with(['service', 'service.store', 'schedule', 'specialist'])
             ->latest()
             ->paginate($perPage);
     }
@@ -501,8 +632,8 @@ final class ServiceService
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
         return ServiceBooking::query()
-            ->whereHas('service', fn($q) => $q->where('store_id', $storeId))
-            ->with(['service', 'user'])
+            ->whereHas('service', fn ($q) => $q->where('store_id', $storeId))
+            ->with(['service', 'user', 'specialist'])
             ->latest()
             ->paginate($perPage);
     }
@@ -518,16 +649,4 @@ final class ServiceService
         return $booking->fresh();
     }
 
-    //Obtener categorias decendentes
-    private function getDescendantIds(Category $category): array
-    {
-        $ids = [];
-
-        foreach ($category->children as $child) {
-            $ids[] = $child->id;
-            $ids = array_merge($ids, $this->getDescendantIds($child));
-        }
-
-        return $ids;
-    }
 }

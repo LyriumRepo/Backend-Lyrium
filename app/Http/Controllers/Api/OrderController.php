@@ -15,6 +15,8 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
+use App\Models\ServiceSlotHold;
+use App\Services\LiriosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -105,48 +107,67 @@ final class OrderController extends Controller
 
         $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
 
-        if (! $cart || $cart->items->isEmpty()) {
+        $cartToken = $request->header('X-Session-ID');
+        $serviceHolds = collect();
+        if ($cartToken) {
+            $serviceHolds = ServiceSlotHold::where('cart_token', $cartToken)
+                ->active()
+                ->with('service')
+                ->get();
+        }
+
+        $hasProducts = $cart && $cart->items->isNotEmpty();
+        $hasServices = $serviceHolds->isNotEmpty();
+
+        if (! $hasProducts && ! $hasServices) {
             return $this->error('El carrito está vacío.', 400);
         }
 
-        $order = DB::transaction(function () use ($data, $user, $cart) {
+        $order = DB::transaction(function () use ($data, $user, $cart, $hasProducts, $hasServices, $serviceHolds) {
             $subtotal = 0;
             $orderItems = [];
 
-            foreach ($cart->items as $item) {
-                $product = $item->product;
+            if ($hasProducts) {
+                foreach ($cart->items as $item) {
+                    $product = $item->product;
 
-                if ($product->status !== 'approved') {
-                    throw new \Exception("El producto '{$product->name}' no está disponible.");
+                    if ($product->status !== 'approved') {
+                        throw new \Exception("El producto '{$product->name}' no está disponible.");
+                    }
+
+                    if ($product->stock < $item->quantity) {
+                        throw new \Exception("Stock insuficiente para '{$product->name}'.");
+                    }
+
+                    $lineTotal = $item->quantity * $item->product->price;
+                    $subtotal += $lineTotal;
+
+                    $orderItems[] = [
+                        'product_id' => $product->id,
+                        'store_id' => $product->store_id,
+                        'product_name' => $product->name,
+                        'unit_price' => $item->product->price,
+                        'quantity' => $item->quantity,
+                        'line_total' => $lineTotal,
+                        'status' => 'pending_seller',
+                    ];
+
+                    $product->decrement('stock', $item->quantity);
                 }
+            }
 
-                if ($product->stock < $item->quantity) {
-                    throw new \Exception("Stock insuficiente para '{$product->name}'.");
+            if ($hasServices) {
+                foreach ($serviceHolds as $hold) {
+                    $subtotal += (float) ($hold->service?->price ?? 0);
                 }
-
-                $lineTotal = $item->quantity * $item->product->price;
-                $subtotal += $lineTotal;
-
-                $orderItems[] = [
-                    'product_id' => $product->id,
-                    'store_id' => $product->store_id,
-                    'product_name' => $product->name,
-                    'unit_price' => $item->product->price,
-                    'quantity' => $item->quantity,
-                    'line_total' => $lineTotal,
-                    'status' => 'pending_seller',
-                ];
-
-                $product->decrement('stock', $item->quantity);
             }
 
             if ($subtotal < Order::MIN_ORDER_AMOUNT) {
-                throw new \Exception('El monto mínimo de la orden es S/ ' . number_format(Order::MIN_ORDER_AMOUNT, 2) . '.');
+                throw new \Exception('El monto mínimo de la orden es S/ '.number_format(Order::MIN_ORDER_AMOUNT, 2).'.');
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
-            $taxRate = 0.16;
-            $taxAmount = round($subtotal * $taxRate, 2);
+            $taxAmount = 0;
             $discountAmount = 0;
             $couponId = null;
             $couponCode = null;
@@ -173,6 +194,23 @@ final class OrderController extends Controller
 
             $total = $subtotal + $shippingCost + $taxAmount - $discountAmount;
 
+            $liriosUsed = (int) ($data['lirios_used'] ?? 0);
+            $liriosDiscount = 0;
+
+            if ($liriosUsed > 0 && $total > 0) {
+                $storeIds = array_unique(array_column($orderItems, 'store_id'));
+                foreach ($serviceHolds as $hold) {
+                    if ($hold->service && $hold->service->store_id) {
+                        $storeIds[] = $hold->service->store_id;
+                    }
+                }
+
+                $liriosService = app(LiriosService::class);
+                $result = $liriosService->validateAndCalculate($user->id, $liriosUsed, $total, $storeIds);
+                $liriosDiscount = $result['lirios_discount'];
+                $total = $total - $liriosDiscount;
+            }
+
             if ($total < 0) {
                 $total = 0;
             }
@@ -180,7 +218,7 @@ final class OrderController extends Controller
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'user_id' => $user->id,
-                'status' => Order::STATUS_PENDING_SELLER,
+                'status' => $hasProducts ? Order::STATUS_PENDING_SELLER : Order::STATUS_CONFIRMED,
                 'payment_method' => $data['payment_method'] ?? null,
                 'payment_status' => Order::PAYMENT_STATUS_PENDING,
                 'shipping_name' => $data['shipping_name'] ?? null,
@@ -194,6 +232,8 @@ final class OrderController extends Controller
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
                 'discount_amount' => $discountAmount,
+                'lirios_used' => $liriosUsed ?: null,
+                'lirios_discount' => $liriosDiscount,
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
                 'coupon_code' => $couponCode,
@@ -214,17 +254,26 @@ final class OrderController extends Controller
                 ]);
             }
 
-            $cart->items()->delete();
+            if ($liriosUsed > 0) {
+                $liriosService = app(LiriosService::class);
+                $liriosService->redeem($user->id, $liriosUsed, $order);
+            }
+
+            if ($hasProducts) {
+                $cart->items()->delete();
+            }
 
             return $order;
         });
 
         $order->load(self::WITH_RELATIONS);
 
-        // Notificar a cada tienda involucrada en la orden
-        $order->items->pluck('store_id')->unique()->each(
-            fn($storeId) => broadcast(new NewOrderReceived($order, $storeId))
-        );
+        // Notificar solo si hay productos (servicios se manejan vía webhook Izipay)
+        if ($order->items()->exists()) {
+            $order->items->pluck('store_id')->unique()->each(
+                fn ($storeId) => broadcast(new NewOrderReceived($order, $storeId))
+            );
+        }
 
         return $this->created(new OrderResource($order));
     }

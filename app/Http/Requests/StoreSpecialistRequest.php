@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Models\Specialist;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -24,36 +23,48 @@ final class StoreSpecialistRequest extends FormRequest
     {
         return [
             // ── Datos de identidad ────────────────────────────────────────
-            'nombres'            => ['required', 'string', 'max:255'],
-            'apellidos'          => ['required', 'string', 'max:255'],
-            'document_type'      => ['required', 'in:DNI,CE,PASAPORTE'],
-            'document_number'    => ['required', 'string', 'max:20'],
+            'nombres' => ['required', 'string', 'max:255'],
+            'apellidos' => ['required', 'string', 'max:255'],
+            'document_type' => ['required', 'in:DNI,CE,PASAPORTE'],
+            'document_number' => ['required', 'string', 'max:20'],
 
             // Email único — solo para Google Calendar, nunca mostrado al cliente
-            'email'              => ['required', 'email', 'max:255', 'unique:specialists,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:specialists,email'],
+
+            'category_id' => [
+                'nullable',
+                'integer',
+                'exists:categories,id',
+                function ($attribute, $value, $fail) {
+                    if ($value === null) {
+                        return; // nullable: permitido sin categoría
+                    }
+                    $category = \App\Models\Category::find($value);
+                    if (! $category) {
+                        return; // exists rule ya lo captura
+                    }
+                    if ($category->type !== 'service') {
+                        $fail('La categoría debe ser de tipo servicio.');
+
+                        return;
+                    }
+                    if ($category->parent_id === null) {
+                        $fail('Debes seleccionar una categoría de nivel 2 (especialidad), no una categoría principal.');
+                    }
+                },
+            ],
 
             // ── Datos profesionales ───────────────────────────────────────
-            'especialidad'       => ['required', 'string', 'max:255'],
-            'sub_especialidad'   => ['nullable', 'string', 'max:255'],
-            'anios_experiencia'  => ['nullable', 'integer', 'min:0', 'max:30'],
+            'especialidad' => ['required', 'string', 'max:255'],
+            'sub_especialidad' => ['nullable', 'string', 'max:255'],
+            'anios_experiencia' => ['nullable', 'integer', 'min:0', 'max:30'],
             'numero_colegiatura' => ['nullable', 'string', 'max:100'],
 
             // ── Estado y foto ─────────────────────────────────────────────
-            'availability'       => ['sometimes', 'in:Disponible,Indispuesto'],
-            'foto'               => ['nullable', 'string', 'max:500'], // URL de imagen
+            'availability' => ['sometimes', 'in:Disponible,Indispuesto,Ocupado'],
 
-            // google_calendar_id: se autorrellena con el email si no se provee
-            'google_calendar_id' => ['nullable', 'string', 'max:255'],
-        ];
-    }
-
-    public function messages(): array
-    {
-        return [
-            'email.unique'              => 'Ya existe un especialista registrado con este email.',
-            'anios_experiencia.max'     => 'Los años de experiencia no pueden superar 30.',
-            'document_type.in'          => 'El tipo de documento debe ser DNI, CE o PASAPORTE.',
-            'availability.in'           => 'El estado debe ser Disponible o Indispuesto.',
+            'availability.in' => 'El estado debe ser Disponible, Indispuesto u Ocupado.',
+            'category_id.exists' => 'La categoría seleccionada no existe.',
         ];
     }
 

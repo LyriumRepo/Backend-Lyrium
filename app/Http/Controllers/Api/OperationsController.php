@@ -7,23 +7,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Supplier;
+use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Services\OtpService;
 
 final class OperationsController extends Controller
 {
-
     public function __construct(
         private readonly OtpService $otpService
     ) {}
-
 
     public function request2FA(Request $request): JsonResponse
     {
         $user = $request->user(); // Usuario logueado en el panel
 
-        if (!$this->otpService->canResend($user)) {
+        if (! $this->otpService->canResend($user)) {
             return response()->json([
                 'success' => false,
                 'error' => 'Espera 60 segundos antes de solicitar otro código.',
@@ -39,7 +37,6 @@ final class OperationsController extends Controller
         ]);
     }
 
-
     public function verify2FA(Request $request): JsonResponse
     {
         $request->validate([
@@ -51,19 +48,18 @@ final class OperationsController extends Controller
         // Usamos tu método verifyOnly
         $result = $this->otpService->verifyOnly($user, $request->code);
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json([
                 'success' => false,
-                'error' => $result['error'] ?? 'Código incorrecto.'
+                'error' => $result['error'] ?? 'Código incorrecto.',
             ], 422);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Código verificado con éxito.'
+            'message' => 'Código verificado con éxito.',
         ]);
     }
-
 
     /**
      * GET /api/operations/stats
@@ -80,17 +76,17 @@ final class OperationsController extends Controller
         $inversionTotal = Expense::whereNot('status', 'Anulado')->sum('amount');
 
         // Proveedores por estado
-        $proveedoresActivos    = Supplier::where('status', 'Activo')->count();
+        $proveedoresActivos = Supplier::where('status', 'Activo')->count();
         $proveedoresSuspendidos = Supplier::whereIn('status', ['Suspendido', 'Inactivo', 'En Pausa'])->count();
 
         // Recibos pendientes de pago
         $recibosPendientes = Expense::pending()->count();
 
         return response()->json([
-            'inversion_total'        => (float) $inversionTotal,
-            'proveedores_activos'    => $proveedoresActivos,
+            'inversion_total' => (float) $inversionTotal,
+            'proveedores_activos' => $proveedoresActivos,
             'proveedores_suspendidos' => $proveedoresSuspendidos,
-            'recibos_pendientes'     => $recibosPendientes,
+            'recibos_pendientes' => $recibosPendientes,
         ]);
     }
 }

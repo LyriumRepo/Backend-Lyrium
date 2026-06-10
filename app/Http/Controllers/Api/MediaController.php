@@ -8,10 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Media\StoreMediaRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 
 final class MediaController extends Controller
 {
@@ -54,7 +56,7 @@ final class MediaController extends Controller
      * Delete product media.
      * DELETE /api/products/{productId}/media/{mediaId}
      */
-    public function deleteProductMedia(int $productId, int $mediaId): JsonResponse
+    public function deleteProductMedia(int $id, int $mediaId): JsonResponse
     {
         $product = Product::findOrFail($productId);
 
@@ -249,6 +251,38 @@ final class MediaController extends Controller
         $media->delete();
 
         return $this->success();
+    }
+
+    /**
+     * Upload media to a service.
+     * POST /api/services/{serviceId}/media
+     */
+    public function uploadServiceMedia(StoreMediaRequest $request, int $serviceId): JsonResponse
+    {
+        try {
+            $service = Service::findOrFail($serviceId);
+
+            $user = $request->user();
+            $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+            if (! $hasAccess && ! $user->hasRole('administrator')) {
+                return response()->json(['message' => 'No tienes acceso a este servicio'], 403);
+            }
+
+            $file = $request->file('file');
+            $path = $file->store('services', 'public');
+            $url = Storage::url($path);
+
+            $service->update(['image' => $url]);
+
+            return $this->created([
+                'url' => $url,
+                'path' => $path,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading service image: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al subir imagen', 'error' => $e->getMessage()], 500);
+        }
     }
 
     /**

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\TicketInboxUpdated;
 use App\Events\TicketMessageReceived;
 use App\Events\TicketMessagesRead;
-use App\Events\TicketInboxUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendTicketMessageRequest;
 use App\Http\Resources\AdminTicketResource;
@@ -138,7 +138,7 @@ final class AdminTicketController extends Controller
             ? Str::limit($message->content, 100)
             : $this->buildImagePreview($request->file('attachments') ?? []);
         $totalMessages = $ticket->messages()->count();
-        $updatedAt     = $message->created_at?->toIso8601String() ?? now()->toIso8601String();
+        $updatedAt = $message->created_at?->toIso8601String() ?? now()->toIso8601String();
 
         broadcast(new TicketInboxUpdated(
             $ticket->user_id,
@@ -181,11 +181,11 @@ final class AdminTicketController extends Controller
         }
 
         $messages = $query->limit(30)->get();
-        $hasMore  = $messages->count() === 30;
+        $hasMore = $messages->count() === 30;
 
         return response()->json([
-            'success'  => true,
-            'data'     => TicketMessageResource::collection($messages->reverse()->values()),
+            'success' => true,
+            'data' => TicketMessageResource::collection($messages->reverse()->values()),
             'has_more' => $hasMore,
         ]);
     }
@@ -197,7 +197,7 @@ final class AdminTicketController extends Controller
         return match (true) {
             $count === 0 => '',
             $count === 1 => '[Imagen]',
-            default      => "[{$count} imágenes]",
+            default => "[{$count} imágenes]",
         };
     }
 
@@ -229,9 +229,9 @@ final class AdminTicketController extends Controller
             new TicketStatusChangedNotification($ticket, $oldStatus, $newStatus)
         );
 
-        $previewText  = "Estado cambiado de {$oldStatus} a {$newStatus}.";
+        $previewText = "Estado cambiado de {$oldStatus} a {$newStatus}.";
         $totalMessages = $ticket->messages()->count();
-        $updatedAt    = now()->toIso8601String();
+        $updatedAt = now()->toIso8601String();
 
         // Notificar al seller dueño del ticket
         broadcast(new TicketInboxUpdated(

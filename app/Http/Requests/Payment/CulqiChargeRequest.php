@@ -20,21 +20,21 @@ final class CulqiChargeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_id'    => ['required', 'integer', 'exists:orders,id'],
+            'order_id' => ['required', 'integer', 'exists:orders,id'],
             'culqi_token' => ['required', 'string', 'min:10'],   // tkn_test_xxx o tkn_live_xxx
-            'email'       => ['required', 'email'],
+            'email' => ['required', 'email'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'order_id.required'    => 'El ID de la orden es obligatorio.',
-            'order_id.exists'      => 'La orden no existe.',
+            'order_id.required' => 'El ID de la orden es obligatorio.',
+            'order_id.exists' => 'La orden no existe.',
             'culqi_token.required' => 'El token de pago es obligatorio.',
-            'culqi_token.min'      => 'El token de pago no es válido.',
-            'email.required'       => 'El correo electrónico es obligatorio.',
-            'email.email'          => 'El correo electrónico no es válido.',
+            'culqi_token.min' => 'El token de pago no es válido.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'El correo electrónico no es válido.',
         ];
     }
 }

@@ -15,3 +15,9 @@ Schedule::call(function () {
 
 // Verificar tiendas pendientes con SLA > 72 horas y notificar a admins
 Schedule::command('stores:check-sla')->everySixHours()->name('check-pending-stores-sla');
+
+// Enviar recordatorio WhatsApp 3 horas antes de cada cita confirmada
+Schedule::command('bookings:send-reminders')->everyFiveMinutes()->name('send-booking-reminders');
+
+// Liberar holds de slots de servicio expirados cada minuto
+Schedule::command('services:release-expired-holds')->everyMinute()->name('release-expired-slot-holds');

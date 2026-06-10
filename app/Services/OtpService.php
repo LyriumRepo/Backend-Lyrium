@@ -100,11 +100,13 @@ final class OtpService
 
         if ($latestRecord->isExpired()) {
             EmailVerificationCode::where('user_id', $user->id)->delete();
+
             return ['success' => false, 'error' => 'El código de seguridad ha expirado.'];
         }
 
         if ($latestRecord->attempts >= 3) {
             EmailVerificationCode::where('user_id', $user->id)->delete();
+
             return ['success' => false, 'error' => 'Muchos intentos fallidos. Solicita un nuevo código de seguridad.'];
         }
 
@@ -124,13 +126,15 @@ final class OtpService
 
             if ($attemptsMade >= 3) {
                 EmailVerificationCode::where('user_id', $user->id)->delete();
+
                 return ['success' => false, 'error' => 'Muchos intentos fallidos. Se ha bloqueado el código de seguridad.'];
             }
 
             $remaining = 3 - $attemptsMade;
+
             return [
                 'success' => false,
-                'error' => "Código incorrecto. Te quedan {$remaining} " . ($remaining === 1 ? 'intento' : 'intentos') . "."
+                'error' => "Código incorrecto. Te quedan {$remaining} ".($remaining === 1 ? 'intento' : 'intentos').'.',
             ];
         }
 

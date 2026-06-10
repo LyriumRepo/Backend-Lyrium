@@ -6,12 +6,12 @@ namespace App\Providers;
 
 use App\Listeners\BroadcastNotificationCreated;
 use App\Models\Expense;
+use App\Models\Review;
 use App\Observers\ExpenseObserver;
+use App\Observers\ReviewObserver;
 use Illuminate\Notifications\Events\NotificationSent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use App\Models\Review;
-use App\Observers\ReviewObserver;
 
 class AppServiceProvider extends ServiceProvider
 {

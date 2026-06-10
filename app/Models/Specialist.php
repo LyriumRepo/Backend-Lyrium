@@ -30,9 +30,11 @@ final class Specialist extends Model
     use SoftDeletes;
 
     // ── Disponibilidad ────────────────────────────────────────────────────────
-    public const AVAILABILITY_DISPONIBLE  = 'Disponible';
+    public const AVAILABILITY_DISPONIBLE = 'Disponible';
+
     public const AVAILABILITY_INDISPUESTO = 'Indispuesto';
-    public const AVAILABILITY_OCUPADO     = 'Ocupado';     // Se calcula, no se guarda manualmente
+
+    public const AVAILABILITY_OCUPADO = 'Ocupado';     // Se calcula, no se guarda manualmente
 
     public const AVAILABILITIES = [
         self::AVAILABILITY_DISPONIBLE,
@@ -45,6 +47,7 @@ final class Specialist extends Model
 
     protected $fillable = [
         'store_id',
+        'category_id',
         'nombres',
         'apellidos',
         'document_type',
@@ -63,9 +66,9 @@ final class Specialist extends Model
     {
         return [
             'anios_experiencia' => 'integer',
-            'created_at'        => 'datetime',
-            'updated_at'        => 'datetime',
-            'deleted_at'        => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -74,6 +77,11 @@ final class Specialist extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     /** Servicios a los que está asignado este especialista (pivot service_specialist). */
@@ -109,7 +117,7 @@ final class Specialist extends Model
     /** Nombre completo para mostrar. */
     public function getNombreCompletoAttribute(): string
     {
-        return trim($this->nombres . ' ' . $this->apellidos);
+        return trim($this->nombres.' '.$this->apellidos);
     }
 
     /**
@@ -122,5 +130,20 @@ final class Specialist extends Model
             ->whereIn('status', [ServiceBooking::STATUS_PENDING, ServiceBooking::STATUS_CONFIRMED])
             ->where('appointment_date', '>', now())
             ->exists();
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function getAvgRatingAttribute(): float
+    {
+        return (float) $this->reviews()->avg('rating') ?? 0.0;
+    }
+
+    public function getTotalRatingsAttribute(): int
+    {
+        return $this->reviews()->count();
     }
 }

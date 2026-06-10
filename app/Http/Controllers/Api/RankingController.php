@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductRankingResource;
+use App\Http\Resources\ServiceRankingResource;
 use App\Http\Resources\StoreRankingResource;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,7 +22,7 @@ final class RankingController extends Controller
      */
     public function products(Request $request): JsonResponse
     {
-        $limit      = min((int) $request->query('limit', 100), 100);
+        $limit = min((int) $request->query('limit', 100), 100);
         $minReviews = max((int) $request->query('min_reviews', 1), 1);
 
         $products = Product::with(['store:id,store_name,slug,logo', 'categories:id,name,slug', 'media'])
@@ -33,8 +35,8 @@ final class RankingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => ProductRankingResource::collection($products),
-            'meta'    => ['total' => $products->count(), 'min_reviews' => $minReviews],
+            'data' => ProductRankingResource::collection($products),
+            'meta' => ['total' => $products->count(), 'min_reviews' => $minReviews],
         ]);
     }
 
@@ -57,7 +59,42 @@ final class RankingController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => StoreRankingResource::collection($stores),
+            'data' => StoreRankingResource::collection($stores),
+        ]);
+    }
+
+    /**
+     * GET /api/rankings/services?limit=20
+     * Público — top servicios por rating promedio
+     */
+    public function services(Request $request): JsonResponse
+    {
+        $limit = min((int) $request->query('limit', 20), 100);
+
+        $services = Service::with('store:id,store_name,slug,logo')
+            ->where('status', Service::STATUS_ACTIVE)
+            ->select('services.*')
+            ->selectSub(
+                'SELECT COALESCE(AVG(r.rating), 0) FROM service_bookings sb '
+                . 'INNER JOIN reviews r ON r.service_booking_id = sb.id '
+                . 'WHERE sb.service_id = services.id',
+                'rating_average',
+            )
+            ->selectSub(
+                'SELECT COUNT(r.id) FROM service_bookings sb '
+                . 'INNER JOIN reviews r ON r.service_booking_id = sb.id '
+                . 'WHERE sb.service_id = services.id',
+                'rating_count',
+            )
+            ->havingRaw('rating_count >= 1')
+            ->orderByDesc('rating_average')
+            ->orderByDesc('rating_count')
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => ServiceRankingResource::collection($services),
         ]);
     }
 }

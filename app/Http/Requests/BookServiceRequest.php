@@ -17,7 +17,7 @@ final class BookServiceRequest extends FormRequest
     {
         return [
             'schedule_id' => ['required', 'integer', 'exists:service_schedules,id'],
-            'appointment_date' => ['required', 'date', 'after:now'],
+            'appointment_date' => ['required', 'date', 'after:yesterday'],
             'payment_method' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'customer_notes' => ['nullable', 'string', 'max:1000'],
