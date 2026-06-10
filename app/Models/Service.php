@@ -9,11 +9,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-final class Service extends Model
+final class Service extends Model implements HasMedia
 {
     use HasFactory;
     use SoftDeletes;
+    use InteractsWithMedia;
 
     public const STATUS_ACTIVE = 'active';
 
@@ -135,5 +138,11 @@ final class Service extends Model
     public function scopeActive($query)
     {
         return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('images')
+            ->singleFile();
     }
 }
