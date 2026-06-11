@@ -298,8 +298,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
 
     // Devices (FCM push notification tokens)
-    Route::post('/devices', [DeviceController::class, 'register']);
-    Route::delete('/devices', [DeviceController::class, 'unregister']);
+    Route::post('/devices', [DeviceController::class, 'register'])->middleware('throttle:10,1');
+    Route::delete('/devices', [DeviceController::class, 'unregister'])->middleware('throttle:10,1');
 
     // Payment Methods (tokenize must be before {id} to avoid route conflict)
     Route::post('/payment-methods/tokenize', [PaymentMethodController::class, 'tokenize']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -46,7 +47,14 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['mail', 'database'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -128,6 +136,25 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
             ->withSymfonyMessage(function ($message) {
                 //
             });
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $status = $this->order->status;
+        $tracking = self::TRACKING_MAP[$status] ?? null;
+        $title = $tracking['title'] ?? 'Tu pedido ha sido actualizado';
+
+        return [
+            'title' => $title,
+            'body' => "Pedido #{$this->order->order_number} — {$this->order->status_label}",
+            'data' => [
+                'type' => 'order_tracking',
+                'order_id' => (string) $this->order->id,
+                'order_number' => (string) $this->order->order_number,
+                'status' => $this->order->status,
+                'url' => '/customer/orders',
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array
