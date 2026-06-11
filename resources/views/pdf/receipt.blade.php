@@ -48,7 +48,7 @@
     .parties { width: 100%; border-collapse: collapse; margin-bottom: 18px; }
     .parties td { vertical-align: top; padding: 0; }
     .party-col-l { width: 48%; padding-right: 10px; }
-    .party-col-r { width: 48%; padding-left: 10px; border-left: 1px solid #E5E7EB; }
+    .party-col-r { width: 48%; padding-left: 20px; border-left: 1px solid #E5E7EB; }
 
     .party-tag  { font-size: 5.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.3px; color: #9CA3AF; margin-bottom: 5px; }
     .party-name { font-size: 9px; font-weight: bold; color: #111827; margin-bottom: 2px; }

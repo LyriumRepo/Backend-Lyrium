@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Backend Lyrium** — Laravel 12 REST API for a multi-vendor biomarketplace (Peru). PHP 8.2+, MySQL (`db-lyriumv1`), Sanctum auth, Spatie roles/permissions.
 
-Frontend is a separate Next.js repo at `F:\FRONTEND\fe-001-marketplace-admin\frontapp` (expected at `http://localhost:3000`).
+Frontend is a separate Next.js repo at `../Frontend-Lyrium/frontapp/` (runs at `http://localhost:3000`).
 
 ## Commands
 
