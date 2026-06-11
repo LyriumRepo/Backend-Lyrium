@@ -12,7 +12,6 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             $table->string('order_type')->default('product')->after('order_number');
-            $table->string('shipping_type')->nullable()->after('shipping_notes');
         });
     }
 
