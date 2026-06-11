@@ -57,15 +57,11 @@ final class NubefactService
             'items' => $items,
         ];
 
-        $this->logDebug('emitInvoice — Enviando a NubeFact', [
-            'payload' => $payload,
-        ]);
+        $this->logDebug('emitInvoice — Enviando a NubeFact', ['payload' => $payload]);
 
         $response = $this->provider->emitInvoice($payload);
 
-        $this->logDebug('emitInvoice — Respuesta de NubeFact', [
-            'response' => $response,
-        ]);
+        $this->logDebug('emitInvoice — Respuesta de NubeFact', ['response' => $response]);
 
         return $this->parseProviderResponse($response);
     }
@@ -92,7 +88,6 @@ final class NubefactService
             $segments[] = ['type' => 'shipping', 'base' => $shippingCost];
         }
 
-        // Sin conceptos: un item genérico
         if ($totalBase <= 0) {
             $igv = round($baseGravada * self::IGV_RATE, 2);
             $itemTotal = round($baseGravada + $igv, 2);
@@ -142,7 +137,6 @@ final class NubefactService
                     'total' => $itemTotal,
                 ];
             } else {
-                // Shipping
                 $rawBase = $segment['base'];
 
                 $itemBase = $isLast

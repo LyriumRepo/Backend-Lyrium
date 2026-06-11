@@ -131,7 +131,7 @@ final class PlanRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = PlanRequest::query()
-            ->with(['store.owner:id,name,email', 'plan:id,name,monthly_fee'])
+            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,monthly_fee'])
             ->orderBy('created_at', 'desc');
 
         if ($status = $request->query('status')) {
@@ -145,7 +145,7 @@ final class PlanRequestController extends Controller
         $requests = $query->paginate($request->query('per_page', 20));
 
         return response()->json([
-            'data' => $requests->map(fn ($req) => [
+            'data' => $requests->map(fn($req) => [
                 'id' => $req->id,
                 'store_id' => $req->store_id,
                 'store_name' => $req->store->trade_name,
@@ -162,6 +162,8 @@ final class PlanRequestController extends Controller
                 'payment_status' => $req->payment_status,
                 'status' => $req->status,
                 'created_at' => $req->created_at->toIso8601String(),
+
+                'current_plan_slug'  => $req->store->activeSubscription?->plan?->slug ?? 'basic',
             ]),
             'pagination' => [
                 'page' => $requests->currentPage(),
@@ -177,7 +179,7 @@ final class PlanRequestController extends Controller
     {
         $req = PlanRequest::with([
             'store.owner:id,name,email',
-            'store' => fn ($q) => $q->select('id', 'trade_name', 'ruc', 'owner_id'),
+            'store' => fn($q) => $q->select('id', 'trade_name', 'ruc', 'owner_id'),
             'plan:id,name,slug,monthly_fee,commission_rate',
             'currentPlan:id,name',
             'reviewer:id,name',

@@ -7,9 +7,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\UpdateSellerProfileRequest;
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use App\Models\UserNotificationSetting;
 use App\Mail\WelcomeInternalUserMail;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -139,10 +139,10 @@ final class UserController extends Controller
     public function createInternal(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|unique:users,email',
-            'password'     => 'required|string|min:8',
-            'role'         => 'required|in:logistics_operator,administrator',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:logistics_operator,administrator',
             'send_welcome' => 'sometimes|boolean',
         ]);
 
@@ -154,11 +154,11 @@ final class UserController extends Controller
         }
 
         $user = User::create([
-            'name'              => $data['name'],
-            'username'          => $username,
-            'email'             => $data['email'],
-            'nicename'          => Str::slug($data['name']),
-            'password'          => Hash::make($data['password']),
+            'name' => $data['name'],
+            'username' => $username,
+            'email' => $data['email'],
+            'nicename' => Str::slug($data['name']),
+            'password' => Hash::make($data['password']),
             'email_verified_at' => now(),
         ]);
 
@@ -355,5 +355,4 @@ final class UserController extends Controller
 
         return response()->json(['success' => true]);
     }
-
 }

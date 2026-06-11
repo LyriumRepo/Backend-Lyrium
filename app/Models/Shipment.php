@@ -33,6 +33,7 @@ final class Shipment extends Model
         'shipping_method_id',
         'tracking_number',
         'tracking_url',
+        'carrier_data',
         'carrier',
         'status',
         'notes',
@@ -44,6 +45,7 @@ final class Shipment extends Model
     protected function casts(): array
     {
         return [
+            'carrier_data' => 'array',
             'events' => 'array',
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',

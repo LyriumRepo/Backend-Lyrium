@@ -132,13 +132,7 @@
             margin-bottom: 16px;
         }
 
-        /* Greeting */
-        .greeting {
-            font-size: 17px;
-            color: #1E293B;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
+
 
         /* Status badge */
         .status-badge {
@@ -280,26 +274,6 @@
 
         /* Responsive */
         @media only screen and (max-width: 600px) {
-            .email-body {
-                padding: 28px 24px 24px;
-            }
-
-            .email-header {
-                padding: 24px;
-            }
-
-            .email-footer {
-                padding: 20px 24px;
-            }
-
-            .info-row {
-                flex-direction: column;
-                gap: 2px;
-            }
-
-            .info-value {
-                text-align: left;
-            }
         }
     </style>
 </head>
@@ -321,18 +295,6 @@
             {{-- BODY --}}
             <div class="email-body">
                 @yield('email_content')
-            </div>
-
-            {{-- FOOTER --}}
-            <div class="email-footer">
-                <p>
-                    Este correo fue enviado automáticamente por <strong>Lyrium Platform</strong>.<br />
-                    Si tienes preguntas, contáctanos en
-                    <a href="mailto:soporte@lyrium.pe">soporte@lyrium.pe</a>
-                </p>
-                <p style="margin-top: 10px;">
-                    © {{ date('Y') }} Lyrium · Todos los derechos reservados
-                </p>
             </div>
 
         </div>

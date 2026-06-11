@@ -51,8 +51,12 @@ final class Invoice extends Model
         'type',
         'customer_name',
         'customer_ruc',
+        'document_type',
         'nit',
         'business_name',
+        'customer_document_type',
+        'customer_address',
+        'customer_email',
         'provider',
         'provider_invoice_id',
         'qr_data',
@@ -67,6 +71,8 @@ final class Invoice extends Model
         'history',
         'xml_url',
         'cdr_url',
+        'nubefact_response',
+        'items',
     ];
 
     protected function casts(): array
@@ -79,6 +85,8 @@ final class Invoice extends Model
             'history' => 'array',
             'xml_url' => 'string',
             'cdr_url' => 'string',
+            'nubefact_response' => 'array',
+            'items' => 'array',
         ];
     }
 

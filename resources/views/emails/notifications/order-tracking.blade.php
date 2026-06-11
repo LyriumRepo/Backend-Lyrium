@@ -91,6 +91,61 @@
             <td style="height: 20px; font-size: 0;">&nbsp;</td>
         </tr>
 
+        {{-- DATOS DEL ENVÍO (operador logístico) --}}
+        @if($carrierName)
+        <tr>
+            <td style="padding-bottom: 8px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; border: 1px solid #4CD3D5; border-radius: 6px; overflow: hidden;">
+                    <tr>
+                        <td style="padding: 0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <tr>
+                                    <td style="background-color: #4CD3D5; padding: 10px 18px 8px 18px; font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.8px; border-radius: 0 0 6px 6px; white-space: nowrap;">Datos de tu env\u00edo</td>
+                                    <td style="border-bottom: 1px solid #4CD3D5;">&nbsp;</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 16px 18px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #000000; border-bottom: 1px solid #e2e8f0;">Operador</td>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right;">{{ $carrierName }}</td>
+                                </tr>
+                                @if($trackingCode)
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #000000; border-bottom: 1px solid #e2e8f0;">C\u00f3digo de seguimiento</td>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right;">{{ $trackingCode }}</td>
+                                </tr>
+                                @endif
+                                @foreach($carrierFields as $field)
+                                <tr>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #000000; border-bottom: 1px solid #e2e8f0;">{{ $field['label'] }}</td>
+                                    <td style="padding: 6px 0; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right;">{{ $field['value'] }}</td>
+                                </tr>
+                                @endforeach
+                            </table>
+                        </td>
+                    </tr>
+                    @if($trackingUrl)
+                    <tr>
+                        <td style="text-align: center; padding: 0 18px 16px;">
+                            <a href="{{ $trackingUrl }}" target="_blank" style="display: inline-block; padding: 10px 24px; background-color: #00BFC1; color: #ffffff !important; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px; letter-spacing: 0.2px;">
+                                Rastrear mi pedido
+                            </a>
+                        </td>
+                    </tr>
+                    @endif
+                </table>
+            </td>
+        </tr>
+
+        <tr>
+            <td style="height: 20px; font-size: 0;">&nbsp;</td>
+        </tr>
+        @endif
+
         {{-- RESUMEN ECONÓMICO --}}
         <tr>
             <td style="padding-bottom: 8px;">

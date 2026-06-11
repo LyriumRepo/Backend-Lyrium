@@ -17,12 +17,12 @@ final class StoreOperationalRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'         => ['required', 'string', 'max:100'],
-            'code'         => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('operational_roles', 'code')],
-            'description'  => ['nullable', 'string', 'max:500'],
-            'is_active'    => ['sometimes', 'boolean'],
-            'modules'      => ['nullable', 'array'],
-            'modules.*'    => ['string', 'max:80'],
+            'name' => ['required', 'string', 'max:100'],
+            'code' => ['required', 'string', 'max:50', 'alpha_dash', Rule::unique('operational_roles', 'code')],
+            'description' => ['nullable', 'string', 'max:500'],
+            'is_active' => ['sometimes', 'boolean'],
+            'modules' => ['nullable', 'array'],
+            'modules.*' => ['string', 'max:80'],
             'requires_2fa' => ['sometimes', 'boolean'],
         ];
     }

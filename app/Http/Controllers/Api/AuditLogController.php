@@ -50,16 +50,16 @@ final class AuditLogController extends Controller
         }
 
         $perPage = min((int) $request->query('per_page', 25), 100);
-        $logs    = $query->paginate($perPage);
+        $logs = $query->paginate($perPage);
 
         return response()->json([
-            'data'       => AuditLogResource::collection($logs),
+            'data' => AuditLogResource::collection($logs),
             'pagination' => [
-                'page'       => $logs->currentPage(),
-                'perPage'    => $logs->perPage(),
-                'total'      => $logs->total(),
+                'page' => $logs->currentPage(),
+                'perPage' => $logs->perPage(),
+                'total' => $logs->total(),
                 'totalPages' => $logs->lastPage(),
-                'hasMore'    => $logs->hasMorePages(),
+                'hasMore' => $logs->hasMorePages(),
             ],
         ]);
     }

@@ -10,10 +10,10 @@ use App\Http\Requests\Review\UpdateReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Order;
 use App\Models\Review;
+use App\Models\ReviewReport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\ReviewReport;
 
 final class ReviewController extends Controller
 {
@@ -36,14 +36,14 @@ final class ReviewController extends Controller
         $stats = Review::getRatingStats($productId);
 
         return $this->success([
-            'data'       => ReviewResource::collection($reviews),
-            'stats'      => $stats,
+            'data' => ReviewResource::collection($reviews),
+            'stats' => $stats,
             'pagination' => [
-                'page'       => $reviews->currentPage(),
-                'perPage'    => $reviews->perPage(),
-                'total'      => $reviews->total(),
+                'page' => $reviews->currentPage(),
+                'perPage' => $reviews->perPage(),
+                'total' => $reviews->total(),
                 'totalPages' => $reviews->lastPage(),
-                'hasMore'    => $reviews->hasMorePages(),
+                'hasMore' => $reviews->hasMorePages(),
             ],
         ]);
     }
@@ -70,17 +70,17 @@ final class ReviewController extends Controller
             $isVerifiedPurchase = Order::where('id', $data['order_id'])
                 ->where('user_id', $user->id)
                 ->where('status', 'delivered')
-                ->whereHas('items', fn($q) => $q->where('product_id', $data['product_id']))
+                ->whereHas('items', fn ($q) => $q->where('product_id', $data['product_id']))
                 ->exists();  // exists() en vez de first() — no necesitamos el objeto
         }
 
         $review = Review::create([
-            'user_id'              => $user->id,
-            'product_id'           => $data['product_id'],
-            'order_id'             => $data['order_id'] ?? null,
-            'rating'               => $data['rating'],
-            'title'                => $data['title'] ?? null,
-            'comment'              => $data['comment'] ?? null,
+            'user_id' => $user->id,
+            'product_id' => $data['product_id'],
+            'order_id' => $data['order_id'] ?? null,
+            'rating' => $data['rating'],
+            'title' => $data['title'] ?? null,
+            'comment' => $data['comment'] ?? null,
             'is_verified_purchase' => $isVerifiedPurchase,
         ]);
 
@@ -107,7 +107,7 @@ final class ReviewController extends Controller
     public function update(UpdateReviewRequest $request, string $id): JsonResponse
     {
         $review = Review::findOrFail($id);
-        $user   = $request->user();
+        $user = $request->user();
 
         if ($review->user_id !== $user->id && ! $user->hasRole('administrator')) {
             return $this->forbidden('No tienes permiso para editar esta reseña.');
@@ -125,7 +125,7 @@ final class ReviewController extends Controller
     public function destroy(Request $request, string $id): JsonResponse
     {
         $review = Review::findOrFail($id);
-        $user   = $request->user();
+        $user = $request->user();
 
         if ($review->user_id !== $user->id && ! $user->hasRole('administrator')) {
             return $this->forbidden('No tienes permiso para eliminar esta reseña.');
@@ -145,12 +145,12 @@ final class ReviewController extends Controller
     public function report(Request $request, string $id): JsonResponse
     {
         $request->validate([
-            'reason'  => 'required|string|in:spam,offensive,fake,irrelevant,other',
+            'reason' => 'required|string|in:spam,offensive,fake,irrelevant,other',
             'details' => 'nullable|string|max:500',
         ]);
 
         $review = Review::findOrFail($id);
-        $user   = $request->user();
+        $user = $request->user();
 
         // No puede reportar su propia reseña
         if ($review->user_id === $user->id) {
@@ -164,11 +164,11 @@ final class ReviewController extends Controller
 
         DB::transaction(function () use ($review, $request, $user) {
             ReviewReport::create([
-                'review_id'   => $review->id,
+                'review_id' => $review->id,
                 'reporter_id' => $user->id,
-                'reason'      => $request->reason,
-                'details'     => $request->details,
-                'status'      => 'pending',
+                'reason' => $request->reason,
+                'details' => $request->details,
+                'status' => 'pending',
             ]);
 
             // Incrementar contador en la reseña

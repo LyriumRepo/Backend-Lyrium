@@ -26,24 +26,23 @@ final class StoreProductRequest extends FormRequest
             'image' => 'nullable|string',
             'sticker' => 'nullable|string|in:liquidacion,oferta,descuento,nuevo,bestseller,envio_gratis,organic,natural,eco,premium,vegan',
             'discountPercentage' => 'nullable|numeric|min:0|max:100',
-            // En StoreProductRequest, reemplazar las reglas de atributos por estas:
-            'mainAttributes'                        => 'nullable|array',
-            'mainAttributes.*.values'               => 'required_with:mainAttributes|array',
-            'mainAttributes.*.values.label'         => 'required_with:mainAttributes|string|max:100',
-            'mainAttributes.*.values.value'         => 'required_with:mainAttributes|string|max:255',
+            // Atributos — el frontend envía { values: [label, value] }
+            'mainAttributes' => 'nullable|array',
+            'mainAttributes.*.values' => 'present|array',
+            'mainAttributes.*.values.0' => 'string|max:100',
+            'mainAttributes.*.values.1' => 'string|max:255',
 
-            'additionalAttributes'                  => 'nullable|array',
-            'additionalAttributes.*.values'         => 'required_with:additionalAttributes|array',
-            'additionalAttributes.*.values.label'   => 'required_with:additionalAttributes|string|max:100',
-            'additionalAttributes.*.values.value'   => 'required_with:additionalAttributes|string|max:255',
+            'additionalAttributes' => 'nullable|array',
+            'additionalAttributes.*.values' => 'present|array',
+            'additionalAttributes.*.values.0' => 'string|max:100',
+            'additionalAttributes.*.values.1' => 'string|max:255',
 
-            'servingNote'                                    => 'nullable|string|max:200',
-            'nutritionalAttributes'                          => 'nullable|array',
-            'nutritionalAttributes.*.values'                 => 'required_with:nutritionalAttributes|array',
-            'nutritionalAttributes.*.values.label'           => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.value'           => 'required_with:nutritionalAttributes|string|max:100',
-            'nutritionalAttributes.*.values.daily_value'     => 'nullable|string|max:20',
-
+            'servingNote' => 'nullable|string|max:200',
+            'nutritionalAttributes' => 'nullable|array',
+            'nutritionalAttributes.*.values' => 'present|array',
+            'nutritionalAttributes.*.values.0' => 'string|max:100',
+            'nutritionalAttributes.*.values.1' => 'string|max:100',
+            'nutritionalAttributes.*.values.2' => 'nullable|string|max:20',
         ];
 
         $type = $this->input('type', 'physical');
@@ -75,12 +74,7 @@ final class StoreProductRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'mainAttributes.*.values.label.required_with'        => 'Cada característica debe tener un nombre.',
-            'mainAttributes.*.values.value.required_with'        => 'Cada característica debe tener un valor.',
-            'additionalAttributes.*.values.label.required_with'  => 'Cada atributo adicional debe tener un nombre.',
-            'additionalAttributes.*.values.value.required_with'  => 'Cada atributo adicional debe tener un valor.',
-            'nutritionalAttributes.*.values.label.required_with' => 'Cada fila nutricional debe tener un nombre.',
-            'nutritionalAttributes.*.values.value.required_with' => 'Cada fila nutricional debe tener un valor.',
+            'sticker.in' => 'El sticker debe ser: liquidacion, oferta, descuento, nuevo, bestseller o envio_gratis.',
             'type.in' => 'El tipo debe ser: physical, digital o service.',
             'sticker.in' => 'El sticker seleccionado no es válido. Opciones: liquidacion, oferta, descuento, nuevo, bestseller, envio_gratis.',
             'downloadUrl.required' => 'La URL de descarga es obligatoria para productos digitales.',
@@ -88,6 +82,10 @@ final class StoreProductRequest extends FormRequest
             'serviceModality.required' => 'La modalidad es obligatoria para servicios.',
             'serviceModality.in' => 'La modalidad debe ser: presencial, virtual o domicilio.',
             'expirationDate.after' => 'La fecha de vencimiento debe ser posterior a hoy.',
+            'mainAttributes.*.values.0.max' => 'El nombre de cada característica no debe exceder 100 caracteres.',
+            'mainAttributes.*.values.1.max' => 'El valor de cada característica no debe exceder 255 caracteres.',
+            'additionalAttributes.*.values.0.max' => 'El nombre de cada atributo adicional no debe exceder 100 caracteres.',
+            'additionalAttributes.*.values.1.max' => 'El valor de cada atributo adicional no debe exceder 255 caracteres.',
         ];
     }
 }

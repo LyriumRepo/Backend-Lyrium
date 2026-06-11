@@ -4,33 +4,32 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Channels\PushChannel;
 use App\Models\Order;
+use App\Services\CarrierResolver;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class OrderStatusTrackingNotification extends Notification implements ShouldQueue
+final class OrderStatusTrackingNotification extends Notification
 {
     use Queueable;
 
     private const TRACKING_MAP = [
         Order::STATUS_PENDING_SELLER => [
             'image' => 'tracking-stage1.jpg',
-            'title' => 'TU PEDIDO HA SIDO VALIDADO POR EL VENDEDOR',
+            'title' => 'TU PEDIDO HA SIDO RECIBIDO',
         ],
         Order::STATUS_CONFIRMED => [
             'image' => 'tracking-stage2.jpg',
-            'title' => 'TU PEDIDO HA SIDO DESPACHADO CON ÉXITO',
+            'title' => 'TU PEDIDO HA SIDO VALIDADO POR EL VENDEDOR',
         ],
         Order::STATUS_PROCESSING => [
             'image' => 'tracking-stage3.jpg',
-            'title' => '¡TU PEDIDO VA EN CAMINO!',
+            'title' => 'TU PEDIDO HA SIDO DESPACHADO CON ÉXITO',
         ],
         Order::STATUS_SHIPPED => [
             'image' => 'tracking-stage4.jpg',
-            'title' => '¡YA LLEGAMOS! REPARTIDOR EN TU DOMICILIO',
+            'title' => '¡TU PEDIDO VA EN CAMINO!',
         ],
         Order::STATUS_DELIVERED => [
             'image' => 'tracking-stage5.jpg',
@@ -47,14 +46,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     public function via(object $notifiable): array
     {
-        $channels = ['mail', 'database'];
-
-        $settings = $notifiable->notificationSetting;
-        if ($settings?->wantsPush() ?? true) {
-            $channels[] = PushChannel::class;
-        }
-
-        return $channels;
+        return ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -71,6 +63,8 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
         $bannerTopPath = public_path('images/email/' . self::BANNER_TOP);
         $bannerBottomPath = public_path('images/email/' . self::BANNER_BOTTOM);
+
+        $carrierInfo = $this->getCarrierInfo();
 
         $items = $this->order->items->map(fn($item) => [
             'name' => $item->product_name,
@@ -94,6 +88,10 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'actionUrl'          => config('app.frontend_url') . '/customer/orders',
                 'showTagline'        => true,
                 'hideHeader'         => true,
+                'carrierName'        => $carrierInfo['name'],
+                'trackingCode'       => $carrierInfo['tracking_code'],
+                'trackingUrl'        => $carrierInfo['tracking_url'],
+                'carrierFields'      => $carrierInfo['fields'],
             ])
             ->withSymfonyMessage(function ($message) use ($imagePath, $imageCid, $bannerTopPath, $bannerBottomPath) {
                 if (file_exists($bannerTopPath)) {
@@ -110,6 +108,8 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     private function fallbackMail(object $notifiable): MailMessage
     {
+        $carrierInfo = $this->getCarrierInfo();
+
         $items = $this->order->items->map(fn($item) => [
             'name' => $item->product_name,
             'quantity' => $item->quantity,
@@ -132,28 +132,51 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'actionUrl'       => config('app.frontend_url') . '/customer/orders',
                 'showTagline'     => true,
                 'hideHeader'      => true,
+                'carrierName'     => $carrierInfo['name'],
+                'trackingCode'    => $carrierInfo['tracking_code'],
+                'trackingUrl'     => $carrierInfo['tracking_url'],
+                'carrierFields'   => $carrierInfo['fields'],
             ])
             ->withSymfonyMessage(function ($message) {
                 //
             });
     }
 
-    public function toPush(object $notifiable): array
+    private function getCarrierInfo(): array
     {
-        $status = $this->order->status;
-        $tracking = self::TRACKING_MAP[$status] ?? null;
-        $title = $tracking['title'] ?? 'Tu pedido ha sido actualizado';
+        $firstShipment = $this->order->relationLoaded('shipments')
+            ? $this->order->shipments->first()
+            : $this->order->shipments()->first();
+
+        if ($firstShipment === null) {
+            return ['name' => null, 'tracking_code' => null, 'tracking_url' => null, 'fields' => []];
+        }
+
+        $carrierData = $firstShipment->carrier_data ?? [];
+        $carrierCode = CarrierResolver::resolveFromShipment($firstShipment);
+        $carrierConfig = $carrierCode ? config("logistics.carriers.{$carrierCode}") : null;
+
+        $trackingCode = $carrierData['tracking_code'] ?? $firstShipment->tracking_number;
+        $trackingUrl = $firstShipment->tracking_url;
+
+        $extraFields = [];
+        if ($carrierData && $carrierConfig) {
+            foreach ($carrierConfig['fields'] as $field) {
+                $key = $field['key'];
+                if ($key !== 'tracking_code' && isset($carrierData[$key])) {
+                    $extraFields[] = [
+                        'label' => $field['label'],
+                        'value' => $carrierData[$key],
+                    ];
+                }
+            }
+        }
 
         return [
-            'title' => $title,
-            'body' => "Pedido #{$this->order->order_number} — {$this->order->status_label}",
-            'data' => [
-                'type' => 'order_tracking',
-                'order_id' => (string) $this->order->id,
-                'order_number' => (string) $this->order->order_number,
-                'status' => $this->order->status,
-                'url' => '/customer/orders',
-            ],
+            'name' => $carrierConfig['name'] ?? ($firstShipment->carrier ?? null),
+            'tracking_code' => $trackingCode,
+            'tracking_url' => $trackingUrl,
+            'fields' => $extraFields,
         ];
     }
 

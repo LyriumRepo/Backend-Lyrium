@@ -11,7 +11,6 @@ use App\Notifications\OrderStatusTrackingNotification;
 final class SendOrderTrackingEmailListener
 {
     private const TRACKABLE_STATUSES = [
-        Order::STATUS_PENDING_SELLER,
         Order::STATUS_CONFIRMED,
         Order::STATUS_PROCESSING,
         Order::STATUS_SHIPPED,

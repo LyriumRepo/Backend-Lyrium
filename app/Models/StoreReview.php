@@ -27,12 +27,12 @@ final class StoreReview extends Model
     protected function casts(): array
     {
         return [
-            'rating'               => 'integer',
+            'rating' => 'integer',
             'rating_communication' => 'integer',
-            'rating_shipping'      => 'integer',
-            'rating_packaging'     => 'integer',
+            'rating_shipping' => 'integer',
+            'rating_packaging' => 'integer',
             'is_verified_purchase' => 'boolean',
-            'reported_count'       => 'integer',
+            'reported_count' => 'integer',
         ];
     }
 
@@ -73,11 +73,11 @@ final class StoreReview extends Model
             ->first();
 
         return [
-            'average'              => (float) ($row->average ?? 0),
-            'count'                => (int)   ($row->total ?? 0),
-            'avg_communication'    => (float) ($row->avg_communication ?? 0),
-            'avg_shipping'         => (float) ($row->avg_shipping ?? 0),
-            'avg_packaging'        => (float) ($row->avg_packaging ?? 0),
+            'average' => (float) ($row->average ?? 0),
+            'count' => (int) ($row->total ?? 0),
+            'avg_communication' => (float) ($row->avg_communication ?? 0),
+            'avg_shipping' => (float) ($row->avg_shipping ?? 0),
+            'avg_packaging' => (float) ($row->avg_packaging ?? 0),
             'distribution' => [
                 5 => (int) ($row->r5 ?? 0),
                 4 => (int) ($row->r4 ?? 0),

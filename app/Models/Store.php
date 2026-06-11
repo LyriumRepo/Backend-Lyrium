@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 final class Store extends Model implements HasMedia
 {
@@ -40,6 +40,7 @@ final class Store extends Model implements HasMedia
         'seller_type',
         'strikes',
         'commission_rate',
+        'lirios_percent',
         'rep_legal_nombre',
         'rep_legal_dni',
         'rep_legal_foto',
@@ -247,7 +248,7 @@ final class Store extends Model implements HasMedia
     // Cambia esto en app/Models/Store.php
     public function getAverageRatingAttribute($value): float
     {
-        // Si $value ya existe (gracias a withAvg), lo usamos. 
+        // Si $value ya existe (gracias a withAvg), lo usamos.
         // Si no existe (cuando consultas una sola tienda sin con conAvg), hace el fallback a la BD.
         $rating = $value ?? $this->reviews()->avg('rating') ?? 0;
 
@@ -272,5 +273,13 @@ final class Store extends Model implements HasMedia
     public function getStoreReviewCountAttribute(): int
     {
         return $this->storeReviews()->count();
+    }
+    // app/Models/Store.php
+    public function activeSubscription()
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('status', 'active')
+            ->where('ends_at', '>=', now())
+            ->latestOfMany();
     }
 }

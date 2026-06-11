@@ -33,7 +33,7 @@ final class TicketMessagesRead implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'ticket_id'       => $this->ticketId,
+            'ticket_id' => $this->ticketId,
             'read_by_user_id' => $this->readByUserId,
         ];
     }

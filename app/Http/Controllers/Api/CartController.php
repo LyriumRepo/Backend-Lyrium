@@ -22,7 +22,7 @@ final class CartController extends Controller
 
         // Plan B: Si Laravel devuelve null (por el conflicto de cookies de Insomnia)
         // pero verificamos que sí enviaste un Bearer Token, lo interceptamos manualmente.
-        if (!$user && $request->bearerToken()) {
+        if (! $user && $request->bearerToken()) {
             $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
             if ($token) {
                 $user = $token->tokenable; // Esto extrae el modelo del Usuario dueño del token
@@ -32,7 +32,7 @@ final class CartController extends Controller
         $sessionId = $request->header('X-Session-ID') ?? '';
 
         // CASO 1: Si realmente NO hay usuario logueado (Invitado real)
-        if (!$user) {
+        if (! $user) {
             return Cart::firstOrCreate(
                 ['session_id' => $sessionId],
                 ['user_id' => null]

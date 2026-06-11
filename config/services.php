@@ -23,12 +23,11 @@ return [
     ],
 
     'culqi' => [
-        'public_key'        => env('CULQI_PUBLIC_KEY'),
-        'secret_key'        => env('CULQI_SECRET_KEY'),
-        'mode'              => env('CULQI_MODE', 'test'),
+        'public_key' => env('CULQI_PUBLIC_KEY'),
+        'secret_key' => env('CULQI_SECRET_KEY'),
+        'mode' => env('CULQI_MODE', 'test'),
         'webhook_public_key' => env('CULQI_WEBHOOK_PUBLIC_KEY'),
     ],
-
 
     'izipay' => [
         // Credenciales de autenticación (Basic Auth)
@@ -48,17 +47,20 @@ return [
         'shop_id'     => env('IZIPAY_SHOP_ID', ''),
     ],
 
+    'miapicloud' => [
+        'token' => env('MIAPICLOUD', env('MIAPICLOUD_TOKEN', '')),
+    ],
     'google' => [
-        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         // Callback dinámico mapeado a la URI de tu controlador
-        'redirect_uri'  => env('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/api/google/callback'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI', 'http://127.0.0.1:8000/api/google/callback'),
     ],
 
     // ─── GOOGLE SERVICE ACCOUNT (Soporte Fallback / Plan B) ──────────────────
     'google_calendar' => [
         'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS_PATH', storage_path('app/google-service-account.json')),
-        'calendar_id'      => env('GOOGLE_CALENDAR_ID', 'primary'),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
     ],
 
     'openai' => [
@@ -81,6 +83,20 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'nubefact' => [
+        'route' => env('NUBEFACT_ROUTE', 'https://api.nubefact.com/api/v1/06259bc7-b074-43bd-8981-53fa863f787f'),
+        'token' => env('NUBEFACT_TOKEN', 'a4e2903adce14230ac2f744c2e785b6681ad211178484c498faf0740aeeac05e'),
+        'ruc' => env('NUBEFACT_RUC', '20600695771'),
+        'branch_id' => env('NUBEFACT_BRANCH_ID', '0'),
+        'timeout' => env('NUBEFACT_TIMEOUT', 30),
+        'connect_timeout' => env('NUBEFACT_CONNECT_TIMEOUT', 10),
+        'series' => [
+            'FACTURA' => 'FFF1',
+            'BOLETA' => 'BBB1',
+            'NOTA_CREDITO' => 'FFF1',
+        ],
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
@@ -88,41 +104,6 @@ return [
         ],
     ],
 
-    'nubefact' => [
-        /*
-        |--------------------------------------------------------------------------
-        | NubeFact — Facturación Electrónica SUNAT (Perú)
-        |--------------------------------------------------------------------------
-        |
-        | NubeFact es el proveedor de facturación electrónica que permite emitir
-        | comprobantes (Factura, Boleta, Nota de Crédito) con validación SUNAT.
-        |
-        | URL de la API de NubeFact (producción o testing):
-        |   NUBEFACT_URL = https://api.nubefact.com/api/v1
-        |
-        | Token de acceso (generado desde el panel de NubeFact):
-        |   NUBEFACT_TOKEN = tu_token_api
-        |
-        | Timeouts configurables para las peticiones HTTP.
-        */
-        'url' => env('NUBEFACT_URL'),
-        'token' => env('NUBEFACT_TOKEN'),
-        'timeout' => env('NUBEFACT_TIMEOUT', 30),
-        'connect_timeout' => env('NUBEFACT_CONNECT_TIMEOUT', 10),
 
-        /*
-        |--------------------------------------------------------------------------
-        | Series de comprobantes registradas en NubeFact
-        |--------------------------------------------------------------------------
-        |
-        | Mapa de series según el tipo de comprobante.
-        | Debe coincidir con lo configurado en NubeFact > Locales y series.
-        */
-        'series' => [
-            'FACTURA' => 'FFF1',
-            'BOLETA' => 'BBB1',
-            'NOTA_CREDITO' => 'FFF1',
-        ],
-    ],
 ];
 

@@ -41,17 +41,17 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $greeting = match ($this->newStatus) {
-            'approved' => '¡Felicidades, ' . $notifiable->name . '!',
+            'approved' => '!Felicidades, ' . $notifiable->name . '!',
             'rejected', 'banned' => 'Hola, ' . $notifiable->name,
             default => 'Hola, ' . $notifiable->name,
         };
 
         return (new MailMessage)
             ->subject(match ($this->newStatus) {
-                'approved' => '✅ ¡Tu tienda ha sido aprobada! - Lyrium BioMarketplace',
-                'rejected' => 'Actualización sobre tu tienda - Lyrium BioMarketplace',
-                'banned' => '⚠️ Tu tienda ha sido suspendida - Lyrium BioMarketplace',
-                default => 'Actualización de tu tienda - Lyrium BioMarketplace',
+                'approved' => '!Tu tienda ha sido aprobada! - Lyrium BioMarketplace',
+                'rejected' => 'Actualizacion sobre tu tienda - Lyrium BioMarketplace',
+                'banned' => 'Tu tienda ha sido suspendida - Lyrium BioMarketplace',
+                default => 'Actualizacion de tu tienda - Lyrium BioMarketplace',
             })
             ->view('emails.notifications.store-status', [
                 'greeting' => $greeting,
@@ -112,7 +112,7 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
             'status' => $this->newStatus,
             'reason' => $this->reason,
             'type' => 'store_status_changed',
-            'subject' => "Tu tienda \"{$this->store->trade_name}\" ha sido {$label}" . ($this->reason ? " — {$this->reason}" : ''),
+            'subject' => "Tu tienda \"{$this->store->trade_name}\" ha sido {$label}" . ($this->reason ? " - {$this->reason}" : ''),
         ];
     }
 }
