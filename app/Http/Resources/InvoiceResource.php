@@ -24,6 +24,8 @@ final class InvoiceResource extends JsonResource
                 : ($this->customer_ruc ?? $this->nit ?? ''),
             'order_id' => (string) $this->order_id,
             'amount' => (float) $this->total,
+            'subtotal_sin_igv' => (float) $this->subtotal_sin_igv,
+            'igv_amount' => (float) $this->igv_amount,
             'emission_date' => $this->emission_date?->toIso8601String() ?? $this->created_at?->toIso8601String(),
             'sunat_status' => $this->sunat_status ?? 'DRAFT',
             'status' => $this->status,

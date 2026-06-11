@@ -26,12 +26,12 @@ final class TicketStatusChangedNotification extends Notification
 
         $settings = $notifiable->notificationSetting;
 
-        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
-            $channels[] = 'mail';
-        }
-
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
+        }
+
+        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
+            $channels[] = 'mail';
         }
 
         return $channels;

@@ -62,7 +62,11 @@ final class AddressController extends Controller
     {
         $address = Address::where('user_id', $request->user()->id)->findOrFail($id);
 
-        $address->update(['is_default' => !$address->is_default]);
+        Address::where('user_id', $request->user()->id)
+            ->where('id', '!=', $id)
+            ->update(['is_default' => false]);
+
+        $address->update(['is_default' => true]);
 
         return $this->success(new AddressResource($address->fresh()));
     }

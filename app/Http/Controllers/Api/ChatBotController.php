@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ChatBotFaqService;
-use App\Services\OpenAIService;
+use App\Services\GeminiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,12 +19,12 @@ final class ChatBotController extends Controller
     private const RATE_LIMIT_WINDOW = 60;
 
     private ChatBotFaqService $faqService;
-    private OpenAIService $openAI;
+    private GeminiService $gemini;
 
-    public function __construct(ChatBotFaqService $faqService, OpenAIService $openAI)
+    public function __construct(ChatBotFaqService $faqService, GeminiService $gemini)
     {
         $this->faqService = $faqService;
-        $this->openAI = $openAI;
+        $this->gemini = $gemini;
     }
 
     public function ask(Request $request): JsonResponse
@@ -64,7 +64,7 @@ final class ChatBotController extends Controller
             ]);
         }
 
-        $aiResponse = $this->openAI->ask($message, $history);
+        $aiResponse = $this->gemini->ask($message, $history);
 
         if ($aiResponse === null) {
             return $this->error(

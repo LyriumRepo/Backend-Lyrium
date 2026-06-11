@@ -168,6 +168,12 @@ Route::get('/blog/videos', [BlogController::class, 'videos']);
 
 Route::get('/google/callback',    [GoogleCalendarController::class, 'callback']);
 
+// Cart (público — soporta invitados vía X-Session-ID)
+Route::get('/cart', [CartController::class, 'index']);
+Route::post('/cart/items', [CartController::class, 'addItem']);
+Route::put('/cart/items/{productId}', [CartController::class, 'updateItem']);
+Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
+Route::delete('/cart/clear', [CartController::class, 'clear']);
 
 /*
 |--------------------------------------------------------------------------
@@ -290,13 +296,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/loyalty/transactions', [LoyaltyController::class, 'transactions']);
     Route::post('/loyalty/validate-code', [LoyaltyController::class, 'validateCode']);
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
-
-    // Cart
-    Route::get('/cart', [CartController::class, 'index']);
-    Route::post('/cart/items', [CartController::class, 'addItem']);
-    Route::put('/cart/items/{productId}', [CartController::class, 'updateItem']);
-    Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
-    Route::delete('/cart/clear', [CartController::class, 'clear']);
 
     // Devices (FCM push notification tokens)
     Route::post('/devices', [DeviceController::class, 'register']);

@@ -21,6 +21,7 @@ class SystemConfigSeeder extends Seeder
             ['key' => 'site_name', 'name' => 'Nombre del Sitio', 'value' => 'LYRIUM', 'type' => 'string', 'category' => 'general', 'description' => 'Nombre de la plataforma', 'is_public' => true],
             ['key' => 'site_description', 'name' => 'Descripción del Sitio', 'value' => 'Biomarketplace para productos orgánicos', 'type' => 'string', 'category' => 'general', 'description' => 'Descripción breve de la plataforma', 'is_public' => true],
             ['key' => 'contact_email', 'name' => 'Email de Contacto', 'value' => 'contacto@lyrium.com', 'type' => 'string', 'category' => 'general', 'description' => 'Email de contacto principal', 'is_public' => true],
+            ['key' => 'commission_tiers', 'name' => 'Tasas de Comisión', 'value' => '[{"min":0,"max":400,"rate":0.15},{"min":401,"max":800,"rate":0.14},{"min":801,"max":1200,"rate":0.13},{"min":1201,"max":null,"rate":0.12}]', 'type' => 'json', 'category' => 'commission', 'description' => 'Tasas de comisión por categoría de venta (min, max, rate)', 'is_public' => false],
         ];
 
         foreach ($configs as $config) {

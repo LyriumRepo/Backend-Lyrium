@@ -65,9 +65,14 @@ return [
         'api_key' => env('OPENAI_API_KEY'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
     'fcm' => [
-        'server_key' => env('FCM_SERVER_KEY'),
-        'api_url'    => 'https://fcm.googleapis.com/fcm/send',
+        'project_id'       => env('FCM_PROJECT_ID'),
+        'credentials_json' => env('FCM_CREDENTIALS_JSON'),     // base64 del JSON de cuenta de servicio
+        'credentials_path' => env('FCM_CREDENTIALS_PATH', storage_path('app/fcm-service-account.json')),
     ],
 
     'ses' => [

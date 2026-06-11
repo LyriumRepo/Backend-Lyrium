@@ -45,9 +45,9 @@ final class ChatBotFaqService
             'response' => 'Lyrium tiene una política de devolución que protege a los compradores: 1. Tienes hasta 7 días calendario desde la recepción del producto para solicitar una devolución. 2. El producto debe estar en su estado original, sin uso y con el empaque completo. 3. Para iniciar una devolución, ingresa a "Mis pedidos", selecciona el producto y haz clic en "Solicitar devolución". 4. Describe el motivo y adjunta evidencia si es necesario. 5. El vendedor revisará tu solicitud y coordinará la logística de devolución. Los reembolsos se procesan una vez recibido y verificado el producto.',
         ],
         'soporte' => [
-            'keywords' => ['contactar soporte', 'ayuda', 'soporte tecnico', 'reportar problema', 'asistencia', 'servicio al cliente'],
-            'terms'    => ['soporte', 'ayuda', 'asistencia', 'problema', 'reportar', 'contactar'],
-            'response' => 'Si necesitas ayuda adicional, puedes contactar a nuestro equipo de soporte por los siguientes canales: 1. Correo electrónico: soporte@lyrium.pe. 2. WhatsApp: 51937093420. 3. Redes sociales: Instagram, Facebook y TikTok como @lyrium_biomarketplace. 4. También puedes generar un ticket de soporte desde tu panel de usuario en la sección "Soporte". Nuestro horario de atención es de lunes a viernes de 9:00 a 18:00 horas.',
+            'keywords' => ['contactar soporte', 'ayuda', 'soporte tecnico', 'reportar problema', 'asistencia', 'servicio al cliente', 'whatsapp', 'escribir whatsapp', 'numero whatsapp', 'contactar whatsapp', 'hablar whatsapp', 'whatsapp lyrium'],
+            'terms'    => ['soporte', 'ayuda', 'asistencia', 'problema', 'reportar', 'contactar', 'whatsapp'],
+            'response' => 'Si necesitas ayuda adicional, puedes contactarnos por los siguientes canales: 1. WhatsApp: 51937093420 (horario de atención: lun-vie 9:00 a 18:00). 2. Chat en línea de Lyrium — haz clic en el ícono de chat en la esquina inferior derecha para recibir ayuda al instante. 3. Correo electrónico: soporte@lyrium.pe. 4. Redes sociales: Instagram, Facebook y TikTok como @lyrium_biomarketplace. 5. También puedes generar un ticket de soporte desde tu panel de usuario en la sección "Soporte".',
         ],
         'comisiones' => [
             'keywords' => ['comisiones', 'cuanto cobra lyrium', 'tarifas vendedor', 'porcentaje comision', 'costo vender'],

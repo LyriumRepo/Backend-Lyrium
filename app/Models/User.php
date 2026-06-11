@@ -46,6 +46,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birthday' => 'date',
             'is_banned' => 'boolean',
             'password' => 'hashed',
         ];

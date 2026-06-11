@@ -15,3 +15,6 @@ Schedule::call(function () {
 
 // Verificar tiendas pendientes con SLA > 72 horas y notificar a admins
 Schedule::command('stores:check-sla')->everySixHours()->name('check-pending-stores-sla');
+
+// Enviar notificaciones de cumpleaños (email + push) a las 8:00 AM cada día
+Schedule::command('birthday:send')->dailyAt('08:00')->name('send-birthday-notifications');
