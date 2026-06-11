@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Events\NewBookingReceived;
 use App\Events\OrderPaymentConfirmed;
-use App\Mail\OrderConfirmationMail;
 use App\Models\IzipayOrderTransaction;
 use App\Models\Order;
 use App\Models\ServiceBooking;
@@ -16,7 +15,6 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 final class IzipayService
 {
@@ -594,19 +592,6 @@ final class IzipayService
                     'order_id' => $order->id,
                     'error' => $liriosEx->getMessage(),
                 ]);
-            }
-
-            // ── Send order confirmation email (only if there are product items) ──
-            if ($order->items()->exists()) {
-                try {
-                    Mail::to($order->user?->email)->send(new OrderConfirmationMail($order));
-                } catch (\Throwable $mailEx) {
-                    Log::warning('Error enviando correo de confirmación de orden', [
-                        'order_id' => $order->id,
-                        'error' => $mailEx->getMessage(),
-                        'trace' => $mailEx->getTraceAsString(),
-                    ]);
-                }
             }
 
             // ── Create ServiceBookings from holds ──────────────────────────

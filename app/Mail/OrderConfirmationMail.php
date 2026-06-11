@@ -43,6 +43,12 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
             ];
         });
 
+        $shippingMethod = match ($order->shipping_type) {
+            'domicilio' => 'Entrega a Domicilio',
+            'agencia' => 'Recojo en Agencia',
+            default => '—',
+        };
+
         return new Content(
             view: 'emails.order-confirmation',
             with: [
@@ -56,6 +62,7 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
                 'total' => number_format((float) $order->total, 2),
                 'shippingAddress' => $order->shipping_address,
                 'paymentMethod' => $order->payment_method,
+                'shippingMethod' => $shippingMethod,
             ]
         );
     }

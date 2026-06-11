@@ -72,6 +72,8 @@ final class OrderResource extends JsonResource
             'shippingType' => $this->shipping_type,
             'trackingNumber' => $firstShipment?->tracking_number,
             'carrier' => $firstShipment?->carrier,
+            'carrierCode' => $firstShipment?->carrier_data['carrier_code'] ?? $firstShipment?->carrier,
+            'carrierData' => $firstShipment?->carrier_data,
             'storeName' => $storeName,
             'shipping' => [
                 'name' => $this->shipping_name,

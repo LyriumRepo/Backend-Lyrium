@@ -177,16 +177,28 @@ final class ShippingService
         return $shipment->fresh();
     }
 
-    private function generateTrackingUrl(string $carrier, string $trackingNumber): ?string
+    public function generateTrackingUrl(string $carrier, string $trackingNumber): ?string
     {
-        return match (strtolower($carrier)) {
+        $normalized = strtolower($carrier);
+
+        $legacyMap = [
             'dhl' => "https://www.dhl.com/pe-es/tracking?AWB={$trackingNumber}",
             'fedex' => "https://www.fedex.com/fedextrack/?trknbr={$trackingNumber}",
             'ups' => "https://www.ups.com/track?tracknum={$trackingNumber}",
             'peru_post' => "https://www.perupost.com.pe/track?tracking={$trackingNumber}",
             'olva' => "https://www.olvacourier.com/track?codigo={$trackingNumber}",
-            default => null,
-        };
+        ];
+
+        if (isset($legacyMap[$normalized])) {
+            return $legacyMap[$normalized];
+        }
+
+        $template = config("logistics.carriers.{$normalized}.tracking_url");
+        if ($template) {
+            return str_replace('{tracking}', $trackingNumber, $template);
+        }
+
+        return null;
     }
 
     public function storeMethodForStore(int $storeId, int $methodId, bool $enabled = true, float $additionalCost = 0, int $handlingDays = 0): StoreShippingMethod

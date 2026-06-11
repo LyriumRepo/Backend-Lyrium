@@ -27,6 +27,7 @@ use App\Models\OrderItem;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSlotHold;
 use App\Services\LiriosService;
+use App\Services\ShippingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -494,6 +495,38 @@ final class OrderController extends Controller
                         ServiceBooking::whereIn('id', $bookingIds)
                             ->update(['status' => ServiceBooking::STATUS_COMPLETED]);
                     }
+                }
+
+                if ($newStatus === Order::STATUS_SHIPPED && isset($data['carrier_code'])) {
+                    $shippingService = app(ShippingService::class);
+                    $carrierCode = $data['carrier_code'];
+                    $carrierData = $data['carrier_data'] ?? [];
+                    $trackingCode = $carrierData['tracking_code'] ?? null;
+
+                    $trackingUrl = $trackingCode
+                        ? $shippingService->generateTrackingUrl($carrierCode, $trackingCode)
+                        : null;
+
+                    $shipment = $order->shipments()->firstOrNew([
+                        'store_id' => $storeIds->first(),
+                    ]);
+
+                    $shipment->fill([
+                        'carrier' => $carrierCode,
+                        'carrier_data' => $carrierData,
+                        'tracking_number' => $trackingCode,
+                        'tracking_url' => $trackingUrl,
+                        'status' => \App\Models\Shipment::STATUS_IN_TRANSIT,
+                        'shipped_at' => now(),
+                    ]);
+
+                    if (! $shipment->exists) {
+                        $shipment->order_id = $order->id;
+                        $shipment->store_id = $storeIds->first();
+                        $shipment->shipping_method_id = $shipment->shipping_method_id ?? 1;
+                    }
+
+                    $shipment->save();
                 }
             }
 
