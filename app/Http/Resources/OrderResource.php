@@ -58,6 +58,7 @@ final class OrderResource extends JsonResource
 
         return [
             'id' => (string) $this->id,
+            'userId' => (string) $this->user_id,
             'orderNumber' => $this->order_number,
             'orderType' => $orderType,
             'itemsSummary' => $itemsSummary,
@@ -71,6 +72,8 @@ final class OrderResource extends JsonResource
             'shippingType' => $this->shipping_type,
             'trackingNumber' => $firstShipment?->tracking_number,
             'carrier' => $firstShipment?->carrier,
+            'carrierCode' => $firstShipment?->carrier_data['carrier_code'] ?? $firstShipment?->carrier,
+            'carrierData' => $firstShipment?->carrier_data,
             'storeName' => $storeName,
             'shipping' => [
                 'name' => $this->shipping_name,
@@ -80,6 +83,7 @@ final class OrderResource extends JsonResource
                 'city' => $this->shipping_city,
                 'postalCode' => $this->shipping_postal_code,
                 'notes' => $this->shipping_notes,
+                'type' => $this->shipping_type,
             ],
             'subtotal' => (float) $this->subtotal,
             'shippingCost' => (float) $this->shipping_cost,

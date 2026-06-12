@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
@@ -18,7 +17,7 @@ class AdminUserSeeder extends Seeder
                 'username' => 'luis_admin',
                 'nicename' => 'luis-admin',
                 'phone' => '999000000',
-                'password' => bcrypt('password'), 
+                'password' => bcrypt('password'),
                 'email_verified_at' => now(),
             ]
         );
@@ -87,7 +86,7 @@ class AdminUserSeeder extends Seeder
         $logistics->assignRole('logistics_operator');
 
         $store = \App\Models\Store::updateOrCreate(
-            ['ruc' => '20123456789'],
+            ['ruc' => '20123456786'],
             [
                 'owner_id' => $seller2->id,
                 'trade_name' => 'BioTienda Demo',
@@ -105,14 +104,14 @@ class AdminUserSeeder extends Seeder
                 'direccion_fiscal' => 'Av. Arequipa 1234, Lima, Lima, Peru',
                 'cuenta_bcp' => '123-456-789-012',
                 'cci' => '002-123-456789012-34',
-                'bank_secondary' => ['bank' => 'BBVA', 'account' => '001-234-567890123-45', 'cci' => '002-001-234567890123-45'], 
+                'bank_secondary' => ['bank' => 'BBVA', 'account' => '001-234-567890123-45', 'cci' => '002-001-234567890123-45'],
                 'store_name' => 'BioTienda Demo',
                 'address' => 'Av. Arequipa 1234, Lima, Peru',
                 'instagram' => 'biotiendademo',
                 'facebook' => 'biotiendademo',
                 'tiktok' => '@biotiendademo',
                 'policies' => 'Política de devolución: Puede devolver productos en un plazo de 7 días desde la recepción.',
-                'gallery' => ['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg'], 
+                'gallery' => ['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg'],
             ]
         );
     }

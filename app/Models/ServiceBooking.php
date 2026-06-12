@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class ServiceBooking extends Model
 {
@@ -22,6 +23,8 @@ final class ServiceBooking extends Model
 
     public const STATUS_NO_SHOW = 'no_show';
 
+    public const STATUS_ON_THE_WAY = 'on_the_way';
+
     protected $fillable = [
         'service_id',
         'user_id',
@@ -32,10 +35,13 @@ final class ServiceBooking extends Model
         'payment_method',
         'payment_status',
         'customer_notes',
+        'service_address',
         'seller_notes',
         'specialist_id',
         'reschedule_token',
         'google_event_id',
+        'google_event_id_client',
+        'google_event_id_seller',
         'confirmed_at',
         'cancelled_at',
     ];
@@ -66,9 +72,15 @@ final class ServiceBooking extends Model
     {
         return $this->belongsTo(ServiceSchedule::class);
     }
+
     public function specialist(): BelongsTo
     {
         return $this->belongsTo(Specialist::class);
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class, 'service_booking_id');
     }
 
     public function isPending(): bool
@@ -84,6 +96,11 @@ final class ServiceBooking extends Model
     public function isCancelled(): bool
     {
         return $this->status === self::STATUS_CANCELLED;
+    }
+
+    public function isOnTheWay(): bool
+    {
+        return $this->status === self::STATUS_ON_THE_WAY;
     }
 
     public function canCancel(): bool
@@ -109,6 +126,21 @@ final class ServiceBooking extends Model
     public function canConfirm(): bool
     {
         return $this->status === self::STATUS_PENDING;
+    }
+
+    public function canMarkOnTheWay(): bool
+    {
+        return $this->status === self::STATUS_CONFIRMED;
+    }
+
+    public function canComplete(): bool
+    {
+        return $this->status === self::STATUS_CONFIRMED || $this->status === self::STATUS_ON_THE_WAY;
+    }
+
+    public function markAsOnTheWay(): void
+    {
+        $this->update(['status' => self::STATUS_ON_THE_WAY]);
     }
 
     public function markAsNoShow(): void

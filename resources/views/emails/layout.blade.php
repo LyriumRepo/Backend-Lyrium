@@ -69,26 +69,22 @@
 
         /* Header */
         .email-header {
-            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
+            background: linear-gradient(135deg, #1a3a2a 0%, #2d5e42 100%);
             padding: 32px 40px;
             text-align: center;
         }
 
-        .email-header .logo-text {
-            font-size: 28px;
-            font-weight: 800;
-            color: #FFFFFF;
-            letter-spacing: -0.5px;
-        }
-
-        .email-header .logo-dot {
-            color: #60A5FA;
+        .email-header .logo-img {
+            display: block;
+            margin: 0 auto;
+            max-width: 180px;
+            height: auto;
         }
 
         .email-header .tagline {
             font-size: 13px;
-            color: #BFDBFE;
-            margin-top: 4px;
+            color: #a7c9b3;
+            margin-top: 8px;
             letter-spacing: 0.5px;
         }
 
@@ -112,7 +108,7 @@
         }
 
         .email-footer a {
-            color: #2563EB;
+            color: #2d5e42;
             text-decoration: none;
         }
 
@@ -127,7 +123,7 @@
         h2 {
             font-size: 16px;
             font-weight: 600;
-            color: #1E3A5F;
+            color: #1a3a2a;
             margin-bottom: 12px;
         }
 
@@ -136,13 +132,7 @@
             margin-bottom: 16px;
         }
 
-        /* Greeting */
-        .greeting {
-            font-size: 17px;
-            color: #1E293B;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
+
 
         /* Status badge */
         .status-badge {
@@ -212,9 +202,9 @@
 
         /* Highlight box */
         .highlight-box {
-            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
-            border: 1px solid #BFDBFE;
-            border-left: 4px solid #2563EB;
+            background: linear-gradient(135deg, #e8f5ee 0%, #d0ebda 100%);
+            border: 1px solid #a7c9b3;
+            border-left: 4px solid #2d5e42;
             border-radius: 10px;
             padding: 16px 20px;
             margin-bottom: 24px;
@@ -223,7 +213,7 @@
         .highlight-box p {
             margin: 0;
             font-size: 14px;
-            color: #1E40AF;
+            color: #1a3a2a;
             font-weight: 500;
         }
 
@@ -249,7 +239,7 @@
             width: fit-content;
             margin: 0 auto 24px;
             padding: 14px 36px;
-            background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%);
+            background: linear-gradient(135deg, #1a3a2a 0%, #2d5e42 100%);
             color: #FFFFFF !important;
             font-size: 15px;
             font-weight: 700;
@@ -284,26 +274,6 @@
 
         /* Responsive */
         @media only screen and (max-width: 600px) {
-            .email-body {
-                padding: 28px 24px 24px;
-            }
-
-            .email-header {
-                padding: 24px;
-            }
-
-            .email-footer {
-                padding: 20px 24px;
-            }
-
-            .info-row {
-                flex-direction: column;
-                gap: 2px;
-            }
-
-            .info-value {
-                text-align: left;
-            }
         }
     </style>
 </head>
@@ -313,26 +283,18 @@
         <div class="email-container">
 
             {{-- HEADER --}}
+            @if(!isset($hideHeader) || !$hideHeader)
             <div class="email-header">
-                <div class="logo-text">Lyrium<span class="logo-dot">.</span></div>
-                <div class="tagline">BioMarketplace · Servicios de Salud y Bienestar</div>
+                <img src="cid:logo-text" alt="Lyrium" class="logo-img" />
+                @if(isset($showTagline) ? $showTagline : true)
+                <div class="tagline">BioMarketplace · Salud y Bienestar</div>
+                @endif
             </div>
+            @endif
 
             {{-- BODY --}}
             <div class="email-body">
                 @yield('email_content')
-            </div>
-
-            {{-- FOOTER --}}
-            <div class="email-footer">
-                <p>
-                    Este correo fue enviado automáticamente por <strong>Lyrium Platform</strong>.<br />
-                    Si tienes preguntas, contáctanos en
-                    <a href="mailto:soporte@lyrium.pe">soporte@lyrium.pe</a>
-                </p>
-                <p style="margin-top: 10px;">
-                    © {{ date('Y') }} Lyrium · Todos los derechos reservados
-                </p>
             </div>
 
         </div>

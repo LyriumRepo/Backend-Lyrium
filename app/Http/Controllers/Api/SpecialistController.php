@@ -13,25 +13,30 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * SpecialistController
+ * SpecialistController v2
  *
- * CRUD completo para especialistas de una tienda.
- *
- * Todas las rutas requieren auth:sanctum.
- * Las rutas de escritura (store/update/destroy) requieren rol seller o administrator.
+ * CAMBIOS:
+ *   - index()     → nuevo filtro ?category_id= y ?parent_category_id=
+ *   - store()     → persiste category_id
+ *   - byCategory()→ nuevo endpoint público para obtener especialistas
+ *                   de una categoría nivel 2 (usado al crear un servicio)
  *
  * Rutas sugeridas en api.php:
- * ┌─────────────────────────────────────────────────────────────────────────┐
- * │  Route::middleware(['auth:sanctum'])->prefix('specialists')->group(     │
- * │      function () {                                                      │
- * │          Route::get('/',           [SpecialistController::class, 'index']);   │
- * │          Route::post('/',          [SpecialistController::class, 'store']);   │
- * │          Route::get('/{specialist}',    [SpecialistController::class, 'show']);    │
- * │          Route::put('/{specialist}',    [SpecialistController::class, 'update']);  │
- * │          Route::delete('/{specialist}', [SpecialistController::class, 'destroy']); │
- * │      }                                                                  │
- * │  );                                                                     │
- * └─────────────────────────────────────────────────────────────────────────┘
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │  // Público: especialistas por categoría (para el formulario de servicio)│
+ * │  Route::get('/specialists/by-category/{categoryId}',                    │
+ * │      [SpecialistController::class, 'byCategory']);                       │
+ * │                                                                          │
+ * │  Route::middleware(['auth:sanctum'])->prefix('stores/me')->group(        │
+ * │      function () {                                                        │
+ * │          Route::get('/specialists',           [SpecialistController::class, 'index']);   │
+ * │          Route::post('/specialists',          [SpecialistController::class, 'store']);   │
+ * │          Route::get('/specialists/{specialist}',    [SpecialistController::class, 'show']);    │
+ * │          Route::put('/specialists/{id}',    [SpecialistController::class, 'update']);  │
+ * │          Route::delete('/specialists/{id}', [SpecialistController::class, 'destroy']); │
+ * │      }                                                                   │
+ * │  );                                                                      │
+ * └──────────────────────────────────────────────────────────────────────────┘
  */
 final class SpecialistController extends Controller
 {
@@ -40,12 +45,14 @@ final class SpecialistController extends Controller
     /**
      * Lista los especialistas de la tienda del vendedor autenticado.
      *
-     * GET /api/specialists
+     * GET /api/stores/me/specialists
      * Query params:
-     *   - availability  → filtra por Disponible|Indispuesto|Ocupado
-     *   - especialidad  → búsqueda parcial (LIKE)
-     *   - per_page      → paginación (default 15, max 100)
-     *   - with_schedules→ si "true", carga los horarios de cada especialista
+     *   - availability        → Disponible|Indispuesto|Ocupado
+     *   - especialidad        → búsqueda parcial (LIKE)
+     *   - category_id         → filtro por categoría nivel 2
+     *   - parent_category_id  → filtro por categoría nivel 1 (devuelve todos sus hijos)
+     *   - per_page            → paginación (default 15, max 100)
+     *   - with_schedules      → si "true", carga los horarios
      */
     public function index(Request $request): JsonResponse
     {
@@ -59,6 +66,7 @@ final class SpecialistController extends Controller
 
         $query = Specialist::query()
             ->where('store_id', $store->id)
+            ->with('category.parent') // carga categoría y su padre (nivel 1)
             ->latest();
 
         // Filtro por estado de disponibilidad
@@ -66,9 +74,22 @@ final class SpecialistController extends Controller
             $query->where('availability', $availability);
         }
 
-        // Búsqueda por especialidad
+        // Búsqueda por especialidad (texto libre)
         if ($especialidad = $request->query('especialidad')) {
             $query->where('especialidad', 'like', "%{$especialidad}%");
+        }
+
+        // NUEVO: filtro por categoría nivel 2 exacta
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', (int) $categoryId);
+        }
+
+        // NUEVO: filtro por categoría nivel 1 (padre)
+        // devuelve especialistas de cualquiera de sus categorías hijas
+        if ($parentCategoryId = $request->query('parent_category_id')) {
+            $query->whereHas('category', function ($q) use ($parentCategoryId) {
+                $q->where('parent_id', (int) $parentCategoryId);
+            });
         }
 
         // Cargar horarios si se solicita explícitamente
@@ -82,9 +103,49 @@ final class SpecialistController extends Controller
             'data' => SpecialistResource::collection($specialists->items()),
             'meta' => [
                 'current_page' => $specialists->currentPage(),
-                'last_page'    => $specialists->lastPage(),
-                'per_page'     => $specialists->perPage(),
-                'total'        => $specialists->total(),
+                'last_page' => $specialists->lastPage(),
+                'per_page' => $specialists->perPage(),
+                'total' => $specialists->total(),
+            ],
+        ]);
+    }
+
+    // ── BY CATEGORY (nuevo endpoint público) ──────────────────────────────────
+
+    /**
+     * Devuelve los especialistas de una tienda filtrados por categoría nivel 2.
+     *
+     * GET /api/specialists/by-category/{categoryId}?store_id={storeId}
+     *
+     * Uso principal: cuando el vendedor está creando un servicio y ha
+     * seleccionado la categoría nivel 2, este endpoint devuelve SOLO los
+     * especialistas de esa categoría para asignarlos al servicio.
+     *
+     * Query params:
+     *   - store_id   (requerido) → ID de la tienda
+     *   - per_page   → paginación (default 100, sin límite razonable para un select)
+     */
+    public function byCategory(Request $request, int $categoryId): JsonResponse
+    {
+        $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+        ]);
+
+        $specialists = Specialist::query()
+            ->where('store_id', (int) $request->query('store_id'))
+            ->where('category_id', $categoryId)
+            ->where('availability', 'Disponible')
+            ->with('category.parent')
+            ->orderBy('apellidos')
+            ->paginate(min((int) $request->query('per_page', 100), 200));
+
+        return response()->json([
+            'data' => SpecialistResource::collection($specialists->items()),
+            'meta' => [
+                'current_page' => $specialists->currentPage(),
+                'last_page' => $specialists->lastPage(),
+                'per_page' => $specialists->perPage(),
+                'total' => $specialists->total(),
             ],
         ]);
     }
@@ -94,11 +155,7 @@ final class SpecialistController extends Controller
     /**
      * Crea un nuevo especialista para la tienda del vendedor.
      *
-     * POST /api/specialists
-     * Body: StoreSpecialistRequest
-     *
-     * El campo `google_calendar_id` se auto-rellena con el email si no se provee
-     * (lógica en StoreSpecialistRequest::prepareForValidation).
+     * POST /api/stores/me/specialists
      */
     public function store(StoreSpecialistRequest $request): JsonResponse
     {
@@ -113,6 +170,8 @@ final class SpecialistController extends Controller
             ['store_id' => $store->id]
         ));
 
+        $specialist->load('category.parent');
+
         return response()->json(
             new SpecialistResource($specialist),
             201
@@ -124,14 +183,11 @@ final class SpecialistController extends Controller
     /**
      * Devuelve el detalle de un especialista.
      *
-     * GET /api/specialists/{specialist}
-     *
-     * Acceso público: clientes pueden ver el especialista sin datos privados.
-     * SpecialistResource aplica la censura automáticamente según el rol del usuario.
+     * GET /api/stores/me/specialists/{specialist}
      */
     public function show(Request $request, int $specialist): JsonResponse
     {
-        $model = Specialist::with('schedules')->findOrFail($specialist);
+        $model = Specialist::with(['schedules', 'category.parent'])->findOrFail($specialist);
 
         return response()->json(new SpecialistResource($model));
     }
@@ -141,10 +197,7 @@ final class SpecialistController extends Controller
     /**
      * Actualiza los datos de un especialista.
      *
-     * PUT /api/specialists/{specialist}
-     * Body: UpdateSpecialistRequest
-     *
-     * Solo el vendedor dueño del especialista o un administrador puede actualizar.
+     * PUT /api/stores/me/specialists/{id}
      */
     public function update(UpdateSpecialistRequest $request, int $specialist): JsonResponse
     {
@@ -156,7 +209,7 @@ final class SpecialistController extends Controller
 
         $model->update($request->validated());
 
-        return response()->json(new SpecialistResource($model->fresh('schedules')));
+        return response()->json(new SpecialistResource($model->fresh(['schedules', 'category.parent'])));
     }
 
     // ── DESTROY ───────────────────────────────────────────────────────────────
@@ -164,10 +217,7 @@ final class SpecialistController extends Controller
     /**
      * Elimina (soft delete) un especialista.
      *
-     * DELETE /api/specialists/{specialist}
-     *
-     * BLOQUEA la eliminación si el especialista tiene reservas futuras
-     * pendientes o confirmadas. El vendedor debe cancelarlas primero.
+     * DELETE /api/stores/me/specialists/{id}
      */
     public function destroy(Request $request, int $specialist): JsonResponse
     {
@@ -177,7 +227,6 @@ final class SpecialistController extends Controller
             return $this->unauthorizedResponse();
         }
 
-        // Protección: no eliminar si hay citas futuras activas
         if ($model->hasFutureBookings()) {
             return response()->json([
                 'success' => false,
@@ -185,17 +234,13 @@ final class SpecialistController extends Controller
             ], 422);
         }
 
-        $model->delete(); // SoftDelete
+        $model->delete();
 
         return response()->json(null, 204);
     }
 
     // ── HELPERS PRIVADOS ──────────────────────────────────────────────────────
 
-    /**
-     * Resuelve la tienda aprobada del vendedor autenticado.
-     * Intenta primero la relación directa `store` y luego la relación N:N `stores`.
-     */
     private function resolveStore(Request $request): mixed
     {
         $user = $request->user();
@@ -208,10 +253,6 @@ final class SpecialistController extends Controller
             ?? $user->stores()->where('status', 'approved')->first();
     }
 
-    /**
-     * Verifica que el usuario autenticado sea dueño del especialista
-     * (la tienda del especialista pertenece al vendedor) o sea administrador.
-     */
     private function userOwnsSpecialist(Request $request, Specialist $specialist): bool
     {
         $user = $request->user();

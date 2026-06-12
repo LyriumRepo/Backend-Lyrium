@@ -11,15 +11,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->string('order_type')->default('product')->after('order_number');
-            $table->string('shipping_type')->nullable()->after('shipping_notes');
+            $table->string('shipping_type', 50)->nullable()->after('shipping_notes');
         });
     }
 
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['order_type', 'shipping_type']);
+            $table->dropColumn('shipping_type');
         });
     }
 };

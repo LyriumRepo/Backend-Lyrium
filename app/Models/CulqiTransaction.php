@@ -38,9 +38,9 @@ final class CulqiTransaction extends Model
     protected function casts(): array
     {
         return [
-            'amount'          => 'decimal:2',
+            'amount' => 'decimal:2',
             'amount_in_cents' => 'integer',
-            'culqi_response'  => 'array',
+            'culqi_response' => 'array',
         ];
     }
 

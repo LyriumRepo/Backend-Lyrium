@@ -4,20 +4,35 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
+use App\Events\OrderPaymentConfirmed;
+use App\Events\OrderStatusChanged;
+use App\Notifications\OrderCreatedNotification;
+use App\Notifications\NewOrderSellerNotification;
+use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\OrderResource;
 use App\Models\Cart;
+use App\Models\Conversation;
+use App\Models\ConversationMessage;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
+use App\Models\ServiceSlotHold;
+use App\Services\LiriosService;
+use App\Services\ShippingService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class OrderController extends Controller
 {
@@ -31,7 +46,26 @@ final class OrderController extends Controller
         'shipments',
         'user',
     ];
-    
+
+    public function activeCount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $activeStatuses = [
+            Order::STATUS_PENDING_SELLER,
+            Order::STATUS_CONFIRMED,
+            Order::STATUS_PROCESSING,
+            Order::STATUS_SHIPPED,
+        ];
+
+        $count = Order::where('user_id', $user->id)
+            ->whereIn('status', $activeStatuses)
+            ->count();
+
+        return $this->success(['count' => $count]);
+    }
+
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -105,47 +139,67 @@ final class OrderController extends Controller
 
         $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
 
-        if (! $cart || $cart->items->isEmpty()) {
+        $cartToken = $request->header('X-Session-ID');
+        $serviceHolds = collect();
+        if ($cartToken) {
+            $serviceHolds = ServiceSlotHold::where('cart_token', $cartToken)
+                ->active()
+                ->with('service')
+                ->get();
+        }
+
+        $hasProducts = $cart && $cart->items->isNotEmpty();
+        $hasServices = $serviceHolds->isNotEmpty();
+
+        if (! $hasProducts && ! $hasServices) {
             return $this->error('El carrito está vacío.', 400);
         }
 
-        $order = DB::transaction(function () use ($data, $user, $cart) {
+        $order = DB::transaction(function () use ($data, $user, $cart, $hasProducts, $hasServices, $serviceHolds) {
             $subtotal = 0;
             $orderItems = [];
 
-            foreach ($cart->items as $item) {
-                $product = $item->product;
+            if ($hasProducts) {
+                foreach ($cart->items as $item) {
+                    $product = $item->product;
 
-                if ($product->status !== 'approved') {
-                    throw new \Exception("El producto '{$product->name}' no está disponible.");
+                    if ($product->status !== 'approved') {
+                        throw new \Exception("El producto '{$product->name}' no está disponible.");
+                    }
+
+                    if ($product->stock < $item->quantity) {
+                        throw new \Exception("Stock insuficiente para '{$product->name}'.");
+                    }
+
+                    $lineTotal = $item->quantity * $item->product->price;
+                    $subtotal += $lineTotal;
+
+                    $orderItems[] = [
+                        'product_id' => $product->id,
+                        'store_id' => $product->store_id,
+                        'product_name' => $product->name,
+                        'unit_price' => $item->product->price,
+                        'quantity' => $item->quantity,
+                        'line_total' => $lineTotal,
+                        'status' => 'pending_seller',
+                    ];
+
+                    $product->decrement('stock', $item->quantity);
                 }
+            }
 
-                if ($product->stock < $item->quantity) {
-                    throw new \Exception("Stock insuficiente para '{$product->name}'.");
+            if ($hasServices) {
+                foreach ($serviceHolds as $hold) {
+                    $subtotal += (float) ($hold->service?->price ?? 0);
                 }
-
-                $lineTotal = $item->quantity * $item->product->price;
-                $subtotal += $lineTotal;
-
-                $orderItems[] = [
-                    'product_id' => $product->id,
-                    'store_id' => $product->store_id,
-                    'product_name' => $product->name,
-                    'unit_price' => $item->product->price,
-                    'quantity' => $item->quantity,
-                    'line_total' => $lineTotal,
-                    'status' => 'pending_seller',
-                ];
-
-                $product->decrement('stock', $item->quantity);
             }
 
             if ($subtotal < Order::MIN_ORDER_AMOUNT) {
-                throw new \Exception('El monto mínimo de la orden es S/ ' . number_format(Order::MIN_ORDER_AMOUNT, 2) . '.');
+                throw new \Exception('El monto mínimo de la orden es S/ '.number_format(Order::MIN_ORDER_AMOUNT, 2).'.');
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
-            $taxRate = 0.16;
+            $taxRate = 0.18;
             $taxAmount = round($subtotal * $taxRate, 2);
             $discountAmount = 0;
             $couponId = null;
@@ -173,6 +227,23 @@ final class OrderController extends Controller
 
             $total = $subtotal + $shippingCost + $taxAmount - $discountAmount;
 
+            $liriosUsed = (int) ($data['lirios_used'] ?? 0);
+            $liriosDiscount = 0;
+
+            if ($liriosUsed > 0 && $total > 0) {
+                $storeIds = array_unique(array_column($orderItems, 'store_id'));
+                foreach ($serviceHolds as $hold) {
+                    if ($hold->service && $hold->service->store_id) {
+                        $storeIds[] = $hold->service->store_id;
+                    }
+                }
+
+                $liriosService = app(LiriosService::class);
+                $result = $liriosService->validateAndCalculate($user->id, $liriosUsed, $total, $storeIds);
+                $liriosDiscount = $result['lirios_discount'];
+                $total = $total - $liriosDiscount;
+            }
+
             if ($total < 0) {
                 $total = 0;
             }
@@ -180,7 +251,7 @@ final class OrderController extends Controller
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'user_id' => $user->id,
-                'status' => Order::STATUS_PENDING_SELLER,
+                'status' => $hasProducts ? Order::STATUS_PENDING_SELLER : Order::STATUS_CONFIRMED,
                 'payment_method' => $data['payment_method'] ?? null,
                 'payment_status' => Order::PAYMENT_STATUS_PENDING,
                 'shipping_name' => $data['shipping_name'] ?? null,
@@ -190,10 +261,13 @@ final class OrderController extends Controller
                 'shipping_city' => $data['shipping_city'] ?? null,
                 'shipping_postal_code' => $data['shipping_postal_code'] ?? null,
                 'shipping_notes' => $data['shipping_notes'] ?? null,
+                'shipping_type' => $data['shipping_type'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
                 'discount_amount' => $discountAmount,
+                'lirios_used' => $liriosUsed ?: null,
+                'lirios_discount' => $liriosDiscount,
                 'total' => $total,
                 'notes' => $data['notes'] ?? null,
                 'coupon_code' => $couponCode,
@@ -214,17 +288,33 @@ final class OrderController extends Controller
                 ]);
             }
 
-            $cart->items()->delete();
+            if ($liriosUsed > 0) {
+                $liriosService = app(LiriosService::class);
+                $liriosService->redeem($user->id, $liriosUsed, $order);
+            }
+
+            if ($hasProducts) {
+                $cart->items()->delete();
+            }
 
             return $order;
         });
 
         $order->load(self::WITH_RELATIONS);
 
+        $user->notify(new OrderCreatedNotification($order));
+
         // Notificar a cada tienda involucrada en la orden
-        $order->items->pluck('store_id')->unique()->each(
-            fn($storeId) => broadcast(new NewOrderReceived($order, $storeId))
-        );
+        $order->items->pluck('store_id')->unique()->each(function ($storeId) use ($order) {
+            broadcast(new NewOrderReceived($order, $storeId));
+
+            $store = Store::with('owner')->find($storeId);
+            if ($store && $store->owner) {
+                $store->owner->notify(new NewOrderSellerNotification($order, $store));
+            }
+        });
+
+        event(new OrderStatusChanged($order));
 
         return $this->created(new OrderResource($order));
     }
@@ -302,6 +392,8 @@ final class OrderController extends Controller
         }
 
         $order->load(self::WITH_RELATIONS);
+
+        event(new OrderStatusChanged($order));
 
         return $this->success(new OrderResource($order));
     }
@@ -404,6 +496,38 @@ final class OrderController extends Controller
                             ->update(['status' => ServiceBooking::STATUS_COMPLETED]);
                     }
                 }
+
+                if ($newStatus === Order::STATUS_SHIPPED && isset($data['carrier_code'])) {
+                    $shippingService = app(ShippingService::class);
+                    $carrierCode = $data['carrier_code'];
+                    $carrierData = $data['carrier_data'] ?? [];
+                    $trackingCode = $carrierData['tracking_code'] ?? null;
+
+                    $trackingUrl = $trackingCode
+                        ? $shippingService->generateTrackingUrl($carrierCode, $trackingCode)
+                        : null;
+
+                    $shipment = $order->shipments()->firstOrNew([
+                        'store_id' => $storeIds->first(),
+                    ]);
+
+                    $shipment->fill([
+                        'carrier' => $carrierCode,
+                        'carrier_data' => $carrierData,
+                        'tracking_number' => $trackingCode,
+                        'tracking_url' => $trackingUrl,
+                        'status' => \App\Models\Shipment::STATUS_IN_TRANSIT,
+                        'shipped_at' => now(),
+                    ]);
+
+                    if (! $shipment->exists) {
+                        $shipment->order_id = $order->id;
+                        $shipment->store_id = $storeIds->first();
+                        $shipment->shipping_method_id = $shipment->shipping_method_id ?? 1;
+                    }
+
+                    $shipment->save();
+                }
             }
 
             $order->refresh();
@@ -464,10 +588,44 @@ final class OrderController extends Controller
         }
 
         if (isset($data['payment_status'])) {
-            $order->update(['payment_status' => $data['payment_status']]);
+            $wasPaid = $order->payment_status === Order::PAYMENT_STATUS_PAID;
+            $newPaymentStatus = $data['payment_status'];
+
+            $order->update(['payment_status' => $newPaymentStatus]);
+
+            // ── Temporal: disparar facturación automática al marcar como pagado ──
+            if ($newPaymentStatus === Order::PAYMENT_STATUS_PAID && !$wasPaid) {
+                $order->refresh();
+
+                Log::info('[FACTURACION] ===== INICIO: pago marcado manualmente =====', [
+                    'order_id'          => $order->id,
+                    'order_number'      => $order->order_number,
+                    'triggered_by'      => $user->id,
+                    'triggered_by_role' => $user->roles->pluck('name')->implode(', '),
+                    'total'             => $order->total,
+                ]);
+
+                event(new OrderPaymentConfirmed(
+                    order: $order,
+                    paymentMethod: 'manual',
+                ));
+
+                $invoiceCount = Invoice::where('order_id', $order->id)->count();
+                Log::info('[FACTURACION] ===== FIN: evento emitido =====', [
+                    'order_id'       => $order->id,
+                    'orden_pagada'   => true,
+                    'evento'         => 'OrderPaymentConfirmed',
+                    'listener'       => 'GenerateInvoicesForOrder',
+                    'invoices_creadas' => $invoiceCount,
+                    'nubefact_llamado' => $invoiceCount > 0 ? 'SI' : 'NO (sin stores o error)',
+                ]);
+            }
+            // ── Fin temporal ──
         }
 
         $order->load(self::WITH_RELATIONS);
+
+        event(new OrderStatusChanged($order));
 
         return $this->success(new OrderResource($order));
     }
@@ -503,6 +661,103 @@ final class OrderController extends Controller
         $order->load(self::WITH_RELATIONS);
 
         return $this->success(new OrderResource($order));
+    }
+
+    public function requestReceipt(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->hasRole('customer')) {
+            return $this->forbidden('Solo los clientes pueden solicitar comprobantes.');
+        }
+
+        $order = Order::with(['items.store.owner'])->findOrFail($id);
+
+        if ($order->user_id !== $user->id) {
+            return $this->forbidden('Esta orden no te pertenece.');
+        }
+
+        $firstItem = $order->items->first();
+
+        if (! $firstItem || ! $firstItem->store) {
+            return $this->error('No se encontró una tienda asociada a esta orden.', 404);
+        }
+
+        $storeId = $firstItem->store_id;
+        $orderNumber = $order->order_number;
+
+        // Buscar conversación existente de facturación con esta tienda
+        $conversation = Conversation::where('customer_user_id', $user->id)
+            ->where('store_id', $storeId)
+            ->where('category', 'facturacion')
+            ->where('status', 'active')
+            ->first();
+
+        if (! $conversation) {
+            $conversation = Conversation::create([
+                'customer_user_id' => $user->id,
+                'store_id' => $storeId,
+                'category' => 'facturacion',
+                'subject' => "Solicitud de comprobante - Pedido {$orderNumber}",
+                'last_message_at' => now(),
+            ]);
+        }
+
+        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
+
+        $message = ConversationMessage::create([
+            'conversation_id' => $conversation->id,
+            'sender_id' => $user->id,
+            'content' => $messageContent,
+        ]);
+
+        $conversation->update(['last_message_at' => now()]);
+
+        broadcast(new NewConversationMessage(
+            message: $message->loadMissing(['sender', 'conversation']),
+            customerUserId: $user->id,
+            storeId: (int) $storeId,
+        ));
+
+        $conversation->load(['store.owner', 'latestMessage']);
+
+        return response()->json([
+            'success' => true,
+            'data' => new ConversationResource($conversation),
+            'message' => 'Solicitud enviada al vendedor correctamente.',
+        ]);
+    }
+
+    public function downloadReceipt(Request $request, string $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items', 'user'])->findOrFail($id);
+
+        if (! $user->hasRole('administrator') && $order->user_id !== $user->id) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $pdf = Pdf::loadView('pdf.receipt', ['order' => $order]);
+
+        $filename = 'comprobante-' . $order->order_number . '.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function downloadPaymentConfirmation(Request $request, string $id)
+    {
+        $user = $request->user();
+        $order = Order::with(['items', 'user'])->findOrFail($id);
+
+        if (! $user->hasRole('administrator') && $order->user_id !== $user->id) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $pdf = Pdf::loadView('pdf.payment-confirmation', ['order' => $order]);
+
+        $filename = 'confirmacion-pago-' . $order->order_number . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function updateItemStatus(Request $request, string $orderId, string $itemId): JsonResponse
@@ -572,4 +827,30 @@ final class OrderController extends Controller
 
         return $this->success(new OrderResource($order));
     }
+
+    public function resendNotification(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $order = Order::with(['items.product.store', 'user'])->findOrFail($id);
+
+        $memberStoreIds = $user->stores()->pluck('stores.id');
+        $ownedStoreIds = $user->ownedStores()->pluck('stores.id');
+        $storeIds = $memberStoreIds->merge($ownedStoreIds)->unique();
+        $hasAccess = $order->items()->whereIn('store_id', $storeIds)->exists();
+
+        if (! $hasAccess && ! $user->hasRole('administrator')) {
+            return $this->forbidden('No tienes acceso a esta orden.');
+        }
+
+        $store = $user->ownedStores()->first() ?? $user->stores()->first();
+        if (! $store) {
+            return $this->forbidden('No tienes una tienda asociada.');
+        }
+
+        $user->notify(new NewOrderSellerNotification($order, $store));
+
+        return $this->success(['message' => 'Notificación reenviada a tu correo.']);
+    }
 }
+

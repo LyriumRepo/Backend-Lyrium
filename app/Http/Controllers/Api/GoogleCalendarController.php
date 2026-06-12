@@ -39,9 +39,9 @@ final class GoogleCalendarController extends Controller
         }
 
         return $this->success([
-            'connected'   => ! is_null($store->google_calendar_token),
+            'connected' => ! is_null($store->google_calendar_token),
             'calendar_id' => $store->google_calendar_id,
-            'store_name'  => $store->trade_name ?? $store->store_name,
+            'store_name' => $store->trade_name ?? $store->store_name,
         ]);
     }
 
@@ -67,7 +67,7 @@ final class GoogleCalendarController extends Controller
 
         // Codificar user_id + store_id en el state para recuperarlos de forma segura en el callback público
         $state = base64_encode(json_encode([
-            'user_id'  => $request->user()->id,
+            'user_id' => $request->user()->id,
             'store_id' => $store->id,
         ]));
 
@@ -87,27 +87,27 @@ final class GoogleCalendarController extends Controller
     public function callback(Request $request): RedirectResponse
     {
         $frontendBase = config('app.frontend_url', 'http://localhost:3000');
-        $errorRedirect = $frontendBase . '/seller/services?calendar=error';
+        $errorRedirect = $frontendBase.'/seller/services?calendar=error';
 
         // Validar parámetros provenientes de la API de Google
-        $code  = $request->query('code');
+        $code = $request->query('code');
         $state = $request->query('state');
 
         if (! $code || ! $state) {
-            return redirect($errorRedirect . '&reason=missing_params');
+            return redirect($errorRedirect.'&reason=missing_params');
         }
 
         // Decodificar el state para reasociar la sesión al usuario y tienda correctos
         $stateData = json_decode(base64_decode($state), true);
         if (! isset($stateData['user_id'], $stateData['store_id'])) {
-            return redirect($errorRedirect . '&reason=invalid_state');
+            return redirect($errorRedirect.'&reason=invalid_state');
         }
 
-        $user  = User::find($stateData['user_id']);
+        $user = User::find($stateData['user_id']);
         $store = $user?->stores()->find($stateData['store_id']);
 
         if (! $user || ! $store) {
-            return redirect($errorRedirect . '&reason=not_found');
+            return redirect($errorRedirect.'&reason=not_found');
         }
 
         try {
@@ -117,7 +117,7 @@ final class GoogleCalendarController extends Controller
             $token = $client->fetchAccessTokenWithAuthCode($code);
 
             if (isset($token['error'])) {
-                return redirect($errorRedirect . '&reason=' . $token['error']);
+                return redirect($errorRedirect.'&reason='.$token['error']);
             }
 
             $client->setAccessToken($token);
@@ -125,22 +125,22 @@ final class GoogleCalendarController extends Controller
             // Obtener el ID del calendario principal de la cuenta Google asociada (ej: email)
             $calendarService = new Calendar($client);
             $primaryCalendar = $calendarService->calendars->get('primary');
-            $calendarId      = $primaryCalendar->getId();
+            $calendarId = $primaryCalendar->getId();
 
             // Persistir de forma segura en la tienda del Biomarketplace
             $store->update([
                 'google_calendar_token' => json_encode($token),
-                'google_calendar_id'    => $calendarId,
+                'google_calendar_id' => $calendarId,
             ]);
 
-            return redirect($frontendBase . '/seller/services?calendar=connected');
+            return redirect($frontendBase.'/seller/services?calendar=connected');
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('GoogleCalendar callback error', [
                 'store_id' => $store->id ?? null,
-                'error'    => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
-            return redirect($errorRedirect . '&reason=exception');
+            return redirect($errorRedirect.'&reason=exception');
         }
     }
 
@@ -171,7 +171,7 @@ final class GoogleCalendarController extends Controller
 
         $store->update([
             'google_calendar_token' => null,
-            'google_calendar_id'    => null,
+            'google_calendar_id' => null,
         ]);
 
         return $this->success(['disconnected' => true]);
@@ -181,7 +181,7 @@ final class GoogleCalendarController extends Controller
 
     private function makeClient(): GoogleClient
     {
-        $client = new GoogleClient();
+        $client = new GoogleClient;
         $client->setClientId(config('services.google.client_id'));
         $client->setClientSecret(config('services.google.client_secret'));
 

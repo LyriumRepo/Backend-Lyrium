@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Mail\BookingConfirmationMail;
+use App\Models\ServiceBooking;
 use App\Models\Specialist;
 use App\Models\Store;
-use App\Models\ServiceBooking;
-use App\Mail\BookingConfirmationMail;
+use Carbon\Carbon;
 use Google\Client as GoogleClient;
 use Google\Service\Calendar;
 use Google\Service\Calendar\Event;
@@ -17,7 +18,6 @@ use Google\Service\Calendar\FreeBusyRequest;
 use Google\Service\Calendar\FreeBusyRequestItem;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Carbon\Carbon;
 
 /**
  * GoogleCalendarService — Refactorizado para triple sincronización
@@ -57,27 +57,27 @@ final class GoogleCalendarService
      * Crea el evento de Google Calendar con invitados (attendees).
      *
      * @return array{specialist: string|null, client: string|null, seller: string|null}
-     *   Los IDs de Google Event para cada calendario.
-     *   Todos son el mismo ID porque es un evento compartido vía attendees.
-     *   Se guardan separados por si en el futuro se necesita eliminar
-     *   individualmente o manejar distintos IDs por calendario.
+     *                                                                                  Los IDs de Google Event para cada calendario.
+     *                                                                                  Todos son el mismo ID porque es un evento compartido vía attendees.
+     *                                                                                  Se guardan separados por si en el futuro se necesita eliminar
+     *                                                                                  individualmente o manejar distintos IDs por calendario.
      */
     public function createEvent(ServiceBooking $booking): array
     {
         $emptyIds = ['specialist' => null, 'client' => null, 'seller' => null];
 
-        $store      = $booking->service?->store;
+        $store = $booking->service?->store;
         $specialist = $booking->specialist;
-        $client     = $booking->user;
+        $client = $booking->user;
 
         // ── Recopilar emails de los 3 destinatarios ───────────────────────
         $specialistEmail = $specialist?->google_calendar_id ?? $specialist?->email;
-        $clientEmail     = $client?->email;
-        $sellerEmail     = $store?->google_calendar_id ?? $store?->corporate_email;
+        $clientEmail = $client?->email;
+        $sellerEmail = $store?->google_calendar_id ?? $store?->corporate_email;
 
         // ── Intentar crear evento en Google Calendar ──────────────────────
         $calendar = $this->getCalendarClient($store);
-        $eventId  = null;
+        $eventId = null;
 
         if ($calendar) {
             $eventId = $this->insertEventWithAttendees(
@@ -97,20 +97,21 @@ final class GoogleCalendarService
             Log::warning('GoogleCalendar: Evento no creado — se envió email de respaldo con .ics', [
                 'booking_id' => $booking->id,
             ]);
+
             return $emptyIds;
         }
 
         Log::info('GoogleCalendar: Evento creado con attendees', [
             'booking_id' => $booking->id,
-            'event_id'   => $eventId,
-            'attendees'  => array_filter([$specialistEmail, $clientEmail, $sellerEmail]),
+            'event_id' => $eventId,
+            'attendees' => array_filter([$specialistEmail, $clientEmail, $sellerEmail]),
         ]);
 
         // El mismo event_id aplica para los 3 porque es un evento compartido.
         return [
             'specialist' => $eventId,
-            'client'     => $eventId,
-            'seller'     => $eventId,
+            'client' => $eventId,
+            'seller' => $eventId,
         ];
     }
 
@@ -126,7 +127,7 @@ final class GoogleCalendarService
             return false;
         }
 
-        $store    = $booking->service?->store;
+        $store = $booking->service?->store;
         $calendar = $this->getCalendarClient($store);
 
         if (! $calendar) {
@@ -138,10 +139,10 @@ final class GoogleCalendarService
             ?? 'primary';
 
         try {
-            $event    = $calendar->events->get($calendarId, $booking->google_event_id);
+            $event = $calendar->events->get($calendarId, $booking->google_event_id);
             $duration = (int) ($booking->service?->duration_minutes ?? 30);
-            $start    = Carbon::parse($booking->appointment_date, self::TIMEZONE);
-            $end      = $start->copy()->addMinutes($duration);
+            $start = Carbon::parse($booking->appointment_date, self::TIMEZONE);
+            $end = $start->copy()->addMinutes($duration);
 
             $event->setStart(new EventDateTime([
                 'dateTime' => $start->toRfc3339String(),
@@ -151,21 +152,22 @@ final class GoogleCalendarService
                 'dateTime' => $end->toRfc3339String(),
                 'timeZone' => self::TIMEZONE,
             ]));
-            $event->setSummary('Cita reagendada: ' . ($booking->service?->name ?? 'Consulta'));
+            $event->setSummary('Cita reagendada: '.($booking->service?->name ?? 'Consulta'));
 
             $calendar->events->update($calendarId, $booking->google_event_id, $event);
 
             Log::info('GoogleCalendar: Evento reagendado', [
                 'booking_id' => $booking->id,
-                'event_id'   => $booking->google_event_id,
+                'event_id' => $booking->google_event_id,
             ]);
 
             return true;
         } catch (\Throwable $e) {
             Log::error('GoogleCalendar: Fallo al actualizar evento', [
                 'booking_id' => $booking->id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -185,7 +187,7 @@ final class GoogleCalendarService
             return false;
         }
 
-        $store    = $booking->service?->store;
+        $store = $booking->service?->store;
         $calendar = $this->getCalendarClient($store);
 
         if (! $calendar) {
@@ -204,12 +206,12 @@ final class GoogleCalendarService
             $deleted = true;
             Log::info('GoogleCalendar: Evento principal eliminado', [
                 'booking_id' => $booking->id,
-                'event_id'   => $booking->google_event_id,
+                'event_id' => $booking->google_event_id,
             ]);
         } catch (\Throwable $e) {
             Log::error('GoogleCalendar: Fallo al eliminar evento principal', [
                 'booking_id' => $booking->id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
 
@@ -254,13 +256,14 @@ final class GoogleCalendarService
      */
     public function getBusySlots(Specialist $specialist, Carbon $startDate, Carbon $endDate): array
     {
-        $store    = $specialist->store;
+        $store = $specialist->store;
         $calendar = $this->getCalendarClient($store);
 
         if (! $calendar) {
             Log::warning('GoogleCalendar FreeBusy: No se pudo instanciar el cliente', [
                 'specialist_id' => $specialist->id,
             ]);
+
             return [];
         }
 
@@ -270,37 +273,38 @@ final class GoogleCalendarService
             ?? 'primary';
 
         try {
-            $request = new FreeBusyRequest();
+            $request = new FreeBusyRequest;
             $request->setTimeMin($startDate->toRfc3339String());
             $request->setTimeMax($endDate->toRfc3339String());
             $request->setTimeZone(self::TIMEZONE);
 
-            $item = new FreeBusyRequestItem();
+            $item = new FreeBusyRequestItem;
             $item->setId($calendarId);
             $request->setItems([$item]);
 
-            $result      = $calendar->freebusy->query($request);
-            $busyEvents  = $result->getCalendars()[$calendarId]?->getBusy() ?? [];
+            $result = $calendar->freebusy->query($request);
+            $busyEvents = $result->getCalendars()[$calendarId]?->getBusy() ?? [];
 
             $formatted = [];
             foreach ($busyEvents as $busy) {
                 $formatted[] = [
                     'start' => Carbon::parse($busy->getStart(), self::TIMEZONE)->format('H:i'),
-                    'end'   => Carbon::parse($busy->getEnd(), self::TIMEZONE)->format('H:i'),
+                    'end' => Carbon::parse($busy->getEnd(), self::TIMEZONE)->format('H:i'),
                 ];
             }
 
             Log::info('GoogleCalendar FreeBusy: Consulta OK', [
                 'specialist_id' => $specialist->id,
-                'busy_count'    => count($formatted),
+                'busy_count' => count($formatted),
             ]);
 
             return $formatted;
         } catch (\Throwable $e) {
             Log::error('GoogleCalendar FreeBusy: Error en API', [
                 'specialist_id' => $specialist->id,
-                'error'         => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
+
             return [];
         }
     }
@@ -310,13 +314,13 @@ final class GoogleCalendarService
     /**
      * Envía emails de confirmación a cliente, especialista y vendedor.
      *
-     * @param bool $gcalSucceeded Si es false, adjunta el .ics como respaldo.
+     * @param  bool  $gcalSucceeded  Si es false, adjunta el .ics como respaldo.
      */
     public function sendBookingEmails(ServiceBooking $booking, bool $gcalSucceeded = true): void
     {
-        $client     = $booking->user;
+        $client = $booking->user;
         $specialist = $booking->specialist;
-        $store      = $booking->service?->store;
+        $store = $booking->service?->store;
 
         $icsContent = $gcalSucceeded ? null : $this->generateIcsContent($booking);
 
@@ -367,32 +371,32 @@ final class GoogleCalendarService
     public function generateIcsContent(ServiceBooking $booking): string
     {
         $duration = (int) ($booking->service?->duration_minutes ?? 30);
-        $start    = Carbon::parse($booking->appointment_date)->setTimezone(self::TIMEZONE);
-        $end      = $start->copy()->addMinutes($duration);
+        $start = Carbon::parse($booking->appointment_date)->setTimezone(self::TIMEZONE);
+        $end = $start->copy()->addMinutes($duration);
 
         // Formato UTC para iCalendar
-        $dtStart  = $start->utc()->format('Ymd\THis\Z');
-        $dtEnd    = $end->utc()->format('Ymd\THis\Z');
-        $dtStamp  = now()->utc()->format('Ymd\THis\Z');
-        $uid      = 'booking-' . $booking->id . '-' . uniqid() . '@lyrium.pe';
+        $dtStart = $start->utc()->format('Ymd\THis\Z');
+        $dtEnd = $end->utc()->format('Ymd\THis\Z');
+        $dtStamp = now()->utc()->format('Ymd\THis\Z');
+        $uid = 'booking-'.$booking->id.'-'.uniqid().'@lyrium.pe';
 
-        $serviceName  = addslashes($booking->service?->name ?? 'Consulta');
-        $clientName   = addslashes($booking->user?->name ?? 'Cliente');
+        $serviceName = addslashes($booking->service?->name ?? 'Consulta');
+        $clientName = addslashes($booking->user?->name ?? 'Cliente');
         $specialistName = addslashes(
             ($booking->specialist?->nombre_completo) ?? 'Especialista'
         );
-        $storeName    = addslashes(
+        $storeName = addslashes(
             $booking->service?->store?->trade_name
                 ?? $booking->service?->store?->store_name
                 ?? 'Tienda'
         );
-        $notes        = addslashes($booking->customer_notes ?? '');
+        $notes = addslashes($booking->customer_notes ?? '');
 
-        $description  = "Servicio: {$serviceName}\\n"
-            . "Especialista: {$specialistName}\\n"
-            . "Cliente: {$clientName}\\n"
-            . "Tienda: {$storeName}\\n"
-            . ($notes ? "Notas: {$notes}\\n" : '');
+        $description = "Servicio: {$serviceName}\\n"
+            ."Especialista: {$specialistName}\\n"
+            ."Cliente: {$clientName}\\n"
+            ."Tienda: {$storeName}\\n"
+            .($notes ? "Notas: {$notes}\\n" : '');
 
         // Construir lista de attendees para el ICS
         $attendees = '';
@@ -408,22 +412,22 @@ final class GoogleCalendarService
         }
 
         return "BEGIN:VCALENDAR\r\n"
-            . "VERSION:2.0\r\n"
-            . "PRODID:-//Lyrium Platform//ES\r\n"
-            . "CALSCALE:GREGORIAN\r\n"
-            . "METHOD:REQUEST\r\n"
-            . "BEGIN:VEVENT\r\n"
-            . "UID:{$uid}\r\n"
-            . "DTSTAMP:{$dtStamp}\r\n"
-            . "DTSTART:{$dtStart}\r\n"
-            . "DTEND:{$dtEnd}\r\n"
-            . "SUMMARY:{$serviceName} — {$specialistName}\r\n"
-            . "DESCRIPTION:{$description}\r\n"
-            . $attendees
-            . "STATUS:CONFIRMED\r\n"
-            . "SEQUENCE:0\r\n"
-            . "END:VEVENT\r\n"
-            . "END:VCALENDAR\r\n";
+            ."VERSION:2.0\r\n"
+            ."PRODID:-//Lyrium Platform//ES\r\n"
+            ."CALSCALE:GREGORIAN\r\n"
+            ."METHOD:REQUEST\r\n"
+            ."BEGIN:VEVENT\r\n"
+            ."UID:{$uid}\r\n"
+            ."DTSTAMP:{$dtStamp}\r\n"
+            ."DTSTART:{$dtStart}\r\n"
+            ."DTEND:{$dtEnd}\r\n"
+            ."SUMMARY:{$serviceName} — {$specialistName}\r\n"
+            ."DESCRIPTION:{$description}\r\n"
+            .$attendees
+            ."STATUS:CONFIRMED\r\n"
+            ."SEQUENCE:0\r\n"
+            ."END:VEVENT\r\n"
+            ."END:VCALENDAR\r\n";
     }
 
     // ── 7. INFRAESTRUCTURA DE CLIENTE GOOGLE ──────────────────────────────────
@@ -449,7 +453,7 @@ final class GoogleCalendarService
                 ? $store->google_calendar_token
                 : json_decode($store->google_calendar_token, true);
 
-            $client = new GoogleClient();
+            $client = new GoogleClient;
             $client->setClientId(config('services.google.client_id'));
             $client->setClientSecret(config('services.google.client_secret'));
             $client->setAccessToken($tokenData);
@@ -475,18 +479,21 @@ final class GoogleCalendarService
 
         if (! file_exists($path)) {
             Log::error('GoogleCalendar: google-service-account.json no encontrado');
+
             return null;
         }
 
         try {
-            $client = new GoogleClient();
+            $client = new GoogleClient;
             $client->setAuthConfig($path);
             $client->addScope(Calendar::CALENDAR);
+
             return new Calendar($client);
         } catch (\Throwable $e) {
             Log::error('GoogleCalendar: Error inicializando Service Account', [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -508,19 +515,20 @@ final class GoogleCalendarService
     ): ?string {
         try {
             $duration = (int) ($booking->service?->duration_minutes ?? 30);
-            $start    = Carbon::parse($booking->appointment_date, self::TIMEZONE);
-            $end      = $start->copy()->addMinutes($duration);
+            $start = Carbon::parse($booking->appointment_date, self::TIMEZONE);
+            $end = $start->copy()->addMinutes($duration);
 
             $attendees = array_map(
-                fn(string $email) => new EventAttendee(['email' => $email]),
+                fn (string $email) => new EventAttendee(['email' => $email]),
                 array_unique(array_values($attendeeEmails))
             );
 
             $event = new Event([
-                'summary'     => ($booking->service?->name ?? 'Consulta') . ' — ' .
+                'summary' => ($booking->service?->name ?? 'Consulta').' — '.
                     ($booking->specialist?->nombre_completo ?? 'Especialista'),
                 'description' => $this->buildEventDescription($booking),
-                'start'       => new EventDateTime([
+                'location' => $this->buildEventLocation($booking),
+                'start' => new EventDateTime([
                     'dateTime' => $start->toRfc3339String(),
                     'timeZone' => self::TIMEZONE,
                 ]),
@@ -532,7 +540,7 @@ final class GoogleCalendarService
                 // Recordatorio 24h antes por email y 30 min antes por popup
                 'reminders' => [
                     'useDefault' => false,
-                    'overrides'  => [
+                    'overrides' => [
                         ['method' => 'email',  'minutes' => 1440], // 24 horas
                         ['method' => 'popup',  'minutes' => 30],
                     ],
@@ -550,26 +558,53 @@ final class GoogleCalendarService
         } catch (\Throwable $e) {
             Log::error('GoogleCalendar: insertEventWithAttendees falló', [
                 'booking_id' => $booking->id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
 
     private function buildEventDescription(ServiceBooking $booking): string
     {
+        $isHome = $booking->service?->is_home_service ?? false;
         $lines = [
-            'Servicio: '    . ($booking->service?->name ?? '—'),
-            'Especialista: ' . ($booking->specialist?->nombre_completo ?? '—'),
-            'Cliente: '     . ($booking->user?->name ?? '—'),
-            'Estado: '      . ucfirst($booking->status),
+            'Servicio: '.($booking->service?->name ?? '—'),
+            'Especialista: '.($booking->specialist?->nombre_completo ?? '—'),
+            'Cliente: '.($booking->user?->name ?? '—'),
+            'Estado: '.ucfirst($booking->status),
         ];
 
+        if ($isHome && $booking->service_address) {
+            $lines[] = 'Dirección del servicio: '.$booking->service_address;
+        } elseif (! $isHome) {
+            $store = $booking->service?->store;
+            $branch = $store?->branches()?->where('is_principal', true)->first();
+            $lines[] = 'Ubicación: '.($branch?->address ?? $store?->address ?? 'En tienda');
+        }
+
         if ($booking->customer_notes) {
-            $lines[] = 'Notas del cliente: ' . $booking->customer_notes;
+            $lines[] = 'Notas del cliente: '.$booking->customer_notes;
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Build the event location string based on service type.
+     */
+    private function buildEventLocation(ServiceBooking $booking): string
+    {
+        $isHome = $booking->service?->is_home_service ?? false;
+
+        if ($isHome && $booking->service_address) {
+            return $booking->service_address;
+        }
+
+        $store = $booking->service?->store;
+        $branch = $store?->branches()?->where('is_principal', true)->first();
+
+        return $branch?->address ?? $store?->address ?? '';
     }
 
     private function trySendMail(
@@ -580,6 +615,15 @@ final class GoogleCalendarService
         ?string $icsContent,
         bool $gcalOk,
     ): void {
+        // Validar formato de email antes de encolar
+        if (! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            Log::warning("GoogleCalendar: Email inválido para [{$role}]", [
+                'booking_id' => $booking->id,
+                'to' => $to,
+            ]);
+            return;
+        }
+
         try {
             Mail::to($to)->queue(
                 new BookingConfirmationMail(
@@ -593,8 +637,8 @@ final class GoogleCalendarService
         } catch (\Throwable $e) {
             Log::error("GoogleCalendar: Fallo al enviar email de confirmación [{$role}]", [
                 'booking_id' => $booking->id,
-                'to'         => $to,
-                'error'      => $e->getMessage(),
+                'to' => $to,
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -610,12 +654,12 @@ final class GoogleCalendarService
             $calendar->events->delete($calendarId, $eventId);
             Log::info("GoogleCalendar: Evento del {$label} eliminado", [
                 'booking_id' => $bookingId,
-                'event_id'   => $eventId,
+                'event_id' => $eventId,
             ]);
         } catch (\Throwable $e) {
             Log::warning("GoogleCalendar: No se pudo eliminar evento del {$label}", [
                 'booking_id' => $bookingId,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

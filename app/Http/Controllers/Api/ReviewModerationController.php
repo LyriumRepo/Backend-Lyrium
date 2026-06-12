@@ -26,8 +26,7 @@ final class ReviewModerationController extends Controller
 
         if ($search = $request->query('search')) {
             $query->where(
-                fn($q) =>
-                $q->where('comment', 'like', "%{$search}%")
+                fn ($q) => $q->where('comment', 'like', "%{$search}%")
                     ->orWhere('title', 'like', "%{$search}%")
             );
         }
@@ -40,17 +39,17 @@ final class ReviewModerationController extends Controller
             $query->where('reported_count', '>', 0);
         }
 
-        $perPage  = min((int) $request->query('per_page', 20), 100);
-        $reviews  = $query->orderByDesc('created_at')->paginate($perPage);
+        $perPage = min((int) $request->query('per_page', 20), 100);
+        $reviews = $query->orderByDesc('created_at')->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data'    => ReviewResource::collection($reviews),
-            'meta'    => [
+            'data' => ReviewResource::collection($reviews),
+            'meta' => [
                 'current_page' => $reviews->currentPage(),
-                'per_page'     => $reviews->perPage(),
-                'total'        => $reviews->total(),
-                'total_pages'  => $reviews->lastPage(),
+                'per_page' => $reviews->perPage(),
+                'total' => $reviews->total(),
+                'total_pages' => $reviews->lastPage(),
             ],
         ]);
     }
@@ -61,7 +60,7 @@ final class ReviewModerationController extends Controller
      */
     public function reported(Request $request): JsonResponse
     {
-        $status  = $request->query('status', 'pending');
+        $status = $request->query('status', 'pending');
         $perPage = min((int) $request->query('per_page', 20), 100);
 
         $reports = ReviewReport::with([
@@ -72,19 +71,19 @@ final class ReviewModerationController extends Controller
         ])
             ->when(
                 in_array($status, ['pending', 'accepted', 'dismissed'], true),
-                fn($q) => $q->where('status', $status)
+                fn ($q) => $q->where('status', $status)
             )
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data'    => ReviewReportResource::collection($reports),
-            'meta'    => [
+            'data' => ReviewReportResource::collection($reports),
+            'meta' => [
                 'current_page' => $reports->currentPage(),
-                'per_page'     => $reports->perPage(),
-                'total'        => $reports->total(),
-                'total_pages'  => $reports->lastPage(),
+                'per_page' => $reports->perPage(),
+                'total' => $reports->total(),
+                'total_pages' => $reports->lastPage(),
             ],
         ]);
     }
@@ -96,12 +95,12 @@ final class ReviewModerationController extends Controller
     public function moderate(Request $request, string $id): JsonResponse
     {
         $validated = $request->validate([
-            'action'     => 'required|string|in:accept,dismiss',
-            'report_id'  => 'nullable|integer|exists:review_reports,id',
+            'action' => 'required|string|in:accept,dismiss',
+            'report_id' => 'nullable|integer|exists:review_reports,id',
         ]);
 
         $review = Review::findOrFail($id);
-        $admin  = $request->user();
+        $admin = $request->user();
 
         DB::transaction(function () use ($review, $validated, $admin) {
             $newStatus = $validated['action'] === 'accept' ? 'accepted' : 'dismissed';
@@ -115,7 +114,7 @@ final class ReviewModerationController extends Controller
             }
 
             $reportQuery->update([
-                'status'      => $newStatus,
+                'status' => $newStatus,
                 'reviewed_by' => $admin->id,
                 'reviewed_at' => now(),
             ]);

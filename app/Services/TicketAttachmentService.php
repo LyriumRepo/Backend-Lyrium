@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\TicketMessage;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 final class TicketAttachmentService
 {
@@ -24,9 +23,9 @@ final class TicketAttachmentService
             );
 
             $message->attachments()->create([
-                'name'      => $file->getClientOriginalName(),
+                'name' => $file->getClientOriginalName(),
                 'file_type' => 'image',
-                'path'      => $path,
+                'path' => $path,
             ]);
         }
     }

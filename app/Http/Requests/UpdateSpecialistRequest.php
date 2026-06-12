@@ -25,35 +25,52 @@ final class UpdateSpecialistRequest extends FormRequest
         $specialistId = (int) $this->route('specialist');
 
         return [
-            'nombres'            => ['sometimes', 'string', 'max:255'],
-            'apellidos'          => ['sometimes', 'string', 'max:255'],
-            'document_type'      => ['sometimes', 'in:DNI,CE,PASAPORTE'],
-            'document_number'    => ['sometimes', 'string', 'max:20'],
+            'nombres' => ['sometimes', 'string', 'max:255'],
+            'apellidos' => ['sometimes', 'string', 'max:255'],
+            'document_type' => ['sometimes', 'in:DNI,CE,PASAPORTE'],
+            'document_number' => ['sometimes', 'string', 'max:20'],
 
             // Ignorar el email del propio especialista al validar unicidad
-            'email'              => [
+            'email' => [
                 'sometimes',
                 'email',
                 'max:255',
                 "unique:specialists,email,{$specialistId}",
             ],
 
-            'especialidad'       => ['sometimes', 'string', 'max:255'],
-            'sub_especialidad'   => ['nullable', 'string', 'max:255'],
-            'anios_experiencia'  => ['nullable', 'integer', 'min:0', 'max:30'],
-            'numero_colegiatura' => ['nullable', 'string', 'max:100'],
-            'availability'       => ['sometimes', 'in:Disponible,Indispuesto'],
-            'foto'               => ['nullable', 'string', 'max:500'],
-            'google_calendar_id' => ['nullable', 'string', 'max:255'],
-        ];
-    }
+            'category_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'exists:categories,id',
+                function ($attribute, $value, $fail) {
+                    if ($value === null) {
+                        return;
+                    }
+                    $category = \App\Models\Category::find($value);
+                    if (! $category) {
+                        return;
+                    }
+                    if ($category->type !== 'service') {
+                        $fail('La categoría debe ser de tipo servicio.');
 
-    public function messages(): array
-    {
-        return [
-            'email.unique'          => 'Ya existe otro especialista registrado con este email.',
-            'anios_experiencia.max' => 'Los años de experiencia no pueden superar 30.',
-            'availability.in'       => 'El estado debe ser Disponible o Indispuesto.',
+                        return;
+                    }
+                    if ($category->parent_id === null) {
+                        $fail('Debes seleccionar una categoría de nivel 2 (especialidad), no una categoría principal.');
+                    }
+                },
+            ],
+
+            'especialidad' => ['sometimes', 'string', 'max:255'],
+            'sub_especialidad' => ['nullable', 'string', 'max:255'],
+            'anios_experiencia' => ['nullable', 'integer', 'min:0', 'max:30'],
+            'numero_colegiatura' => ['nullable', 'string', 'max:100'],
+            'availability' => ['sometimes', 'in:Disponible,Indispuesto,Ocupado'],
+
+            // ── Mensajes personalizados ────────────────────────────────────────
+            'availability.in' => 'El estado debe ser Disponible, Indispuesto u Ocupado.',
+            'category_id.exists' => 'La categoría seleccionada no existe.',
         ];
     }
 }

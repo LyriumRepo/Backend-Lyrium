@@ -26,12 +26,14 @@ final class Expense extends Model
         'file_url',
         'registered_by',
         'notes',
+        'scan_data',
     ];
 
     protected $casts = [
-        'amount'    => 'decimal:2',
+        'amount' => 'decimal:2',
         'issued_at' => 'date',
-        'paid_at'   => 'date',
+        'paid_at' => 'date',
+        'scan_data' => 'array',
     ];
 
     // ─── Relationships ───────────────────────────────────────────────────────
@@ -68,11 +70,37 @@ final class Expense extends Model
     /**
      * Genera el próximo número de recibo: EXP-{YYYY}-{NNN}
      */
-    public static function nextReceiptNumber(): string
+    public static function nextReceiptNumber(?string $voucherType = null): string
     {
-        $year  = now()->year;
-        $count = static::whereYear('created_at', $year)->withTrashed()->count();
+        $year = date('Y'); // 2026
 
-        return sprintf('EXP-%d-%03d', $year, $count + 1);
+        // 1. Determinar el prefijo según el tipo de comprobante
+        $prefix = match ($voucherType) {
+            'Factura'    => 'FAC',
+            'Boleta'     => 'BOL',
+            'Honorarios' => 'HON',
+            default      => 'EXP', // Resguardo por si llega nulo o es otro tipo (Servicio, etc.)
+        };
+
+        // 2. Buscar el último registro en la BD que use el prefijo de este año
+        // Ejemplo de búsqueda: "FAC-2026-%"
+        $lastExpense = self::where('receipt_number', 'like', "{$prefix}-{$year}-%")
+            ->orderBy('receipt_number', 'desc')
+            ->first();
+
+        if (!$lastExpense) {
+            // Si es el primer comprobante de este tipo en el año, empezamos en 001
+            return "{$prefix}-{$year}-001";
+        }
+
+        // 3. Extraer el número actual e incrementarlo
+        $parts = explode('-', $lastExpense->receipt_number);
+        $lastSegment = end($parts);
+
+        $nextNumber = (int)$lastSegment + 1; // Aquí es un 'int'
+
+        // 4. Armar el nuevo código transformando el 'int' a 'string'
+        // Agregamos (string) antes de la variable para corregir el linter
+        return "{$prefix}-{$year}-" . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }

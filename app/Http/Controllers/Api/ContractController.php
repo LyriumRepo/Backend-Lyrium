@@ -74,7 +74,7 @@ final class ContractController extends Controller
     {
         $contract = Contract::with(['auditTrails', 'store'])->findOrFail($id);
 
-        return response()->json(new ContractResource($contract));
+        return response()->json(['data' => new ContractResource($contract)]);
     }
 
     /**
@@ -104,9 +104,15 @@ final class ContractController extends Controller
             'company' => $data['company'],
             'ruc' => $data['ruc'] ?? null,
             'representative' => $data['rep'] ?? null,
-            'type' => $data['type'],
+            'dni' => $data['dni'] ?? null,
+            'direccion' => $data['direccion'] ?? null,
+            'admin_name' => $data['admin_name'] ?? null,
+            'admin_phone' => $data['admin_phone'] ?? null,
+            'admin_email' => $data['admin_email'] ?? null,
+            'type' => $data['type'] ?? 'General',
             'modality' => $data['modality'],
-            'status' => 'PENDING',
+            'plan' => $data['plan'] ?? null,
+            'status' => $data['status'] ?? 'PENDING',
             'start_date' => $data['start'],
             'end_date' => $data['end'] ?? null,
             'notes' => $data['notes'] ?? null,
@@ -119,7 +125,7 @@ final class ContractController extends Controller
 
         $contract->load(['auditTrails', 'store']);
 
-        return response()->json(new ContractResource($contract), 201);
+        return response()->json(['data' => new ContractResource($contract)], 201);
     }
 
     /**
@@ -144,11 +150,29 @@ final class ContractController extends Controller
         if (array_key_exists('rep', $data)) {
             $updateData['representative'] = $data['rep'];
         }
+        if (array_key_exists('dni', $data)) {
+            $updateData['dni'] = $data['dni'];
+        }
+        if (array_key_exists('direccion', $data)) {
+            $updateData['direccion'] = $data['direccion'];
+        }
+        if (array_key_exists('admin_name', $data)) {
+            $updateData['admin_name'] = $data['admin_name'];
+        }
+        if (array_key_exists('admin_phone', $data)) {
+            $updateData['admin_phone'] = $data['admin_phone'];
+        }
+        if (array_key_exists('admin_email', $data)) {
+            $updateData['admin_email'] = $data['admin_email'];
+        }
         if (isset($data['type'])) {
             $updateData['type'] = $data['type'];
         }
         if (isset($data['modality'])) {
             $updateData['modality'] = $data['modality'];
+        }
+        if (array_key_exists('plan', $data)) {
+            $updateData['plan'] = $data['plan'];
         }
         if (isset($data['start'])) {
             $updateData['start_date'] = $data['start'];
@@ -169,7 +193,7 @@ final class ContractController extends Controller
 
         $contract->load(['auditTrails', 'store']);
 
-        return response()->json(new ContractResource($contract));
+        return response()->json(['data' => new ContractResource($contract)]);
     }
 
     /**
@@ -200,7 +224,7 @@ final class ContractController extends Controller
 
         $contract->load(['auditTrails', 'store']);
 
-        return response()->json(new ContractResource($contract));
+        return response()->json(['data' => new ContractResource($contract)]);
     }
 
     /**
@@ -233,7 +257,7 @@ final class ContractController extends Controller
 
         $contract->load(['auditTrails', 'store']);
 
-        return response()->json(new ContractResource($contract));
+        return response()->json(['data' => new ContractResource($contract)]);
     }
 
     /**
@@ -282,7 +306,7 @@ final class ContractController extends Controller
      */
     public function templateInfo(): JsonResponse
     {
-        $exists   = Storage::disk('local')->exists(ContractDocumentService::TEMPLATE_PATH);
+        $exists = Storage::disk('local')->exists(ContractDocumentService::TEMPLATE_PATH);
         $uploadedAt = null;
 
         if ($exists) {
@@ -291,7 +315,7 @@ final class ContractController extends Controller
 
         return response()->json([
             'has_template' => $exists,
-            'uploaded_at'  => $uploadedAt,
+            'uploaded_at' => $uploadedAt,
             'placeholders' => [
                 '${contract_number}', '${company}', '${ruc}',
                 '${rep_nombre}', '${rep_dni}', '${direccion}',
@@ -314,12 +338,12 @@ final class ContractController extends Controller
         $file = $request->file('file');
 
         // Guardar sobrescribiendo el template anterior
-        $dir  = dirname(ContractDocumentService::TEMPLATE_PATH);
+        $dir = dirname(ContractDocumentService::TEMPLATE_PATH);
         $name = basename(ContractDocumentService::TEMPLATE_PATH);
         $file->storeAs($dir, $name, 'local');
 
         return response()->json([
-            'message'     => 'Template subido correctamente',
+            'message' => 'Template subido correctamente',
             'uploaded_at' => now()->toDateTimeString(),
         ]);
     }
@@ -422,12 +446,12 @@ final class ContractController extends Controller
             'file' => 'required|file|mimes:pdf,doc,docx|max:10240',
         ]);
 
-        $file        = $request->file('file');
+        $file = $request->file('file');
         $companySlug = preg_replace('/[^a-zA-Z0-9_]/', '_', $contract->company ?? 'empresa');
-        $year        = now()->year;
-        $path        = $file->storeAs(
+        $year = now()->year;
+        $path = $file->storeAs(
             "contracts/{$companySlug}/{$year}/signed",
-            "firmado_{$contract->contract_number}." . $file->getClientOriginalExtension(),
+            "firmado_{$contract->contract_number}.".$file->getClientOriginalExtension(),
             'local'
         );
 
@@ -439,6 +463,6 @@ final class ContractController extends Controller
             $request->user()->name ?? 'Vendedor'
         );
 
-        return response()->json(new ContractResource($contract->fresh()->load('auditTrails')));
+        return response()->json(['data' => new ContractResource($contract->fresh()->load('auditTrails'))]);
     }
 }

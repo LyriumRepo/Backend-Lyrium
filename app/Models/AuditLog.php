@@ -71,22 +71,22 @@ final class AuditLog extends Model
         /** @var Request $request */
         $request = request();
 
-        return static::create([
-            'user_id'        => $user?->id,
-            'user_email'     => $user?->email,
+        return self::create([
+            'user_id' => $user?->id,
+            'user_email' => $user?->email,
             // Ahora el editor sabe que $user es App\Models\User y reconoce getRoleNames()
-            'user_role'      => $user !== null ? (string) ($user->getRoleNames()->first() ?? '') : null,
-            'event'          => $event,
-            'module'         => $module,
-            'description'    => $description,
+            'user_role' => $user !== null ? (string) ($user->getRoleNames()->first() ?? '') : null,
+            'event' => $event,
+            'module' => $module,
+            'description' => $description,
             'auditable_type' => $auditable ? get_class($auditable) : null,
-            'auditable_id'   => $auditable?->getKey(),
-            'old_values'     => $oldValues ?: null,
-            'new_values'     => $newValues ?: null,
+            'auditable_id' => $auditable?->getKey(),
+            'old_values' => $oldValues ?: null,
+            'new_values' => $newValues ?: null,
             // Ahora el editor sabe que $request es un objeto Request y no un array
-            'ip_address'     => $request->ip() !== null ? (string) $request->ip() : null,
-            'user_agent'     => $request->userAgent() !== null ? (string) $request->userAgent() : null,
-            'created_at'     => now(),
+            'ip_address' => $request->ip() !== null ? (string) $request->ip() : null,
+            'user_agent' => $request->userAgent() !== null ? (string) $request->userAgent() : null,
+            'created_at' => now(),
         ]);
     }
 
