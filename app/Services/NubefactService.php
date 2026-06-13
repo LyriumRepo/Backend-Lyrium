@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 final class NubefactService
 {
     private string $route;
+
     private string $token;
 
     public function __construct()

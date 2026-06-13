@@ -86,6 +86,12 @@ final readonly class ScannedDocumentData
         public array $items = [],
         public ?string $serviceDescription = null,
 
+        // Bank statement
+        public array $bankStatementLines = [],
+        public ?string $period = null,
+        public ?float $openingBalance = null,
+        public ?float $closingBalance = null,
+
         // Metadata
         public bool $isScannedImage = false,
         public ?string $authorizationDate = null,

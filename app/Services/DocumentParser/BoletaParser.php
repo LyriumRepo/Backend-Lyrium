@@ -43,7 +43,7 @@ final class BoletaParser implements ParsesDocument
 
     private function lines(string $text): array
     {
-        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn(string $l) => trim($l) !== ''));
+        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn (string $l) => trim($l) !== ''));
     }
 
     private function extractDocumentNumber(string $text): ?string
@@ -139,12 +139,12 @@ final class BoletaParser implements ParsesDocument
     private function extractTotalField(string $text, array $labels): ?float
     {
         foreach ($labels as $label) {
-            if (preg_match('/' . $label . '\s*:?\s*(?:S\/|s\/)?\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
+            if (preg_match('/'.$label.'\s*:?\s*(?:S\/|s\/)?\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
                 return (float) str_replace(',', '', $m[1]);
             }
         }
         foreach ($labels as $label) {
-            if (preg_match('/' . $label . '\s*\n\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
+            if (preg_match('/'.$label.'\s*\n\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
                 return (float) str_replace(',', '', $m[1]);
             }
         }

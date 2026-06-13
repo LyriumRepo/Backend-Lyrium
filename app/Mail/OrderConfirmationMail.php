@@ -12,7 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-
 final class OrderConfirmationMail extends Mailable implements ShouldQueue
 {
     use Queueable;

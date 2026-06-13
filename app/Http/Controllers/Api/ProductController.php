@@ -313,6 +313,10 @@ final class ProductController extends Controller
         if ($slug = $request->query('slug')) {
             $query->where('slug', $slug);
         }
+
+        if ($storeId = $request->query('store_id')) {
+            $query->where('store_id', (int) $storeId);
+        }
     }
 
     private function syncCategory(Product $product, ?string $categorySlug): void

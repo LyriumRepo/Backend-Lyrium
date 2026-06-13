@@ -1,6 +1,7 @@
 
 <?php
 
+use App\Http\Controllers\Api\Admin\CommissionTierController;
 use App\Http\Controllers\Api\AdminSellerController;
 use App\Http\Controllers\Api\AdminTicketController;
 use App\Http\Controllers\Api\AdminVendedorController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\CulqiController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\EventsController;
 use App\Http\Controllers\Api\ExpenseController;
+use App\Http\Controllers\Api\ForumController;
 use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -27,8 +29,8 @@ use App\Http\Controllers\Api\LiriosController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
-use App\Http\Controllers\Api\NubefactController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NubefactController;
 use App\Http\Controllers\Api\OperationalRoleController;
 use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\OrderController;
@@ -191,7 +193,24 @@ Route::post('/blog/comments', [BlogController::class, 'storeComment']);
 Route::get('/blog/podcasts', [BlogController::class, 'podcasts']);
 Route::get('/blog/videos', [BlogController::class, 'videos']);
 
+/*
+|--------------------------------------------------------------------------
+| Foro (público)
+|--------------------------------------------------------------------------
+*/
+Route::get('/foro/categorias', [ForumController::class, 'categories']);
+Route::get('/foro/temas', [ForumController::class, 'topics']);
+Route::get('/foro/temas/{id}', [ForumController::class, 'topic']);
+Route::post('/foro/temas', [ForumController::class, 'createTopic']);
+Route::get('/foro/temas/{id}/respuestas', [ForumController::class, 'posts']);
+Route::post('/foro/respuestas', [ForumController::class, 'createPost']);
+Route::post('/foro/votos', [ForumController::class, 'vote']);
+Route::get('/foro/estadisticas', [ForumController::class, 'stats']);
+
 Route::get('/google/callback', [GoogleCalendarController::class, 'callback']);
+
+// Invoice PDF (público para permitir apertura en nueva pestaña)
+Route::get('/invoices/{id}/pdf', [\App\Http\Controllers\Api\InvoicePdfController::class, 'show']);
 
 /*
 |--------------------------------------------------------------------------
@@ -228,6 +247,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/expenses/stats', [ExpenseController::class, 'stats']);
     Route::post('/expenses/upload', [ExpenseController::class, 'upload']);
     Route::post('/expenses/scan', [ExpenseController::class, 'scan']);
+    Route::post('/expenses/scan/batch-store', [ExpenseController::class, 'scanBatchStore']);
     Route::apiResource('expenses', ExpenseController::class);
 
     // ── Roles Operativos ──────────────────────────────────────────────────
@@ -560,6 +580,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Finanzas — Admin (dashboard con KPIs)
         Route::get('/admin/finance', [\App\Http\Controllers\Api\AdminFinanceController::class, 'index']);
+
+        // Commission Tiers — Admin
+        Route::get('/admin/commission-tiers', [CommissionTierController::class, 'index']);
+        Route::post('/admin/commission-tiers', [CommissionTierController::class, 'store']);
+        Route::put('/admin/commission-tiers/{id}', [CommissionTierController::class, 'update']);
+        Route::delete('/admin/commission-tiers/{id}', [CommissionTierController::class, 'destroy']);
+
+        // Glossary Entries — Admin
+        Route::prefix('glossary-entries')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'index']);
+            Route::get('/{id}', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'show']);
+            Route::post('/', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'store']);
+            Route::put('/{id}', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'update']);
+            Route::delete('/{id}', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'destroy']);
+
+            // Pending terms
+            Route::get('/pending/terms', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'pendingTerms']);
+            Route::post('/pending/{id}/approve', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'approvePending']);
+            Route::post('/pending/{id}/dismiss', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissPending']);
+            Route::post('/pending/dismiss-all', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissAllPending']);
+        });
     });
 
     /*
@@ -567,6 +608,7 @@ Route::middleware('auth:sanctum')->group(function () {
     | Seller
     |----------------------------------------------------------------------
     */
+
     Route::middleware('role:seller,administrator')->group(function () {
         // Store propio (sin requerir contrato — el vendedor necesita ver/editar su tienda antes de firmar)
         Route::post('/stores', [StoreController::class, 'store']);
@@ -655,5 +697,66 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments/pending', [PaymentController::class, 'sellerPendingPayments']);
         Route::get('/payments/completed', [PaymentController::class, 'sellerCompletedPayments']);
         Route::get('/payments/pending-total', [PaymentController::class, 'sellerPendingTotal']);
+
+        Route::post('/url-metadata', [\App\Http\Controllers\Api\UrlMetadataController::class, 'preview']);
+
+        // ── BioBlog ──────────────────────────────────────────────────
+        Route::prefix('blog')->group(function () {
+            Route::get('/dashboard', [\App\Http\Controllers\Api\BlogDashboardController::class, 'index']);
+
+            Route::get('/articles', [\App\Http\Controllers\Api\BlogArticleController::class, 'index']);
+            Route::get('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'show']);
+            Route::post('/articles', [\App\Http\Controllers\Api\BlogArticleController::class, 'store']);
+            Route::put('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'update']);
+            Route::delete('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'destroy']);
+
+            Route::get('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'index']);
+            Route::get('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'show']);
+            Route::post('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'store']);
+            Route::put('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'update']);
+            Route::delete('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'destroy']);
+
+            Route::get('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'index']);
+            Route::get('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'show']);
+            Route::post('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'store']);
+            Route::put('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'update']);
+            Route::delete('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'destroy']);
+
+            Route::get('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'index']);
+            Route::get('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'show']);
+            Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
+            Route::put('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'update']);
+            Route::delete('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'destroy']);
+
+            Route::get('/media', [\App\Http\Controllers\Api\BlogMediaController::class, 'index']);
+            Route::post('/media/upload', [\App\Http\Controllers\Api\BlogMediaController::class, 'upload']);
+            Route::delete('/media/{id}', [\App\Http\Controllers\Api\BlogMediaController::class, 'destroy']);
+        });
+
+        // ── BioForo ──────────────────────────────────────────────────
+        Route::prefix('forum')->group(function () {
+            Route::get('/topics', [\App\Http\Controllers\Api\ForumTopicController::class, 'index']);
+            Route::get('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'show']);
+            Route::post('/topics', [\App\Http\Controllers\Api\ForumTopicController::class, 'store']);
+            Route::put('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'update']);
+            Route::delete('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'destroy']);
+
+            Route::get('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'replies']);
+            Route::post('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'storeReply']);
+            Route::post('/topics/{topicId}/replies/{postId}/hide', [\App\Http\Controllers\Api\ForumTopicController::class, 'hideReply']);
+            Route::delete('/topics/{topicId}/replies/{postId}', [\App\Http\Controllers\Api\ForumTopicController::class, 'deleteReply']);
+        });
+
+        // ── Content Reports ──────────────────────────────────────────
+        Route::post('/content-reports', [\App\Http\Controllers\Api\ContentReportController::class, 'store']);
+        Route::middleware('role:administrator')->group(function () {
+            Route::get('/content-reports', [\App\Http\Controllers\Api\ContentReportController::class, 'index']);
+            Route::post('/content-reports/{id}/resolve', [\App\Http\Controllers\Api\ContentReportController::class, 'resolve']);
+            Route::post('/content-reports/{id}/dismiss', [\App\Http\Controllers\Api\ContentReportController::class, 'dismiss']);
+        });
     });
 });
+
+// ── Público: Tiendas ────────────────────────────────────────────────────
+Route::get('/stores', [StoreController::class, 'publicIndex']);
+Route::get('/store/{slug}', [StoreController::class, 'publicShow']);

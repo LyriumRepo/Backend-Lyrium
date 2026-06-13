@@ -76,10 +76,10 @@ final class Expense extends Model
 
         // 1. Determinar el prefijo según el tipo de comprobante
         $prefix = match ($voucherType) {
-            'Factura'    => 'FAC',
-            'Boleta'     => 'BOL',
+            'Factura' => 'FAC',
+            'Boleta' => 'BOL',
             'Honorarios' => 'HON',
-            default      => 'EXP', // Resguardo por si llega nulo o es otro tipo (Servicio, etc.)
+            default => 'EXP', // Resguardo por si llega nulo o es otro tipo (Servicio, etc.)
         };
 
         // 2. Buscar el último registro en la BD que use el prefijo de este año
@@ -88,7 +88,7 @@ final class Expense extends Model
             ->orderBy('receipt_number', 'desc')
             ->first();
 
-        if (!$lastExpense) {
+        if (! $lastExpense) {
             // Si es el primer comprobante de este tipo en el año, empezamos en 001
             return "{$prefix}-{$year}-001";
         }
@@ -97,10 +97,10 @@ final class Expense extends Model
         $parts = explode('-', $lastExpense->receipt_number);
         $lastSegment = end($parts);
 
-        $nextNumber = (int)$lastSegment + 1; // Aquí es un 'int'
+        $nextNumber = (int) $lastSegment + 1; // Aquí es un 'int'
 
         // 4. Armar el nuevo código transformando el 'int' a 'string'
         // Agregamos (string) antes de la variable para corregir el linter
-        return "{$prefix}-{$year}-" . str_pad((string)$nextNumber, 3, '0', STR_PAD_LEFT);
+        return "{$prefix}-{$year}-".str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }

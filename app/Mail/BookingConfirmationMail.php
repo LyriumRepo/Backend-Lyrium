@@ -107,7 +107,7 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
 
         return [
             Attachment::fromData(
-                fn() => $this->icsContent,
+                fn () => $this->icsContent,
                 'cita-lyrium.ics'
             )->withMime('text/calendar'),
         ];

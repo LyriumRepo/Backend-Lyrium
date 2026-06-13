@@ -10,18 +10,18 @@ use App\Services\DocumentParser\DocumentParserService;
 final class DocumentScannerService
 {
     public function __construct(
-        private readonly SpatieTextExtractor $spatieExtractor = new SpatieTextExtractor(),
-        private readonly OcrTextExtractor $ocrExtractor = new OcrTextExtractor(),
-        private readonly DocumentParserService $parser = new DocumentParserService(),
+        private readonly SpatieTextExtractor $spatieExtractor = new SpatieTextExtractor,
+        private readonly OcrTextExtractor $ocrExtractor = new OcrTextExtractor,
+        private readonly DocumentParserService $parser = new DocumentParserService,
     ) {}
 
-    public function scan(string $filePath): ScannedDocumentData
+    public function scan(string $filePath, ?string $password = null): ScannedDocumentData
     {
-        $text = $this->spatieExtractor->extract($filePath);
+        $text = $this->spatieExtractor->extract($filePath, $password);
         $isScanned = false;
 
         if ($text === null) {
-            $text = $this->ocrExtractor->extract($filePath);
+            $text = $this->ocrExtractor->extract($filePath, $password);
             $isScanned = true;
         }
 
@@ -48,6 +48,10 @@ final class DocumentScannerService
             amountInWords: $result->amountInWords,
             items: $result->items,
             serviceDescription: $result->serviceDescription,
+            bankStatementLines: $result->bankStatementLines,
+            period: $result->period,
+            openingBalance: $result->openingBalance,
+            closingBalance: $result->closingBalance,
             isScannedImage: $isScanned,
             authorizationDate: $result->authorizationDate,
             source: $isScanned ? 'OCR' : 'PDF_TEXT',

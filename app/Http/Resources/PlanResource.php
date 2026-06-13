@@ -52,7 +52,7 @@ final class PlanResource extends JsonResource
             $data['subscriptions_count'] = $this->whenCounted('subscriptions');
             $data['active_subscriptions_count'] = $this->when(
                 $this->relationLoaded('subscriptions'),
-                fn() => $this->subscriptions->where('status', 'active')->where('ends_at', '>=', now())->count()
+                fn () => $this->subscriptions->where('status', 'active')->where('ends_at', '>=', now())->count()
             );
         }
 

@@ -155,8 +155,6 @@ final class ServiceService
                 'discount_percentage' => $data['discount_percentage'] ?? null,
             ]);
 
-
-
             // 3. Asociar Especialistas asignados (Muchos a Muchos)
             if (! empty($data['specialist_ids'])) {
                 $service->specialists()->sync($data['specialist_ids']);

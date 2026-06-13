@@ -16,8 +16,9 @@ final class ScanDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'file' => ['required_without:file_path', 'file', 'mimes:pdf', 'max:10240'],
+            'file' => ['required_without:file_path', 'file', 'max:51200'],
             'file_path' => ['required_without:file', 'string', 'max:500'],
+            'password' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -25,8 +26,7 @@ final class ScanDocumentRequest extends FormRequest
     {
         return [
             'file.required_without' => 'Debes enviar un archivo PDF o una ruta de archivo.',
-            'file.mimes' => 'Solo se aceptan archivos PDF.',
-            'file.max' => 'El archivo no debe superar los 10 MB.',
+            'file.max' => 'El archivo no debe superar los 50 MB.',
         ];
     }
 }

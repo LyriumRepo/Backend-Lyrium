@@ -25,7 +25,7 @@ final class NubefactController extends Controller
         $data = $request->validated();
 
         try {
-            $result = DB::transaction(function () use ($data, $request) {
+            $result = DB::transaction(function () use ($data) {
                 $total = (float) $data['total'];
 
                 $invoice = Invoice::create([
@@ -70,7 +70,7 @@ final class NubefactController extends Controller
                     'provider_invoice_id' => $nubefactResponse['provider_invoice_id'],
                     'authorization_code' => $nubefactResponse['authorization_code'],
                     'qr_data' => $nubefactResponse['qr_data'],
-                    'pdf_url' => $nubefactResponse['pdf_url'],
+                    'pdf_url' => url('/api/invoices/'.$invoice->id.'/pdf'),
                     'nubefact_response' => $nubefactResponse['raw'],
                     'items' => $data['items'],
                 ]);

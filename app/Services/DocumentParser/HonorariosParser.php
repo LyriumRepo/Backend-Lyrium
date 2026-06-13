@@ -42,7 +42,7 @@ final class HonorariosParser implements ParsesDocument
 
     private function lines(string $text): array
     {
-        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn(string $l) => trim($l) !== ''));
+        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn (string $l) => trim($l) !== ''));
     }
 
     private function extractDocumentNumber(array $lines): ?string
@@ -104,6 +104,7 @@ final class HonorariosParser implements ParsesDocument
         foreach ($lines as $line) {
             if (str_contains($line, 'R.U.C.')) {
                 $capture = true;
+
                 continue;
             }
             if ($capture) {
@@ -150,6 +151,7 @@ final class HonorariosParser implements ParsesDocument
         foreach ($lines as $line) {
             if (str_contains($line, 'Domiciliado en')) {
                 $found = true;
+
                 continue;
             }
             if ($found && (str_starts_with($line, 'AV.') || str_starts_with($line, 'MZA.') || str_starts_with($line, 'CALLE') || str_starts_with($line, 'JR.'))) {

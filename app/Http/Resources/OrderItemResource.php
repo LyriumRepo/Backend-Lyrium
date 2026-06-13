@@ -38,6 +38,8 @@ final class OrderItemResource extends JsonResource
             'unitPrice' => (float) $this->unit_price,
             'quantity' => (int) $this->quantity,
             'lineTotal' => (float) $this->line_total,
+            'commissionRate' => (float) $this->commission_rate,
+            'commissionAmount' => (float) $this->commission_amount,
             'status' => $this->status,
             'statusLabel' => $this->getStatusLabel(),
             'actions' => [
