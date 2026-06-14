@@ -22,6 +22,8 @@ final class InvoiceResource extends JsonResource
             'customer_ruc' => $this->whenLoaded('order') && $this->order->relationLoaded('user') && $this->order->user
                 ? ($this->order->user->document_number ?? '')
                 : ($this->customer_ruc ?? $this->nit ?? ''),
+            'store_name' => $this->whenLoaded('store') ? ($this->store->store_name ?? $this->store->nombre_comercial ?? '') : '',
+            'store_ruc' => $this->whenLoaded('store') ? ($this->store->ruc ?? '') : '',
             'order_id' => (string) $this->order_id,
             'amount' => (float) $this->total,
             'subtotal_sin_igv' => (float) $this->subtotal_sin_igv,

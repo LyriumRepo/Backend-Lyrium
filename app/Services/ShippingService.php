@@ -27,11 +27,14 @@ final class ShippingService
 
         return $storeMethods->map(function ($storeMethod) {
             $method = $storeMethod->method;
-            $method->pivot_total_cost = $storeMethod->getTotalCost($method->base_cost);
+            if ($method === null) {
+                return null;
+            }
+            $method->pivot_total_cost = $storeMethod->getTotalCost((float) ($method->base_cost ?? 0));
             $method->pivot_handling_time = $storeMethod->handling_time_days;
 
             return $method;
-        })->filter(fn ($m) => $m !== null);
+        })->filter(fn ($m) => $m !== null)->values();
     }
 
     public function calculateShipping(int $storeId, float $weight, float $orderTotal, string $department, ?int $zoneId = null): array

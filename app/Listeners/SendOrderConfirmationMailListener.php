@@ -6,6 +6,7 @@ namespace App\Listeners;
 
 use App\Events\OrderPaymentConfirmed;
 use App\Mail\OrderConfirmationMail;
+use App\Notifications\OrderPaymentConfirmedNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -25,14 +26,19 @@ final class SendOrderConfirmationMailListener implements ShouldQueue
             return;
         }
 
-        try {
-            Mail::to($user->email)->send(new OrderConfirmationMail($order));
-        } catch (\Throwable $mailEx) {
-            Log::warning('Error enviando correo de confirmación de orden', [
-                'order_id' => $order->id,
-                'error' => $mailEx->getMessage(),
-                'trace' => $mailEx->getTraceAsString(),
-            ]);
+        $settings = $user->notificationSetting;
+        if ($settings?->wantsEmailOrder() ?? true) {
+            try {
+                Mail::to($user->email)->send(new OrderConfirmationMail($order));
+            } catch (\Throwable $mailEx) {
+                Log::warning('Error enviando correo de confirmación de orden', [
+                    'order_id' => $order->id,
+                    'error' => $mailEx->getMessage(),
+                    'trace' => $mailEx->getTraceAsString(),
+                ]);
+            }
         }
+
+        $user->notify(new OrderPaymentConfirmedNotification($order));
     }
 }

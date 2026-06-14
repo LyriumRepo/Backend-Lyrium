@@ -10,8 +10,10 @@ use App\Http\Resources\UserResource;
 use App\Models\UserNotificationSetting;
 use App\Mail\WelcomeInternalUserMail;
 use App\Models\User;
+use App\Notifications\BirthdayNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -197,6 +199,24 @@ final class UserController extends Controller
         }
 
         $user->update($data);
+
+        // Si el usuario acaba de poner (o cambiar) su cumpleaños y coincide con hoy,
+        // enviar email inmediatamente en lugar de esperar al scheduler diario
+        if (isset($data['birthday'])) {
+            $birthday = \Carbon\Carbon::parse($data['birthday']);
+            $today    = today();
+            $cacheKey = "birthday_sent_{$today->format('m-d')}_{$user->id}";
+
+            if ($birthday->month === $today->month && $birthday->day === $today->day) {
+                Cache::forget($cacheKey);
+                Cache::put($cacheKey, true, $today->endOfDay());
+                try {
+                    $user->fresh()->notifyNow(new BirthdayNotification);
+                } catch (\Exception $e) {
+                    \Log::warning('BirthdayNotification broadcast failed (Reverb down?): ' . $e->getMessage());
+                }
+            }
+        }
 
         return response()->json(new UserResource($user->fresh()));
     }

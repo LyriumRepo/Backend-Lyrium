@@ -8,15 +8,62 @@ final class ChatBotFaqService
 {
     private const SIMILARITY_THRESHOLD = 60;
 
+    // Respuesta del asesor reutilizada en vender_f, comprar_9 y keyword directo "contáctame"
+    private const ASESOR_RESPONSE = "👩🏻¡Por supuesto! En un momento te conectamos con uno de nuestros asesores comerciales para atender todas tus consultas. Por favor, mantente en línea con nosotros.";
+
+    // Lily menu intents — checked before FAQs, no AI cost
+    private const LILY_INTENTS = [
+        'inicio' => [
+            'keywords' => ['hola', 'buenas', 'consulta', 'que tal', 'holis', 'volver', 'inicio'],
+            'response' => "¡Hola! 😊\nSoy Lily👩🏻, tu asistente virtual de LYRIUM BIOMARKETPLACE. Estoy aquí para hacer tu experiencia más fácil y saludable 🌱.\n¿En qué puedo ayudarte hoy? Puedes decirme si deseas \"vender\" o \"comprar\".\n\n¡Estoy lista para ayudarte! 🛍️✨",
+        ],
+        'vender_menu' => [
+            'keywords' => ['vender', 'menu', 'menú'],
+            'response' => "👩🏻 ¿Cómo puedo ayudarte a vender en Lyrium Biomarketplace?\nSelecciona una opción escribiendo la letra de tu interés. (Ej: A)\nA. 🌍Deseo el enlace al sitio web\nB. 🙋🏻Me interesa convertirme en vendedor\nC. 🏪¿Qué tipo de tiendas pueden registrarse?\nD. 🌱🛍️¿Qué productos y servicios se pueden vender?\nE. 📞Necesito información de contacto\nF. 🧑🏻Deseo la atención de un asesor comercial\n\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        ],
+        'comprar_menu' => [
+            'keywords' => ['comprar', 'atras'],
+            'response' => "👩🏻 ¿Cómo puedo ayudarte a comprar en nuestro Biomarketplace?\n1. 🌍Deseo el enlace al sitio web\n2. 🌱🛍️¿Qué productos y servicios ofrecen?\n3. 🕙Necesito saber el horario de atención\n4. 💳Quiero conocer los métodos de pago\n5. 🛵🛍️Quisiera saber como funcionan los envíos\n6. 🔄🛍️Quisiera saber como funcionan las devoluciones\n7. 🔄💲Quisiera saber como funcionan los reembolsos\n8. 📞Necesito información de contacto\n9. 🧑🏻Deseo la atención de un asesor comercial\n\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        ],
+        // Keyword directo: mencionado en la respuesta C del menú vender
+        'contactame' => [
+            'keywords' => ['contactame', 'contactame'],
+            'response' => self::ASESOR_RESPONSE,
+        ],
+    ];
+
+    // Opciones de vender (A-F) — activas solo cuando el bot acaba de mostrar vender_menu
+    private const VENDER_OPTIONS = [
+        'a' => "📈¡Aumenta tus ventas y tu mercado con nosotros!\n😊¡Bienvenido a Lyrium Biomarketplace!\n👉🏻 https://lyriumbiomarketplace.com/\n\n🔄 _Escriba \"menú\" para volver a las opciones de venta._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        'b' => "🙋🏻¿Te gustaría ser parte de Lyrium Biomarketplace? ¡Es fácil!\n\nPuedes hacerlo de dos formas:\n1️⃣ Contactando con uno de nuestros asesores comerciales\n2️⃣ A través de nuestro sitio web:\n· Haciendo clic en registrarse\n· Introduciendo los datos solicitados\n· Espera nuestra confirmación como vendedor\n\n🔄 _Escriba \"menú\" para volver a las opciones de venta._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        'c' => "🏪¡Forma parte de nuestra Biocomunidad!\nEn Lyrium Biomarketplace pueden registrarse personas naturales y/o jurídicas que ofrezcan productos o servicios relacionados con la salud y el bienestar en cualquiera de las categorías de nuestro Biomarketplace.\n\n👉🏻 Para más detalles, visita nuestra página principal: 👇🏻\nhttps://lyriumbiomarketplace.com/\n\n🔄 _Escriba \"contáctame\" si deseas que un asesor te contacte directamente._\n🔄 _Escriba \"menú\" para volver a las opciones de venta._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        'd' => "🌱🛍️¡Descubre lo que puedes ofrecer!\nEn nuestro Biomarketplace, puedes vender productos y servicios enfocados en el bienestar y la salud, como suplementos, alimentos saludables, terapias naturales, servicios médicos y mucho más. ¡Conviértete en parte de nuestra comunidad saludable! 🌟\n\n👉🏻 Consulta todas las categorías: 👇🏻\nhttps://lyriumbiomarketplace.com/\n\n🔄 _Escriba \"menú\" para volver a las opciones de venta._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        'e' => "🤗Estamos aquí para ti. Contáctanos a través de estos medios:\n\n· 📱Cel o Wsp: 937-093-420\n· 📞Tel: (073) 61-41-70\n· 📧Correo: administracion@lyriumbiomarketplace.com\n\n🔄 _Escriba \"menú\" para volver a las opciones de venta._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        'f' => self::ASESOR_RESPONSE,
+    ];
+
+    // Opciones de comprar (1-9) — activas solo cuando el bot acaba de mostrar comprar_menu
+    private const COMPRAR_OPTIONS = [
+        '1' => "🌱¡Ten un estilo de vida mas saludable con nosotros!\n😊¡Bienvenido a Lyrium Biomarketplace!\n👉🏻 https://lyriumbiomarketplace.com/\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '2' => "🌱🛍️¡Descubre todo lo que tenemos para ti!\nLyrium Biomarketplace te ofrece una variedad de productos y servicios enfocados para tu bienestar y la salud.\n\n👉🏻 Consulta todas las categorías: 👇🏻\nhttps://lyriumbiomarketplace.com/\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '3' => "🕙¡Estamos disponibles para ti las 24/7, todo el año! 🌟 Pero te recordamos que cada una de nuestras tiendas tiene su propio horario de atención.\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '4' => "💳Aceptamos tarjetas Nacionales de Visa, American Express, Master Card y Dinners Club.\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '5' => "🛵🛍️ *Si compras productos:*\nCada tienda gestionará tu pedido según su horario y tiempos de envío. Podrás elegir entre opciones como recojo en tienda o entrega a domicilio. Para la entrega a domicilio, no olvides revisar las tarifas referenciales en el perfil de cada tienda antes de realizar tu compra.\n\n🩺 *Si adquieres servicios:*\nLa tienda se pondrá en contacto contigo después de la compra de tu servicio para ayudarte a elegir un especialista y agendar tu cita en el momento que mejor te convenga.\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '6' => "🔄🛍️Toda devolución de productos es de entera responsabilidad y según las políticas de cada una de nuestras tiendas vendedoras registradas en nuestro Biomarketplace.\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '7' => "🔄💲Todo reembolso de productos y servicios es de entera responsabilidad y según las políticas de cada una de nuestras tiendas vendedoras registradas en nuestro Biomarketplace.\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '8' => "🤗Estamos aquí para ti. Contáctanos a través de estos medios:\n\n· 📱Cel o Wsp: 937-093-420\n· 📞Tel: (073) 61-41-70\n· 📧Correo: administracion@lyriumbiomarketplace.com\n\n🔄 _Escriba \"atrás\" para volver a las opciones de compra._\n🔄 _Escriba \"inicio\" para volver al principio de la atención ._",
+        '9' => self::ASESOR_RESPONSE,
+    ];
+
     private const FAQS = [
         'comprar_producto' => [
-            'keywords' => ['como compro', 'como adquirir', 'quiero comprar', 'comprar producto', 'realizar pedido', 'hacer un pedido', 'como pedir'],
-            'terms'    => ['compra', 'comprar', 'adquirir', 'pedir', 'orden', 'producto'],
+            'keywords' => ['como compro', 'como adquirir', 'comprar producto', 'realizar pedido', 'hacer un pedido', 'como pedir'],
+            'terms'    => ['compra', 'adquirir', 'pedir', 'orden', 'producto'],
             'response' => 'Para comprar un producto en Lyrium: 1. Navega por las categorías o usa el buscador para encontrar el producto que deseas. 2. Haz clic en el producto para ver los detalles. 3. Selecciona la cantidad y añádelo al carrito. 4. Revisa tu carrito y haz clic en "Ir a pagar". 5. Completa tus datos de envío, selecciona un método de pago y confirma la compra. Recibirás una confirmación por correo electrónico y podrás dar seguimiento a tu pedido desde tu panel de usuario.',
         ],
         'contactar_vendedor' => [
             'keywords' => ['contactar vendedor', 'hablar con vendedor', 'comunicarme con vendedor', 'mensaje a vendedor', 'escribir vendedor'],
-            'terms'    => ['vendedor', 'contactar', 'comunicar', 'mensaje', 'hablar', 'chat'],
+            'terms'    => ['contactar', 'comunicar', 'mensaje', 'hablar', 'chat'],
             'response' => 'Para contactar a un vendedor en Lyrium: 1. Ingresa a la página del producto o tienda que te interesa. 2. Busca el botón "Contactar" o "Chat con vendedor". 3. Escribe tu consulta y el vendedor te responderá directamente desde su panel. Este sistema de mensajería te permite comunicarte de forma segura sin compartir datos personales. También puedes encontrar los datos de contacto de la tienda en su perfil público.',
         ],
         'solicitar_comprobante' => [
@@ -25,13 +72,13 @@ final class ChatBotFaqService
             'response' => 'Lyrium emite comprobantes electrónicos (factura o boleta) con validación SUNAT para todas las compras. Durante el proceso de pago puedes seleccionar si deseas boleta o factura. Si necesitas un comprobante adicional o tienes problemas con tu factura electrónica, ingresa a tu panel de usuario, ve a la sección "Mis pedidos", selecciona el pedido y elige la opción "Solicitar comprobante". También puedes contactar al vendedor directamente si requieres algún ajuste en los datos de facturación.',
         ],
         'metodos_pago' => [
-            'keywords' => ['metodos de pago', 'como pagar', 'formas de pago', 'pago disponible', 'tarjeta', 'deposito', 'transferencia'],
+            'keywords' => ['metodos de pago', 'como pagar', 'formas de pago', 'pago disponible', 'deposito', 'transferencia'],
             'terms'    => ['pago', 'pagar', 'tarjeta', 'transferencia', 'deposito', 'yape', 'plin'],
             'response' => 'Lyrium acepta los siguientes métodos de pago: 1. Tarjetas de crédito y débito (Visa, MasterCard, American Express). 2. Transferencia bancaria y depósito en cuenta. 3. Yape y Plin (billeteras digitales peruanas). 4. Pago contraentrega (disponible en zonas seleccionadas). Todos los pagos con tarjeta se procesan de forma segura a través de nuestra pasarela de pago. Al momento de pagar podrás seleccionar el método que prefieras.',
         ],
         'registrar_tienda' => [
-            'keywords' => ['registrar tienda', 'crear tienda', 'vender en lyrium', 'ser vendedor', 'abrir tienda', 'registrarse como vendedor'],
-            'terms'    => ['tienda', 'vender', 'vendedor', 'registrar', 'crear tienda'],
+            'keywords' => ['registrar tienda', 'crear tienda', 'abrir tienda', 'registrarse como vendedor'],
+            'terms'    => ['tienda', 'registrar', 'crear tienda'],
             'response' => 'Para registrar tu tienda en Lyrium: 1. Crea una cuenta como usuario en Lyrium. 2. Ingresa a tu panel de usuario y selecciona "Registrar tienda". 3. Completa el formulario con los datos de tu negocio (nombre, descripción, categoría, dirección, logo y banner). 4. Revisa y acepta los términos y condiciones. 5. Envía tu solicitud. Un equipo de Lyrium revisará tu solicitud y te notificará cuando tu tienda sea aprobada. El proceso de aprobación generalmente toma entre 1 y 3 días hábiles.',
         ],
         'estado_pedido' => [
@@ -66,10 +113,76 @@ final class ChatBotFaqService
         ],
     ];
 
-    public function find(string $message): ?string
+    /**
+     * @param array<int, array{role: string, content: string}> $history
+     */
+    public function find(string $message, array $history = []): ?string
     {
         $normalized = $this->normalize($message);
 
+        // 1. Lily menu intents — whole-word match, keywords normalized before compare
+        foreach (self::LILY_INTENTS as $intent) {
+            foreach ($intent['keywords'] as $keyword) {
+                if ($this->matchesWholeWord($normalized, $keyword)) {
+                    return $intent['response'];
+                }
+            }
+        }
+
+        // 2. Context-aware single-char/digit options (A-F, 1-9)
+        //    Only activates when the previous bot message was a menu
+        if (strlen($normalized) <= 2 && $normalized !== '') {
+            $lastBot = $this->getLastBotMessage($history);
+            if ($lastBot !== null) {
+                if ($this->isVenderMenuContext($lastBot) && isset(self::VENDER_OPTIONS[$normalized])) {
+                    return self::VENDER_OPTIONS[$normalized];
+                }
+                if ($this->isComprarMenuContext($lastBot) && isset(self::COMPRAR_OPTIONS[$normalized])) {
+                    return self::COMPRAR_OPTIONS[$normalized];
+                }
+            }
+        }
+
+        // 3. Static FAQs — falls through to Gemini if nothing matches
+        return $this->findInFaqs($normalized);
+    }
+
+    private function matchesWholeWord(string $text, string $keyword): bool
+    {
+        // Normalize the keyword too so accented variants match (e.g. "menú" → "menu")
+        $normalizedKeyword = $this->normalize($keyword);
+        $escaped = preg_quote($normalizedKeyword, '/');
+        return (bool) preg_match('/(?<![a-z0-9])' . $escaped . '(?![a-z0-9])/', $text);
+    }
+
+    /**
+     * @param array<int, array{role: string, content: string}> $history
+     */
+    private function getLastBotMessage(array $history): ?string
+    {
+        for ($i = count($history) - 1; $i >= 0; $i--) {
+            if (($history[$i]['role'] ?? '') === 'assistant') {
+                return $this->normalize($history[$i]['content'] ?? '');
+            }
+        }
+
+        return null;
+    }
+
+    private function isVenderMenuContext(string $lastBotNormalized): bool
+    {
+        // Frase única del menú de vender
+        return str_contains($lastBotNormalized, 'selecciona una opcion escribiendo la letra');
+    }
+
+    private function isComprarMenuContext(string $lastBotNormalized): bool
+    {
+        // Frase única del menú de comprar
+        return str_contains($lastBotNormalized, 'quisiera saber como funcionan los envios');
+    }
+
+    private function findInFaqs(string $normalized): ?string
+    {
         $bestMatch = null;
         $bestScore = 0;
 

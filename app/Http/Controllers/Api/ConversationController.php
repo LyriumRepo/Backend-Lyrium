@@ -15,8 +15,10 @@ use App\Models\ConversationMessage;
 use App\Models\ConversationMessageAttachment;
 use App\Models\Store;
 use App\Models\User;
+use App\Notifications\NewChatMessageNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -89,13 +91,27 @@ final class ConversationController extends Controller
 
         $conversation->load(['store.owner', 'customer', 'latestMessage']);
 
-        $store = Store::find($request->input('store_id'));
+        $store = Store::with('owner')->find($request->input('store_id'));
 
-        broadcast(new NewConversationMessage(
-            message: $message->loadMissing(['sender', 'conversation']),
-            customerUserId: $customerUserId,
-            storeId: $store?->id ?? 0,
-        ));
+        try {
+            broadcast(new NewConversationMessage(
+                message: $message->loadMissing(['sender', 'conversation']),
+                customerUserId: $customerUserId,
+                storeId: $store?->id ?? 0,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[Chat] broadcast NewConversationMessage failed: ' . $e->getMessage());
+        }
+
+        // Notificar al destinatario según quién envía
+        if ($user->hasRole('customer') && $store?->owner) {
+            $this->notifyRecipient($store->owner, $message, $conversation);
+        } elseif ($store?->owner && !$user->hasRole('customer')) {
+            $customer = User::find($conversation->customer_user_id);
+            if ($customer) {
+                $this->notifyRecipient($customer, $message, $conversation);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -155,11 +171,26 @@ final class ConversationController extends Controller
 
         $conversation->update(['last_message_at' => now()]);
 
-        broadcast(new NewConversationMessage(
-            message: $message->loadMissing(['sender', 'conversation']),
-            customerUserId: $conversation->customer_user_id,
-            storeId: $conversation->store_id,
-        ));
+        try {
+            broadcast(new NewConversationMessage(
+                message: $message->loadMissing(['sender', 'conversation']),
+                customerUserId: $conversation->customer_user_id,
+                storeId: $conversation->store_id,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[Chat] broadcast NewConversationMessage failed: ' . $e->getMessage());
+        }
+
+        // Notificar al destinatario según quién envía
+        $store = Store::with('owner')->find($conversation->store_id);
+        if ($user->hasRole('customer') && $store?->owner) {
+            $this->notifyRecipient($store->owner, $message, $conversation);
+        } elseif ($store?->owner && !$user->hasRole('customer')) {
+            $customer = User::find($conversation->customer_user_id);
+            if ($customer) {
+                $this->notifyRecipient($customer, $message, $conversation);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -208,11 +239,26 @@ final class ConversationController extends Controller
 
         $message->load(['sender', 'attachments']);
 
-        broadcast(new NewConversationMessage(
-            message: $message,
-            customerUserId: $conversation->customer_user_id,
-            storeId: $conversation->store_id,
-        ));
+        try {
+            broadcast(new NewConversationMessage(
+                message: $message,
+                customerUserId: $conversation->customer_user_id,
+                storeId: $conversation->store_id,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[Chat] broadcast NewConversationMessage failed: ' . $e->getMessage());
+        }
+
+        // Notificar al destinatario según quién envía
+        $store = Store::with('owner')->find($conversation->store_id);
+        if ($user->hasRole('customer') && $store?->owner) {
+            $this->notifyRecipient($store->owner, $message, $conversation);
+        } elseif ($store?->owner && !$user->hasRole('customer')) {
+            $customer = User::find($conversation->customer_user_id);
+            if ($customer) {
+                $this->notifyRecipient($customer, $message, $conversation);
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -341,8 +387,8 @@ final class ConversationController extends Controller
         }
 
         $stores = $user->stores()
-            ->whereIn('status', ['approved', 'active'])
-            ->get(['id', 'trade_name', 'nombre_comercial', 'razon_social']);
+            ->whereIn('stores.status', ['approved', 'active'])
+            ->get(['stores.id', 'stores.trade_name', 'stores.nombre_comercial', 'stores.razon_social']);
 
         return response()->json([
             'success' => true,
@@ -400,6 +446,19 @@ final class ConversationController extends Controller
                 'avatar' => $s->owner?->avatar ?? '',
             ]),
         ]);
+    }
+
+    private function notifyRecipient(User $recipient, ConversationMessage $message, Conversation $conversation): void
+    {
+        try {
+            $recipient->notify(new NewChatMessageNotification($message, $conversation));
+        } catch (\Throwable $e) {
+            Log::error('[Chat] Error al notificar al destinatario', [
+                'recipient_id' => $recipient->id,
+                'conversation_id' => $conversation->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function findConversation($user, int $id): ?Conversation

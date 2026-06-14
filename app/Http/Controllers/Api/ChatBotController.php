@@ -53,7 +53,7 @@ final class ChatBotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
 
-        $faqResponse = $this->faqService->find($message);
+        $faqResponse = $this->faqService->find($message, $history);
 
         if ($faqResponse !== null) {
             $this->trackRequest($sessionId);
@@ -67,10 +67,12 @@ final class ChatBotController extends Controller
         $aiResponse = $this->gemini->ask($message, $history);
 
         if ($aiResponse === null) {
-            return $this->error(
-                'Lo siento, no pude procesar tu consulta en este momento. Por favor, intenta de nuevo más tarde o escribe a soporte@lyrium.pe.',
-                503
-            );
+            $this->trackRequest($sessionId);
+
+            return $this->success([
+                'reply'  => "👩🏻 No pude resolver tu consulta en este momento. Un asesor de Lyrium puede ayudarte ahora mismo:\n\n📱 WhatsApp: https://wa.me/51937093420\n\n¡Escríbenos y te atendemos de inmediato! 🌱",
+                'source' => 'fallback',
+            ]);
         }
 
         $this->trackRequest($sessionId);

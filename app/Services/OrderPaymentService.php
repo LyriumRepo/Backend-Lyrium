@@ -90,8 +90,15 @@ final class OrderPaymentService
 
     private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, float $subtotalSinIgv): void
     {
-        $customerDoc = !empty($store->ruc) ? $store->ruc : ($order->user->document_number ?? '');
-        $customerName = !empty($store->razon_social) ? $store->razon_social : ($store->trade_name ?? 'Tienda');
+        // Nombre visible: nombre_comercial > store_name (accessor) > razon_social > trade_name
+        $customerName = $store->nombre_comercial
+            ?: $store->store_name
+            ?: $store->razon_social
+            ?: $store->trade_name
+            ?: 'Tienda';
+
+        // RUC de la tienda; si no tiene, usar el RUC registrado en Nubefact (Lyrium)
+        $customerDoc = $store->ruc ?: config('services.nubefact.ruc', '20600695771');
         $docType = Invoice::TYPE_FACTURA;
 
         $baseGravada = $subtotalSinIgv;
@@ -186,18 +193,31 @@ final class OrderPaymentService
                 'provider_invoice_id' => $invoice->provider_invoice_id,
             ]);
         } catch (NubefactException $e) {
+            // Errores de configuración/conectividad: la factura queda en DRAFT
+            // para poder reintentarse una vez corregido el .env.
+            // Errores de validación o rechazo SUNAT: se marca REJECTED.
+            $isInfraError = in_array($e->getNubefactCode(), [
+                NubefactException::CONFIG_ERROR,
+                NubefactException::CONNECTION_ERROR,
+            ]);
+
+            $failStatus = $isInfraError
+                ? Invoice::SUNAT_STATUS_DRAFT
+                : Invoice::SUNAT_STATUS_REJECTED;
+
             $invoice->addHistoryEntry(
-                Invoice::SUNAT_STATUS_REJECTED,
+                $failStatus,
                 'Error al enviar a NubeFact: ' . $e->getMessage(),
                 'Sistema',
             );
-            $invoice->sunat_status = Invoice::SUNAT_STATUS_REJECTED;
+            $invoice->sunat_status = $failStatus;
             $invoice->save();
 
             Log::error('OrderPaymentService: error NubeFact al emitir factura', [
                 'invoice_id' => $invoice->id,
-                'store_id' => $store->id,
-                'error' => $e->getMessage(),
+                'store_id'   => $store->id,
+                'nubefact_code' => $e->getNubefactCode(),
+                'error'      => $e->getMessage(),
             ]);
         }
     }
@@ -234,7 +254,7 @@ final class OrderPaymentService
             $remainder = $sum % 11;
             $checkDigit = $remainder === 0 ? 0 : 11 - $remainder;
             if ($checkDigit === 10) {
-                $checkDigit = 0;
+                $checkDigit = 1;  // SUNAT: cuando 11 - resto == 10, el dígito verificador es 1
             }
             if ($checkDigit !== (int) $digits[10]) {
                 $errors[] = "Dígito de verificación del RUC inválido ({$ruc})";

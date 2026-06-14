@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJson::class,
+            \App\Http\Middleware\TrackCustomerPanelVisit::class,
         ]);
 
         $middleware->alias([

@@ -29,6 +29,11 @@ final class NotificationResource extends JsonResource
             'priority' => $data['priority'] ?? null,
             'category' => $data['category'] ?? null,
             'vendor_name' => $data['vendor_name'] ?? null,
+            'conversation_id' => $data['conversation_id'] ?? null,
+            'store_id' => $data['store_id'] ?? null,
+            'store_name' => $data['store_name'] ?? null,
+            'seller_name' => $data['seller_name'] ?? null,
+            'order_number' => $data['order_number'] ?? null,
             'is_read' => $this->read_at !== null,
         ];
     }

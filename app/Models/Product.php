@@ -103,7 +103,24 @@ final class Product extends Model implements HasMedia
 
     public function decrementStock(int $quantity): void
     {
+        $stockBefore = $this->stock;
         $this->decrement('stock', $quantity);
+        $this->refresh();
+        $stockAfter = $this->stock;
+
+        $seller = $this->store?->user;
+        if (! $seller) {
+            return;
+        }
+
+        // Notificar solo cuando el stock cruza un umbral hacia abajo por primera vez.
+        // 'out'     : pasa de > 0  a  ≤ 0
+        // 'critical': pasa de > 5  a  1-5  (sin haber llegado a 'out')
+        if ($stockAfter <= 0 && $stockBefore > 0) {
+            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'out'));
+        } elseif ($stockAfter <= 5 && $stockBefore > 5) {
+            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'critical'));
+        }
     }
 
     public function reviews(): HasMany

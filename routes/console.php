@@ -18,3 +18,9 @@ Schedule::command('stores:check-sla')->everySixHours()->name('check-pending-stor
 
 // Enviar notificaciones de cumpleaños (email + push) a las 8:00 AM cada día
 Schedule::command('birthday:send')->dailyAt('08:00')->name('send-birthday-notifications');
+
+// Recordatorio anticipado de cumpleaños 14 días antes (solo correo)
+Schedule::command('birthday:advance')->dailyAt('08:00')->name('birthday-advance-reminders');
+
+// Recordatorios del panel de cliente: días 7, 30 y 90 tras la primera compra
+Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer-panel-reminders');

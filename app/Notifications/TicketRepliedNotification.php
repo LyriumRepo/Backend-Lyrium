@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-final class TicketRepliedNotification extends Notification
+final class TicketRepliedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -20,7 +22,27 @@ final class TicketRepliedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = ['database'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        return [
+            'title' => '💬 Nueva respuesta en tu ticket',
+            'body' => mb_strimwidth($this->message->content, 0, 80, '…'),
+            'data' => [
+                'type' => 'ticket_replied',
+                'ticket_id' => (string) $this->ticket->id,
+                'ticket_number' => $this->ticket->ticket_number,
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array

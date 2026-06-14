@@ -1,6 +1,7 @@
 
 <?php
 
+use App\Http\Controllers\Api\AdminFinanceController;
 use App\Http\Controllers\Api\AdminTicketController;
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\AuthController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ChatBotController;
 use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\ServiceHoldController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
@@ -96,6 +98,7 @@ Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/slots', [ServiceController::class, 'availableSlots']);
 Route::get('/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/{id}', [ReviewController::class, 'show']);
+Route::get('/stores/slug/{slug}', [StoreController::class, 'showBySlug']);
 Route::get('/stores/{slug}/reviews', [StoreReviewController::class, 'index']);
 
 // Plans público
@@ -174,6 +177,12 @@ Route::post('/cart/items', [CartController::class, 'addItem']);
 Route::put('/cart/items/{productId}', [CartController::class, 'updateItem']);
 Route::delete('/cart/items/{productId}', [CartController::class, 'removeItem']);
 Route::delete('/cart/clear', [CartController::class, 'clear']);
+
+// Service holds (temporary cart slots for service bookings — public, by cart_token)
+Route::get('/cart/service-holds', [ServiceHoldController::class, 'index']);
+Route::post('/cart/add-service', [ServiceHoldController::class, 'store']);
+Route::patch('/cart/service-holds/{id}', [ServiceHoldController::class, 'update']);
+Route::delete('/cart/service-holds/{id}', [ServiceHoldController::class, 'destroy']);
 
 /*
 |--------------------------------------------------------------------------
@@ -342,6 +351,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
     Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
+    Route::get('/customer/payment-confirmations', [OrderController::class, 'customerPaymentConfirmations']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -482,12 +492,37 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/plan-requests/{id}/reject', [PlanRequestController::class, 'reject']);
         Route::get('/admin/plan-requests/stream', [PlanRequestController::class, 'stream']);
 
+        // Admin Plans CRUD
+        Route::get('/admin/plans', [PlanController::class, 'adminIndex']);
+        Route::post('/admin/plans', [PlanController::class, 'store']);
+        Route::get('/admin/plans/{plan}', [PlanController::class, 'adminShow']);
+        Route::put('/admin/plans/{plan}', [PlanController::class, 'update']);
+        Route::delete('/admin/plans/{plan}', [PlanController::class, 'destroy']);
+        Route::post('/admin/plans/{plan}/status', [PlanController::class, 'setActive']);
+        Route::post('/admin/plans/{plan}/icon', [PlanController::class, 'updateIcon']);
+
+        // Admin Plan Colors
+        Route::get('/admin/plan-colors', [PlanController::class, 'getColors']);
+        Route::put('/admin/plan-colors', [PlanController::class, 'saveColors']);
+        Route::delete('/admin/plan-colors', [PlanController::class, 'resetColors']);
+        Route::post('/admin/config/colors', [SystemConfigController::class, 'updateColors']);
+
+        // Admin Vendedores con info de suscripción
+        Route::get('/admin/vendedores', [AdminSellerController::class, 'vendedores']);
+        Route::get('/admin/vendedores/{id}/historial', [AdminSellerController::class, 'vendedorHistorial']);
+
+        // Admin Historial de pagos de planes
+        Route::get('/admin/plan-payments', [PlanRequestController::class, 'paymentHistory']);
+
         // System Config - Admin
         Route::get('/admin/config', [SystemConfigController::class, 'index']);
         Route::get('/admin/config/{key}', [SystemConfigController::class, 'show']);
         Route::post('/admin/config', [SystemConfigController::class, 'store']);
         Route::put('/admin/config/{key}', [SystemConfigController::class, 'update']);
         Route::delete('/admin/config/{key}', [SystemConfigController::class, 'destroy']);
+
+        // Admin Finance Analytics
+        Route::get('/admin/finance', [AdminFinanceController::class, 'index']);
 
         // Suppliers CRUD
         Route::get('/suppliers', [SupplierController::class, 'index']);

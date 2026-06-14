@@ -10,12 +10,14 @@ use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
+use App\Notifications\OrderDeliveredSellerNotification;
 use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\PaymentConfirmationResource;
 use App\Models\Cart;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
@@ -184,7 +186,7 @@ final class OrderController extends Controller
                         'status' => 'pending_seller',
                     ];
 
-                    $product->decrement('stock', $item->quantity);
+                    $product->decrementStock($item->quantity);
                 }
             }
 
@@ -566,6 +568,14 @@ final class OrderController extends Controller
                     ->update(['status' => OrderItem::STATUS_DELIVERED]);
                 $order->refresh();
                 $order->refreshGlobalStatus();
+
+                $order->items->pluck('store_id')->unique()
+                    ->each(function ($storeId) use ($order) {
+                        $store = Store::with('owner')->find($storeId);
+                        if ($store?->owner) {
+                            $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                        }
+                    });
             } elseif ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
                     ->where('status', OrderItem::STATUS_PENDING_SELLER)
@@ -742,6 +752,40 @@ final class OrderController extends Controller
         $filename = 'comprobante-' . $order->order_number . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    public function customerPaymentConfirmations(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $query = Order::with(['items', 'latestCulqiTransaction', 'latestIzipayTransaction'])
+            ->where('user_id', $user->id)
+            ->where('payment_status', Order::PAYMENT_STATUS_PAID);
+
+        $fechaInicio = $request->query('fecha_inicio');
+        $fechaFin = $request->query('fecha_fin');
+
+        if ($fechaInicio) {
+            $query->whereDate('created_at', '>=', $fechaInicio);
+        }
+        if ($fechaFin) {
+            $query->whereDate('created_at', '<=', $fechaFin);
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')
+            ->paginate((int) $request->query('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => PaymentConfirmationResource::collection($orders),
+            'pagination' => [
+                'page' => $orders->currentPage(),
+                'perPage' => $orders->perPage(),
+                'total' => $orders->total(),
+                'totalPages' => $orders->lastPage(),
+                'hasMore' => $orders->hasMorePages(),
+            ],
+        ]);
     }
 
     public function downloadPaymentConfirmation(Request $request, string $id)

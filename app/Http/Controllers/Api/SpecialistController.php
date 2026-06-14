@@ -265,7 +265,8 @@ final class SpecialistController extends Controller
             return true;
         }
 
-        return $user->stores()->where('stores.id', $specialist->store_id)->exists();
+        return $user->ownedStores()->where('id', $specialist->store_id)->exists()
+            || $user->stores()->where('stores.id', $specialist->store_id)->exists();
     }
 
     private function storeNotFoundResponse(): JsonResponse

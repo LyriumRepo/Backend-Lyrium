@@ -32,12 +32,12 @@ final class LoyaltyProgram extends Model
 
     public function tiers(): HasMany
     {
-        return $this->hasMany(LoyaltyTier::class)->orderBy('min_points', 'asc');
+        return $this->hasMany(LoyaltyTier::class, 'program_id')->orderBy('min_points', 'asc');
     }
 
     public function rewards(): HasMany
     {
-        return $this->hasMany(LoyaltyReward::class);
+        return $this->hasMany(LoyaltyReward::class, 'program_id');
     }
 
     public function activeRewards()

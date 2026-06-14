@@ -11,10 +11,13 @@ use App\Http\Requests\StoreUpdateRequest;
 use App\Http\Resources\StoreResource;
 use App\Models\Contract;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\StoreProfileUpdatedNotification;
 use App\Notifications\StoreStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 final class StoreController extends Controller
@@ -97,6 +100,19 @@ final class StoreController extends Controller
     }
 
     /**
+     * GET /api/stores/slug/{slug} — public endpoint for store page
+     */
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $store = Store::with(['subscription.plan', 'category', 'branches'])
+            ->where('slug', $slug)
+            ->where('status', 'approved')
+            ->firstOrFail();
+
+        return response()->json(['data' => new StoreResource($store)]);
+    }
+
+    /**
      * POST /api/stores
      */
     public function store(Request $request): JsonResponse
@@ -140,6 +156,8 @@ final class StoreController extends Controller
         }
 
         $store->update($data);
+
+        $this->notifyAdminStoreChanged($store, 'general');
 
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category'])));
     }
@@ -265,6 +283,8 @@ final class StoreController extends Controller
             );
         }
 
+        $this->notifyAdminStoreChanged($store, 'branches');
+
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category', 'branches'])));
     }
 
@@ -298,6 +318,8 @@ final class StoreController extends Controller
             'gallery' => $data['gallery'] ?? $store->gallery,
         ]);
 
+        $this->notifyAdminStoreChanged($store, 'visual');
+
         return response()->json(new StoreResource($store->fresh()));
     }
 
@@ -322,6 +344,8 @@ final class StoreController extends Controller
         $media = $store->addMediaFromRequest('file')->toMediaCollection('logo');
 
         $store->update(['logo' => $media->getUrl()]);
+
+        $this->notifyAdminStoreChanged($store, 'logo');
 
         return response()->json([
             'url' => $media->getUrl(),
@@ -355,6 +379,8 @@ final class StoreController extends Controller
 
         $column = $collection === 'banner2' ? 'banner2' : 'banner';
         $store->update([$column => $media->getUrl()]);
+
+        $this->notifyAdminStoreChanged($store, 'banner');
 
         return response()->json([
             'url' => $media->getUrl(),
@@ -390,6 +416,8 @@ final class StoreController extends Controller
 
         $currentGallery = $store->gallery ?? [];
         $store->update(['gallery' => array_merge($currentGallery, $urls)]);
+
+        $this->notifyAdminStoreChanged($store, 'gallery');
 
         return response()->json([
             'urls' => $urls,
@@ -458,6 +486,8 @@ final class StoreController extends Controller
         array_splice($gallery, $index, 1);
         $store->update(['gallery' => array_values($gallery)]);
 
+        $this->notifyAdminStoreChanged($store, 'gallery');
+
         return response()->json([
             'gallery' => $store->fresh()->gallery,
             'message' => 'Imagen eliminada correctamente',
@@ -481,8 +511,30 @@ final class StoreController extends Controller
             'rep_legal_foto' => $url
         ]);
 
+        $this->notifyAdminStoreChanged($store, 'general');
+
         return response()->json([
             'url' => $url
         ]);
+    }
+
+    /**
+     * Notifica a todos los administradores sobre cambios en la tienda.
+     * Usa cache para evitar spam: máximo 1 notificación por tienda cada 30 minutos.
+     */
+    private function notifyAdminStoreChanged(Store $store, string $changeType = 'general'): void
+    {
+        $cacheKey = "store_profile_updated_notif_{$store->id}";
+
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        Cache::put($cacheKey, true, now()->addMinutes(30));
+
+        $admins = User::role('administrator')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+        }
     }
 }

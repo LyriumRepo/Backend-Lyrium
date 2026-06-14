@@ -22,11 +22,32 @@ final class NubefactService
         return new self(NubefactProvider::fromConfig());
     }
 
+    public function isMock(): bool
+    {
+        return (bool) config('services.nubefact.mock', true);
+    }
+
     public function emitInvoice(Invoice $invoice, ?array $customItems = null): array
     {
+        if ($this->isMock()) {
+            Log::info('[NubefactService:MOCK] Comprobante simulado — omitiendo llamada a NubeFact', ['invoice_id' => $invoice->id]);
+            return [
+                'sunat_status'       => Invoice::SUNAT_STATUS_ACCEPTED,
+                'id'                 => 'MOCK-' . $invoice->id,
+                'pdf_url'            => null,
+                'authorization_code' => 'MOCK-' . now()->format('YmdHis'),
+                'qr_data'            => null,
+                'xml_url'            => null,
+                'cdr_url'            => null,
+            ];
+        }
+
         $totalConIgv = (float) $invoice->total;
-        $baseGravada = $totalConIgv / (1 + self::IGV_RATE);
-        $totalIgv = $totalConIgv - $baseGravada;
+        // Usar el subtotal pre-calculado si existe para evitar imprecisión de coma flotante
+        // al dividir totalConIgv / 1.18 (p.ej. 117.53 / 1.18 puede dar 99.599... en lugar de 99.6).
+        $storedBase  = (float) ($invoice->subtotal_sin_igv ?? 0);
+        $baseGravada = $storedBase > 0 ? $storedBase : $totalConIgv / (1 + self::IGV_RATE);
+        $totalIgv    = round($totalConIgv - $baseGravada, 2);
 
         if ($customItems !== null) {
             $items = $customItems;

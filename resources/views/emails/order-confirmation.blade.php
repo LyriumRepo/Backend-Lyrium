@@ -249,6 +249,36 @@
     </tr>
 </table>
 
+{{-- ===== PANEL DE CLIENTE ===== --}}
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+    <tr>
+        <td style="padding:0 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+                style="background:#0d9488;border-radius:12px;">
+                <tr>
+                    <td style="padding:20px 24px;">
+                        <p style="margin:0 0 6px;font-size:13px;font-weight:900;color:#ffffff;
+                            text-transform:uppercase;letter-spacing:1.2px;">
+                            Tu Panel de Cliente Lyrium
+                        </p>
+                        <p style="margin:0 0 16px;font-size:13px;color:#ccfaf7;line-height:1.6;">
+                            Ya tienes acceso a tu panel de cliente. Desde ahí puedes
+                            revisar el estado de tus pedidos, ver tus comprobantes digitales
+                            y gestionar todas tus compras futuras en Lyrium.
+                        </p>
+                        <a href="{{ env('FRONTEND_URL', 'https://lyrium.pe') }}/customer/orders"
+                            style="display:inline-block;padding:10px 22px;background:#ffffff;
+                            color:#0d9488;font-size:12px;font-weight:900;text-decoration:none;
+                            border-radius:8px;text-transform:uppercase;letter-spacing:1px;">
+                            Ir a mi panel →
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
 {{-- ===== REDES SOCIALES ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0"
     style="border-top:1.5px solid #d1f0eb;margin:24px 16px 4px;padding:24px 0 16px;">

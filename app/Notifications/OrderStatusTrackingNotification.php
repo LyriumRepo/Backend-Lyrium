@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Order;
 use App\Services\CarrierResolver;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class OrderStatusTrackingNotification extends Notification
+final class OrderStatusTrackingNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -35,6 +37,19 @@ final class OrderStatusTrackingNotification extends Notification
             'image' => 'tracking-stage5.jpg',
             'title' => '¡RECIBIDO! CONFIRMAMOS LA ENTREGA DE TU PEDIDO',
         ],
+        Order::STATUS_CANCELLED => [
+            'image' => null,
+            'title' => 'TU PEDIDO HA SIDO CANCELADO',
+        ],
+    ];
+
+    private const STATUS_LABELS = [
+        Order::STATUS_PENDING_SELLER => 'Pedido recibido',
+        Order::STATUS_CONFIRMED      => 'Validado por el vendedor',
+        Order::STATUS_PROCESSING     => 'En preparación / despachado',
+        Order::STATUS_SHIPPED        => 'En camino',
+        Order::STATUS_DELIVERED      => 'Entregado',
+        Order::STATUS_CANCELLED      => 'Cancelado',
     ];
 
     private const BANNER_TOP = 'banner-top.jpg';
@@ -46,7 +61,36 @@ final class OrderStatusTrackingNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $settings   = $notifiable->notificationSetting;
+        $wantsEmail = $settings?->wantsEmailOrder() ?? true;
+        $wantsPush  = $settings?->wantsPush() ?? true;
+
+        $channels = ['database'];
+        if ($wantsEmail) {
+            $channels[] = 'mail';
+        }
+        if ($wantsPush) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $label = self::STATUS_LABELS[$this->order->status] ?? 'Actualizado';
+
+        return [
+            'title' => '📦 Pedido actualizado',
+            'body'  => "Pedido #{$this->order->order_number}: {$label}",
+            'data'  => [
+                'type'         => 'order_tracking',
+                'order_id'     => (string) $this->order->id,
+                'order_number' => (string) $this->order->order_number,
+                'status'       => $this->order->status,
+                'url'          => '/customer/orders',
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -58,8 +102,8 @@ final class OrderStatusTrackingNotification extends Notification
             return $this->fallbackMail($notifiable);
         }
 
-        $imagePath = public_path('images/email/' . $tracking['image']);
-        $imageCid = 'tracking-' . str_replace('_', '-', $status);
+        $imagePath = $tracking['image'] ? public_path('images/email/' . $tracking['image']) : null;
+        $imageCid = $tracking['image'] ? 'tracking-' . str_replace('_', '-', $status) : null;
 
         $bannerTopPath = public_path('images/email/' . self::BANNER_TOP);
         $bannerBottomPath = public_path('images/email/' . self::BANNER_BOTTOM);
@@ -97,7 +141,7 @@ final class OrderStatusTrackingNotification extends Notification
                 if (file_exists($bannerTopPath)) {
                     $message->embedFromPath($bannerTopPath, 'banner-top');
                 }
-                if (file_exists($imagePath)) {
+                if ($imagePath && $imageCid && file_exists($imagePath)) {
                     $message->embedFromPath($imagePath, $imageCid);
                 }
                 if (file_exists($bannerBottomPath)) {
@@ -182,12 +226,14 @@ final class OrderStatusTrackingNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $label = self::STATUS_LABELS[$this->order->status] ?? 'Actualizado';
+
         return [
             'type'         => 'order_tracking',
             'order_id'     => $this->order->id,
             'order_number' => $this->order->order_number,
             'status'       => $this->order->status,
-            'subject'      => 'Seguimiento de tu pedido #' . $this->order->order_number,
+            'subject'      => "Pedido #{$this->order->order_number}: {$label}",
         ];
     }
 }

@@ -17,7 +17,7 @@ final class OrderResource extends JsonResource
 
         $firstItem = $this->whenLoaded('items', fn () => $this->items->first());
         $firstServiceItem = $this->whenLoaded('serviceItems', fn () => $this->serviceItems->first());
-        $firstShipment = $this->whenLoaded('shipments', fn () => $this->shipments->first());
+        $firstShipment = $this->relationLoaded('shipments') ? $this->shipments->first() : null;
 
         $hasItems = $this->relationLoaded('items') && $this->items->isNotEmpty();
         $hasServiceItems = $this->relationLoaded('serviceItems') && $this->serviceItems->isNotEmpty();

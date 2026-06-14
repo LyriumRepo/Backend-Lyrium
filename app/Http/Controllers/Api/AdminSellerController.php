@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Store;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -249,6 +250,114 @@ final class AdminSellerController extends Controller
             'message' => $user->is_banned
                 ? 'Vendedor baneado correctamente.'
                 : 'Vendedor habilitado correctamente.',
+        ]);
+    }
+
+    /**
+     * GET /api/admin/vendedores
+     *
+     * Lista tiendas con info de suscripción activa (panel de planes admin).
+     */
+    public function vendedores(Request $request): JsonResponse
+    {
+        $perPage = min((int) $request->query('per_page', 50), 100);
+        $search = $request->query('search');
+        $planFilter = $request->query('plan_filter');
+
+        $query = Store::whereNull('deleted_at')
+            ->with([
+                'owner:id,name,email',
+                'activeSubscription' => fn ($q) => $q->with('plan:id,name,slug,css_color,monthly_fee'),
+            ]);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('trade_name', 'like', "%{$search}%")
+                  ->orWhereHas('owner', fn ($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($planFilter) {
+            if ($planFilter === 'sin_plan') {
+                $query->whereDoesntHave('activeSubscription');
+            } else {
+                $query->whereHas('activeSubscription.plan', fn ($q) => $q->where('slug', $planFilter));
+            }
+        }
+
+        $stores = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        $data = $stores->getCollection()->map(function (Store $store) {
+            $sub = $store->activeSubscription;
+            $plan = $sub?->plan;
+
+            return [
+                'id'             => $store->id,
+                'store_id'       => $store->id,
+                'trade_name'     => $store->trade_name,
+                'slug'           => $store->slug ?? '',
+                'status'         => $store->status,
+                'ruc'            => $store->ruc ?? '',
+                'commission_rate'=> (string) ($store->commission_rate ?? '0'),
+                'strikes'        => $store->strikes ?? 0,
+                'seller'         => $store->owner ? [
+                    'id'    => $store->owner->id,
+                    'name'  => $store->owner->name,
+                    'email' => $store->owner->email,
+                ] : null,
+                'subscription'   => $sub ? [
+                    'id'          => $sub->id,
+                    'plan_id'     => $sub->plan_id,
+                    'plan_name'   => $plan?->name,
+                    'plan_slug'   => $plan?->slug,
+                    'plan_color'  => $plan?->css_color ?? '#10b981',
+                    'monthly_fee' => (string) ($plan?->monthly_fee ?? '0'),
+                    'starts_at'   => $sub->starts_at?->toIso8601String(),
+                    'ends_at'     => $sub->ends_at?->toIso8601String(),
+                    'is_active'   => $sub->status === 'active',
+                ] : null,
+                'created_at'     => $store->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+            'pagination' => [
+                'page'       => $stores->currentPage(),
+                'perPage'    => $stores->perPage(),
+                'total'      => $stores->total(),
+                'totalPages' => $stores->lastPage(),
+                'hasMore'    => $stores->hasMorePages(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/admin/vendedores/{id}/historial
+     *
+     * Historial de suscripciones de una tienda.
+     */
+    public function vendedorHistorial(int $id): JsonResponse
+    {
+        $store = Store::findOrFail($id);
+
+        $subscriptions = Subscription::where('store_id', $store->id)
+            ->with('plan:id,name,slug,monthly_fee,css_color')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $subscriptions->map(fn (Subscription $sub) => [
+                'plan_id'    => $sub->plan_id,
+                'plan_name'  => $sub->plan?->name,
+                'plan_slug'  => $sub->plan?->slug,
+                'monthly_fee'=> (string) ($sub->plan?->monthly_fee ?? '0'),
+                'starts_at'  => $sub->starts_at?->toIso8601String(),
+                'ends_at'    => $sub->ends_at?->toIso8601String(),
+                'status'     => $sub->status,
+            ]),
         ]);
     }
 

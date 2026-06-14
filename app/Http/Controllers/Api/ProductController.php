@@ -11,6 +11,8 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\User;
+use App\Notifications\ProductPendingReviewNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -193,6 +195,12 @@ final class ProductController extends Controller
 
         $product->load(self::RELATIONS_DETAIL);
 
+        // Notificar a administradores: producto pendiente de revisión
+        $admins = User::role('administrator')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new ProductPendingReviewNotification($product));
+        }
+
         return response()->json(new ProductResource($product), 201);
     }
 
@@ -371,6 +379,14 @@ final class ProductController extends Controller
 
         if ($slug = $request->query('slug')) {
             $query->where('slug', $slug);
+        }
+
+        if ($storeSlug = $request->query('store_slug')) {
+            $query->whereHas('store', fn ($q) => $q->where('slug', $storeSlug));
+        }
+
+        if ($storeId = $request->query('store_id')) {
+            $query->where('store_id', $storeId);
         }
     }
 
