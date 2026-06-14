@@ -19,6 +19,7 @@ final class ScannedDocumentResource extends JsonResource
             'RECIBO_POR_HONORARIOS' => $this->toHonorarios($data),
             'FACTURA' => $this->toFactura($data),
             'BOLETA' => $this->toBoleta($data),
+            'ESTADO_CUENTA_BCP' => $this->toEstadoCuenta($data),
             default => $this->toDefault($data),
         };
     }
@@ -63,7 +64,7 @@ final class ScannedDocumentResource extends JsonResource
             'service' => $data->serviceDescription !== null ? [
                 'description' => $data->serviceDescription,
             ] : null,
-        ], fn($v) => $v !== null);
+        ], fn ($v) => $v !== null);
     }
 
     private function toFactura(ScannedDocumentData $data): array
@@ -71,7 +72,7 @@ final class ScannedDocumentResource extends JsonResource
         $result = [
             ...$this->base($data),
             'due_date' => $data->dueDate,
-            'items' => array_map(fn($item) => [
+            'items' => array_map(fn ($item) => [
                 'description' => $item->description,
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unitPrice,
@@ -104,7 +105,7 @@ final class ScannedDocumentResource extends JsonResource
     {
         $result = [
             ...$this->base($data),
-            'items' => array_map(fn($item) => [
+            'items' => array_map(fn ($item) => [
                 'description' => $item->description,
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unitPrice,
@@ -117,6 +118,34 @@ final class ScannedDocumentResource extends JsonResource
         ];
 
         return $result;
+    }
+
+    private function toEstadoCuenta(ScannedDocumentData $data): array
+    {
+        return [
+            ...$this->base($data),
+            'period' => $data->issueDate,
+            'period_full' => $data->period,
+            'opening_balance' => $data->openingBalance,
+            'closing_balance' => $data->closingBalance,
+            'lines' => array_map(fn ($line) => array_filter([
+                'date' => $line->date,
+                'description' => $line->description,
+                'reference' => $line->reference,
+                'charge' => $line->charge,
+                'deposit' => $line->deposit,
+                'glossary_key' => $line->glossaryKey,
+                'glossary_description' => $line->glossaryDescription,
+                'hour' => $line->hour,
+                'med' => $line->med,
+                'tipo' => $line->tipo,
+                'place' => $line->place,
+                'origen' => $line->origen,
+                'num_op' => $line->numOp,
+                'suc_age' => $line->sucAge,
+                'balance' => $line->balance,
+            ], fn ($v) => $v !== null), $data->bankStatementLines),
+        ];
     }
 
     private function toDefault(ScannedDocumentData $data): array

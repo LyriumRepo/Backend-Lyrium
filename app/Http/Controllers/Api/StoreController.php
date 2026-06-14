@@ -23,6 +23,128 @@ use Illuminate\Support\Str;
 final class StoreController extends Controller
 {
     /**
+     * GET /api/stores (público)
+     * Lista tiendas aprobadas con info básica
+     */
+    public function publicIndex(Request $request): JsonResponse
+    {
+        $query = Store::with('category')
+            ->where('status', 'approved');
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('trade_name', 'like', "%{$search}%")
+                    ->orWhere('nombre_comercial', 'like', "%{$search}%")
+                    ->orWhere('razon_social', 'like', "%{$search}%");
+            });
+        }
+
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($city = $request->query('city')) {
+            $query->where('address', 'like', "%{$city}%");
+        }
+
+        $stores = $query->orderByDesc('created_at')
+            ->paginate(min((int) $request->query('per_page', 12), 50));
+
+        return response()->json([
+            'success' => true,
+            'data' => $stores->map(fn ($store) => [
+                'id' => $store->id,
+                'name' => $store->store_name,
+                'slug' => $store->slug,
+                'description' => $store->description,
+                'logo' => $store->getMediaUrl('logo'),
+                'banner' => $store->getMediaUrl('banner'),
+                'address' => $store->address,
+                'phone' => $store->phone,
+                'category' => $store->category?->name,
+                'rating' => (float) $store->rating,
+                'product_count' => $store->products()->where('status', 'approved')->count(),
+            ]),
+            'pagination' => [
+                'page' => $stores->currentPage(),
+                'perPage' => $stores->perPage(),
+                'total' => $stores->total(),
+                'totalPages' => $stores->lastPage(),
+                'hasMore' => $stores->hasMorePages(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/stores/{slug} (público)
+     * Retorna detalle completo de una tienda por slug
+     */
+    public function publicShow(string $slug): JsonResponse
+    {
+        $store = Store::with(['category', 'branches' => fn ($q) => $q->where('is_active', true)])
+            ->where('slug', $slug)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $store) {
+            return response()->json(['success' => false, 'message' => 'Tienda no encontrada'], 404);
+        }
+
+        $plan = 'basico';
+        if ($store->relationLoaded('subscription') && $store->subscription) {
+            $plan = $store->subscription->plan?->name === 'Premium' ? 'premium' : 'basico';
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $store->id,
+                'name' => $store->store_name,
+                'slug' => $store->slug,
+                'description' => $store->description,
+                'logo' => $store->getMediaUrl('logo'),
+                'banner' => $store->getMediaUrl('banner'),
+                'banner2' => $store->getMediaUrl('banner2'),
+                'gallery' => $store->getGalleryUrls(),
+                'address' => $store->address,
+                'phone' => $store->phone,
+                'email' => $store->corporate_email,
+                'category' => $store->category?->name,
+                'category_id' => $store->category_id,
+                'rating' => (float) $store->rating,
+                'layout' => $store->layout ?? '1',
+                'plan' => $plan,
+                'open' => true,
+                'social' => [
+                    'instagram' => $store->instagram,
+                    'facebook' => $store->facebook,
+                    'tiktok' => $store->tiktok,
+                    'whatsapp' => $store->whatsapp,
+                    'youtube' => $store->youtube,
+                    'twitter' => $store->twitter,
+                    'linkedin' => $store->linkedin,
+                    'website' => $store->website,
+                ],
+                'branches' => $store->branches->map(fn ($b) => [
+                    'id' => $b->id,
+                    'name' => $b->name,
+                    'address' => $b->address,
+                    'city' => $b->city,
+                    'phone' => $b->phone,
+                    'hours' => $b->hours,
+                    'is_principal' => $b->is_principal,
+                    'maps_url' => $b->maps_url,
+                ]),
+                'stats' => [
+                    'products' => $store->products()->where('status', 'approved')->count(),
+                    'rating' => (float) $store->rating,
+                    'reviews' => 0,
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/stores/me
      * Retorna la tienda del vendedor autenticado
      */

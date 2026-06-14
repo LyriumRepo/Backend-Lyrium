@@ -28,6 +28,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSlotHold;
+use App\Services\CommissionService;
 use App\Services\LiriosService;
 use App\Services\ShippingService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -272,6 +273,9 @@ final class OrderController extends Controller
             foreach ($orderItems as $item) {
                 $order->items()->create($item);
             }
+
+            $order->load('items');
+            app(CommissionService::class)->calculateForOrder($order);
 
             if ($couponId) {
                 $coupon->incrementUsage();

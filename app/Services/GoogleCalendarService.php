@@ -621,6 +621,7 @@ final class GoogleCalendarService
                 'booking_id' => $booking->id,
                 'to' => $to,
             ]);
+
             return;
         }
 

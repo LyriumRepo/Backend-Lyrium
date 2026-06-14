@@ -290,6 +290,17 @@
                                 style="display:block;margin:0 auto;" />
                         </a>
                     </td>
+                    <td style="padding:0;">
+                        <div style="width:1px;height:54px;background:#c8e8e4;"></div>
+                    </td>
+                    <td style="padding:0 14px;text-align:center;vertical-align:top;">
+                        <a href="https://www.youtube.com/@LyriumBiomarketplace"
+                            target="_blank" style="text-decoration:none;display:inline-block;">
+                            <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png"
+                                width="48" height="48" alt="YouTube"
+                                style="display:block;margin:0 auto;" />
+                        </a>
+                    </td>
                 </tr>
             </table>
         </td>

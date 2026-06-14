@@ -56,29 +56,39 @@ final class CartController extends Controller
         if ($guestCart) {
             $guestItems = CartItem::where('cart_id', $guestCart->id)->get();
 
-            foreach ($guestItems as $guestItem) {
-                $existingUserItem = CartItem::where('cart_id', $userCart->id)
-                    ->where('product_id', $guestItem->product_id)
-                    ->first();
+            if ($guestItems->isNotEmpty()) {
+                // Solo fusionar si el carrito invitado se creó en las últimas 24h
+                $isRecent = $guestCart->created_at && $guestCart->created_at->gt(now()->subHours(24));
 
-                if ($existingUserItem) {
-                    // Si ya lo tenía en su cuenta, sumamos las cantidades
-                    $newQuantity = $existingUserItem->quantity + $guestItem->quantity;
+                // También permitir si el carrito del usuario está vacío (primera compra)
+                $userHasItems = CartItem::where('cart_id', $userCart->id)->exists();
 
-                    $product = $guestItem->product;
-                    if ($product && $newQuantity > $product->stock) {
-                        $newQuantity = $product->stock;
+                if (! $isRecent && $userHasItems) {
+                    // Carrito antiguo con items — no fusionar, eliminar guest items
+                    foreach ($guestItems as $gi) {
+                        $gi->delete();
                     }
-
-                    $existingUserItem->update(['quantity' => $newQuantity]);
-                    $guestItem->delete();
                 } else {
-                    // Si no lo tenía, simplemente cambiamos el ID del carrito al del usuario
-                    $guestItem->update(['cart_id' => $userCart->id]);
+                    foreach ($guestItems as $guestItem) {
+                        $existingUserItem = CartItem::where('cart_id', $userCart->id)
+                            ->where('product_id', $guestItem->product_id)
+                            ->first();
+
+                        if ($existingUserItem) {
+                            $newQuantity = $existingUserItem->quantity + $guestItem->quantity;
+                            $product = $guestItem->product;
+                            if ($product && $newQuantity > $product->stock) {
+                                $newQuantity = $product->stock;
+                            }
+                            $existingUserItem->update(['quantity' => $newQuantity]);
+                            $guestItem->delete();
+                        } else {
+                            $guestItem->update(['cart_id' => $userCart->id]);
+                        }
+                    }
                 }
             }
 
-            // Una vez movidos los productos, eliminamos el cascarón del carrito de invitado
             $guestCart->delete();
         }
 

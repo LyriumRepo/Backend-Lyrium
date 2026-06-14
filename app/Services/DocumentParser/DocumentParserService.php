@@ -16,12 +16,14 @@ final class DocumentParserService
         ?HonorariosParser $honorariosParser = null,
         ?BoletaParser $boletaParser = null,
         ?ServicioParser $servicioParser = null,
+        ?EstadoCuentaBcpParser $estadoCuentaParser = null,
     ) {
         $this->parsers = array_filter([
-            $facturaParser ?? new FacturaParser(),
-            $honorariosParser ?? new HonorariosParser(),
-            $boletaParser ?? new BoletaParser(),
-            $servicioParser ?? new ServicioParser(),
+            $facturaParser ?? new FacturaParser,
+            $honorariosParser ?? new HonorariosParser,
+            $boletaParser ?? new BoletaParser,
+            $servicioParser ?? new ServicioParser,
+            $estadoCuentaParser ?? new EstadoCuentaBcpParser,
         ]);
     }
 

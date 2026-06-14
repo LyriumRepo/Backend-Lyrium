@@ -213,7 +213,7 @@ final class Store extends Model implements HasMedia
     public function getGalleryUrls(): array
     {
         return $this->getMedia('gallery')
-            ->map(fn($media) => $media->getUrl())
+            ->map(fn ($media) => $media->getUrl())
             ->toArray();
     }
 
@@ -274,6 +274,7 @@ final class Store extends Model implements HasMedia
     {
         return $this->storeReviews()->count();
     }
+
     // app/Models/Store.php
     public function activeSubscription()
     {

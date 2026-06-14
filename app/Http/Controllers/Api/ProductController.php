@@ -386,7 +386,7 @@ final class ProductController extends Controller
         }
 
         if ($storeId = $request->query('store_id')) {
-            $query->where('store_id', $storeId);
+            $query->where('store_id', (int) $storeId);
         }
     }
 
