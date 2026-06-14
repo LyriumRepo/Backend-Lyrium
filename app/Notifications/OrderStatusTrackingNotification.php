@@ -15,24 +15,20 @@ final class OrderStatusTrackingNotification extends Notification
     use Queueable;
 
     private const TRACKING_MAP = [
-        Order::STATUS_PENDING_SELLER => [
-            'image' => 'tracking-stage1.jpg',
-            'title' => 'TU PEDIDO HA SIDO RECIBIDO',
-        ],
         Order::STATUS_CONFIRMED => [
-            'image' => 'tracking-stage2.jpg',
+            'image' => 'tracking-stage1.jpg',
             'title' => 'TU PEDIDO HA SIDO VALIDADO POR EL VENDEDOR',
         ],
         Order::STATUS_PROCESSING => [
-            'image' => 'tracking-stage3.jpg',
+            'image' => 'tracking-stage2.jpg',
             'title' => 'TU PEDIDO HA SIDO DESPACHADO CON ÉXITO',
         ],
         Order::STATUS_SHIPPED => [
-            'image' => 'tracking-stage4.jpg',
+            'image' => 'tracking-stage3.jpg',
             'title' => '¡TU PEDIDO VA EN CAMINO!',
         ],
         Order::STATUS_DELIVERED => [
-            'image' => 'tracking-stage5.jpg',
+            'image' => 'tracking-stage4.jpg',
             'title' => '¡RECIBIDO! CONFIRMAMOS LA ENTREGA DE TU PEDIDO',
         ],
     ];

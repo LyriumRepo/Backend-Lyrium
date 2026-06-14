@@ -50,10 +50,12 @@ final class BookingConfirmationMail extends Mailable implements ShouldQueue
         $date = Carbon::parse($this->booking->appointment_date)
             ->translatedFormat('l d \d\e F \d\e Y \a \l\a\s H:i');
 
-        $subject = match ($this->role) {
-            'client' => "✅ Tu cita está confirmada — {$serviceName}",
-            'specialist' => "📅 Nueva cita asignada — {$serviceName} el {$date}",
-            'seller' => "🔔 Nueva reserva en tu tienda — {$serviceName}",
+        $subject = match (true) {
+            $this->booking->status === 'on_the_way' && $this->role === 'client' => "🚗 Tu especialista está en camino — {$serviceName}",
+            $this->booking->status === 'on_the_way' => "🚗 En camino — {$serviceName}",
+            $this->role === 'client' => "✅ Tu cita está confirmada — {$serviceName}",
+            $this->role === 'specialist' => "📅 Nueva cita asignada — {$serviceName} el {$date}",
+            $this->role === 'seller' => "🔔 Nueva reserva en tu tienda — {$serviceName}",
             default => "Confirmación de cita — {$serviceName}",
         };
 

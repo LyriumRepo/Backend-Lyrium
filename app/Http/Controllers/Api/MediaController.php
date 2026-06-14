@@ -263,7 +263,8 @@ final class MediaController extends Controller
             $service = Service::findOrFail($serviceId);
 
             $user = $request->user();
-            $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+            $hasAccess = $user->ownedStores()->where('stores.id', $service->store_id)->exists()
+                || $user->stores()->where('stores.id', $service->store_id)->exists();
             if (! $hasAccess && ! $user->hasRole('administrator')) {
                 return response()->json(['message' => 'No tienes acceso a este servicio'], 403);
             }

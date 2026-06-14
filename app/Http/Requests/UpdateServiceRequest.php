@@ -72,7 +72,7 @@ final class UpdateServiceRequest extends FormRequest
             'schedules.*.day_of_week' => ['required_with:schedules', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'schedules.*.start_time' => ['required_with:schedules', 'date_format:H:i'],
             'schedules.*.end_time' => ['required_with:schedules', 'date_format:H:i', 'after:schedules.*.start_time'],
-            'schedules.*.specialist_id' => ['required_with:schedules', 'exists:specialists,id'],
+            'schedules.*.specialist_id' => ['nullable', 'exists:specialists,id'],
             'schedules.*.max_appointments' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'schedules.*.is_active' => ['sometimes', 'boolean'],
             'schedules.*.orden_bloque' => ['nullable', 'integer'],

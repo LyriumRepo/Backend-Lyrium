@@ -31,6 +31,15 @@ final class SendOrderTrackingEmailListener
             return;
         }
 
+        if (!$order->relationLoaded('items')) {
+            $order->load('items');
+        }
+
+        // Solo enviar tracking email si la orden tiene items de producto
+        if ($order->items->isEmpty()) {
+            return;
+        }
+
         $user->notify(new OrderStatusTrackingNotification($order));
     }
 }

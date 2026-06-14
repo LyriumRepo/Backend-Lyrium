@@ -6,6 +6,7 @@ use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSchedule;
 use App\Models\Category;
+use App\Mail\BookingConfirmationMail;
 use App\Models\Order;
 use App\Models\OrderServiceItem;
 use App\Notifications\BookingCancelledNotification;
@@ -14,6 +15,7 @@ use App\Notifications\BookingCreatedNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 final class ServiceService
@@ -192,7 +194,7 @@ final class ServiceService
                         'start_time' => $schedule['start_time'],
                         'end_time' => $schedule['end_time'],
                         'max_appointments' => $schedule['max_appointments'] ?? $data['max_capacity'] ?? 1,
-                        'is_available' => $schedule['is_active'] ?? $schedule['is_available'] ?? true,
+                        'is_active' => $schedule['is_active'] ?? true,
 
                         // ── LAS DOS LÍNEAS QUE SOLUCIONAN TU PROBLEMA ──
                         'specialist_id' => $schedule['specialist_id'] ?? null,
@@ -243,10 +245,12 @@ final class ServiceService
 
         // Cambiamos ->first() por ->get() y filtramos por specialist_id
         $schedules = $service->schedules()
-            ->where('is_active', true)
-            ->where('specialist_id', $specialistId) // <-- Filtro vital
+            ->where(function ($q) {
+                $q->where('is_active', true)->orWhereNull('is_active');
+            })
+            ->where('specialist_id', $specialistId)
             ->where('day_of_week', $dayName)
-            ->get(); // <-- Trae la colección completa (Ej: Bloque 1 y Bloque 2)
+            ->get();
 
         if ($schedules->isEmpty()) {
             return []; // El especialista no atiende este día para este servicio
@@ -465,12 +469,37 @@ final class ServiceService
             'confirmed_at' => now(),
         ]);
 
-        $booking = $booking->fresh();
+        OrderServiceItem::where('service_booking_id', $bookingId)
+            ->where('status', 'pending')
+            ->update(['status' => 'confirmed']);
 
-        \App\Events\BookingConfirmed::dispatch($booking);
+        $orderServiceItem = \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->first();
+        if ($orderServiceItem?->order) {
+            $orderServiceItem->order->refreshGlobalStatus();
+        }
+
+        $booking = $booking->fresh()->load('service');
+
+        try {
+            \App\Events\BookingConfirmed::dispatch($booking);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('BookingConfirmed broadcast failed', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         if ($booking->user) {
             $booking->user->notify(new BookingConfirmedNotification($booking));
+
+            Mail::to($booking->user->email)
+                ->queue(new BookingConfirmationMail(
+                    booking: $booking,
+                    recipientName: $booking->user->name,
+                    role: 'client',
+                    icsContent: null,
+                    gcalOk: true,
+                ));
         }
 
         return $booking;
@@ -499,7 +528,7 @@ final class ServiceService
             'cancelled_at' => now(),
         ]);
 
-        $booking = $booking->fresh();
+        $booking = $booking->fresh()->load('service');
 
         \App\Events\BookingCancelled::dispatch($booking);
 
@@ -549,6 +578,15 @@ final class ServiceService
 
         $booking->update(['status' => ServiceBooking::STATUS_COMPLETED]);
 
+        OrderServiceItem::where('service_booking_id', $bookingId)
+            ->whereIn('status', ['confirmed', 'on_the_way'])
+            ->update(['status' => 'completed']);
+
+        $orderServiceItem = \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->first();
+        if ($orderServiceItem?->order) {
+            $orderServiceItem->order->refreshGlobalStatus();
+        }
+
         return $booking->fresh();
     }
 
@@ -564,7 +602,29 @@ final class ServiceService
 
         $booking->markAsOnTheWay();
 
-        return $booking->fresh();
+        OrderServiceItem::where('service_booking_id', $bookingId)
+            ->where('status', 'confirmed')
+            ->update(['status' => 'on_the_way']);
+
+        $orderServiceItem = \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->first();
+        if ($orderServiceItem?->order) {
+            $orderServiceItem->order->refreshGlobalStatus();
+        }
+
+        $booking = $booking->fresh()->load('service', 'user');
+
+        if ($booking->user) {
+            Mail::to($booking->user->email)
+                ->send(new BookingConfirmationMail(
+                    booking: $booking,
+                    recipientName: $booking->user->name,
+                    role: 'client',
+                    icsContent: null,
+                    gcalOk: true,
+                ));
+        }
+
+        return $booking;
     }
 
     public function confirmCompletion(int $bookingId): ServiceBooking
@@ -609,7 +669,7 @@ final class ServiceService
         $this->googleCalendar->updateEvent($booking->fresh(['service.store', 'user']));
         // ───────────────────────────────────────────────────────────────────
 
-        $booking = $booking->fresh();
+        $booking = $booking->fresh()->load('service');
 
         \App\Events\BookingRescheduled::dispatch($booking);
 
