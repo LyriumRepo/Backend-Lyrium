@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Store;
 use App\Models\User;
+use App\Notifications\StoreStatusNotification;
+use App\Notifications\UserBannedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -238,10 +241,16 @@ final class AdminSellerController extends Controller
      * Reutiliza la misma lógica que UserController@toggleBan
      * pero asegura que sea un seller.
      */
-    public function toggleBan(int $id): JsonResponse
+    public function toggleBan(Request $request, int $id): JsonResponse
     {
         $user = User::role('seller')->findOrFail($id);
+        $reason = $request->input('reason');
+
         $user->update(['is_banned' => ! $user->is_banned]);
+
+        if ($user->is_banned) {
+            $user->notify(new UserBannedNotification($reason));
+        }
 
         return response()->json([
             'id' => $user->id,
@@ -261,13 +270,24 @@ final class AdminSellerController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:active,pending,suspended',
+            'reason' => 'nullable|string|max:500',
         ]);
 
-        $store = Store::whereNull('deleted_at')->findOrFail($storeId);
+        $store = Store::with('owner')->whereNull('deleted_at')->findOrFail($storeId);
         $store->update([
             'status' => $validated['status'],
             'approved_at' => $validated['status'] === 'active' ? now() : $store->approved_at,
         ]);
+
+        if ($store->owner) {
+            $store->owner->notify(new StoreStatusNotification(
+                $store,
+                $validated['status'],
+                $validated['reason'] ?? null,
+            ));
+        }
+
+        broadcast(new StoreStatusChanged($store->fresh()));
 
         return response()->json([
             'store_id' => $store->id,

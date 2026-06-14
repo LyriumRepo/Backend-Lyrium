@@ -14,6 +14,8 @@ final class BlogComment extends Model
 
     protected $fillable = [
         'blog_post_id',
+        'commentable_id',
+        'commentable_type',
         'author_name',
         'author_email',
         'content',
@@ -30,5 +32,10 @@ final class BlogComment extends Model
     public function post(): BelongsTo
     {
         return $this->belongsTo(BlogPost::class, 'blog_post_id');
+    }
+
+    public function commentable()
+    {
+        return $this->morphTo();
     }
 }

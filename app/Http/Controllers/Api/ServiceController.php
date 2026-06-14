@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Events\NewBookingReceived;
+use App\Events\ServiceStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BookServiceRequest;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Http\Resources\ServiceBookingResource;
 use App\Http\Resources\ServiceResource;
+use App\Models\Service;
+use App\Models\User;
+use App\Notifications\ServiceStatusNotification;
 use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 final class ServiceController extends Controller
 {
@@ -109,11 +114,20 @@ final class ServiceController extends Controller
             return response()->json(['message' => 'No tienes una tienda registrada.'], 403);
         }
 
+        $data = $request->validated();
+        $data['status'] = Service::STATUS_PENDING_REVIEW;
+
         $service = $this->serviceService->createForStore(
             storeId: $store->id,
-            data: $request->validated()
+            data: $data
         );
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
+
+        $admins = User::role('administrator')->get();
+        $notification = new ServiceStatusNotification($service, Service::STATUS_PENDING_REVIEW);
+        foreach ($admins as $admin) {
+            $admin->notify($notification);
+        }
 
         return response()->json(
             new ServiceResource($service),
@@ -171,6 +185,100 @@ final class ServiceController extends Controller
         }
 
         $service = $this->serviceService->update($id, $request->validated());
+
+        $service->load(['schedules', 'category.parent', 'store', 'specialists']);
+
+        return response()->json(new ServiceResource($service));
+    }
+
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $query = Service::with(['store', 'category']);
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%");
+            });
+        }
+
+        $perPage = min((int) $request->query('per_page', 15), 100);
+        $services = $query->orderBy('created_at', 'desc')->paginate($perPage);
+
+        $data = $services->map(function ($service) {
+            return [
+                'id' => $service->id,
+                'name' => $service->name,
+                'slug' => $service->slug,
+                'price' => (string) $service->price,
+                'status' => $service->status,
+                'rejection_reason' => $service->rejection_reason,
+                'reviewed_at' => $service->reviewed_at?->toIso8601String(),
+                'created_at' => $service->created_at?->toIso8601String(),
+                'store' => $service->relationLoaded('store') && $service->store
+                    ? [
+                        'id' => $service->store->id,
+                        'name' => $service->store->store_name ?? $service->store->trade_name ?? '',
+                        'slug' => $service->store->slug ?? '',
+                    ]
+                    : null,
+                'category' => $service->relationLoaded('category') && $service->category
+                    ? [
+                        'id' => $service->category->id,
+                        'name' => $service->category->name,
+                    ]
+                    : null,
+            ];
+        });
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $services->currentPage(),
+                'per_page' => $services->perPage(),
+                'total' => $services->total(),
+                'total_pages' => $services->lastPage(),
+            ],
+        ]);
+    }
+
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $service = Service::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:approved,rejected,pending_review',
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validated['status'] === 'rejected' && empty($validated['reason'])) {
+            return response()->json([
+                'message' => 'El motivo de rechazo es obligatorio.',
+                'errors' => ['reason' => ['Debes indicar el motivo del rechazo.']],
+            ], 422);
+        }
+
+        $service->update([
+            'status' => $validated['status'],
+            'rejection_reason' => $validated['status'] === 'rejected' ? $validated['reason'] : null,
+            'reviewed_at' => now(),
+            'reviewed_by' => Auth::id(),
+        ]);
+
+        broadcast(new ServiceStatusChanged($service));
+
+        $service->load('store.owner');
+
+        if ($service->store && $service->store->owner) {
+            $service->store->owner->notify(new ServiceStatusNotification(
+                $service,
+                $validated['status'],
+                $validated['reason'] ?? null,
+            ));
+        }
 
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
 

@@ -14,6 +14,7 @@ final class BlogCommentResource extends JsonResource
         return [
             'id' => $this->id,
             'post_id' => $this->blog_post_id,
+            'article_id' => $this->commentable_type === 'article' ? $this->commentable_id : null,
             'author_name' => $this->author_name,
             'author_email' => $this->author_email,
             'content' => $this->content,

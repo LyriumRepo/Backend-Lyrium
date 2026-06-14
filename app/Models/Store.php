@@ -192,6 +192,14 @@ final class Store extends Model implements HasMedia
                 'status' => 'banned',
                 'banned_at' => now(),
             ]);
+
+            if ($this->relationLoaded('owner') && $this->owner) {
+                $this->owner->notify(new \App\Notifications\StoreStatusNotification(
+                    $this,
+                    'banned',
+                    'Auto-suspensión por acumular 3 strikes.',
+                ));
+            }
         }
     }
 
