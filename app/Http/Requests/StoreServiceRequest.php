@@ -80,7 +80,7 @@ final class StoreServiceRequest extends FormRequest
             'schedules.*.start_time' => ['required_with:schedules', 'date_format:H:i'],
             'schedules.*.end_time' => ['required_with:schedules', 'date_format:H:i', 'after:schedules.*.start_time'],
 
-            'schedules.*.specialist_id' => ['required_with:schedules', 'exists:specialists,id'],
+            'schedules.*.specialist_id' => ['nullable', 'exists:specialists,id'],
 
             'schedules.*.max_appointments' => ['sometimes', 'integer', 'min:1', 'max:50'],
             'schedules.*.is_active' => ['sometimes', 'boolean'],

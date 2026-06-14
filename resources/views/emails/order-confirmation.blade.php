@@ -24,24 +24,6 @@
 <img src="https://fv5-5.files.fm/thumb_show.php?i=337x2ej3b6" alt="Gracias por tu compra - Lyrium"
     style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;" />
 
-{{-- ===== MENSAJE DE PENDIENTE ===== --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">
-    <tr>
-        <td style="padding:0 16px;">
-            <table width="100%" cellpadding="0" cellspacing="0"
-                style="background:#FEF9C3;border:1.5px solid #FDE047;border-radius:10px;">
-                <tr>
-                    <td style="padding:14px 18px;">
-                        <p style="margin:0;font-size:13px;font-weight:700;color:#78350F;text-align:center;">
-                            Tu pedido está pendiente de validación por el vendedor
-                        </p>
-                    </td>
-                </tr>
-            </table>
-        </td>
-    </tr>
-</table>
-
 {{-- ===== DETALLE DEL PEDIDO ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
     <tr>
@@ -54,12 +36,12 @@
                     <td style="padding:12px 16px 10px;">
                         <span style="font-size:13px;font-weight:900;color:#ffffff;
                             text-transform:uppercase;letter-spacing:1.5px;">
-                            Resumen de tu compra
+                            📋 Detalle de su pedido
                         </span>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding:0;">
+                    <td style="padding:0 0 0;">
                         <table width="100%" cellpadding="0" cellspacing="0"
                             style="background:#1a9d96;">
                             <tr>
@@ -112,7 +94,7 @@
 </table>
 
 {{-- ===== SUBTOTAL / ENVÍO / DESCUENTO ===== --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0;">
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 0;">
     <tr>
         <td style="padding:0 16px;">
             <table width="100%" cellpadding="0" cellspacing="0"
@@ -125,7 +107,7 @@
                             <tr>
                                 <td style="font-size:13px;font-weight:700;color:#1a4a4a;
                                     text-align:right;padding-right:16px;">
-                                    Subtotal
+                                    Subtotal 🛒
                                 </td>
                                 <td width="110" style="font-size:13px;font-weight:700;
                                     color:#1a3a3a;text-align:right;white-space:nowrap;">
@@ -143,7 +125,7 @@
                             <tr>
                                 <td style="font-size:13px;font-weight:700;color:#1a4a4a;
                                     text-align:right;padding-right:16px;">
-                                    Envío
+                                    Envío 🚚
                                 </td>
                                 <td width="110" style="font-size:13px;font-weight:700;
                                     text-align:right;white-space:nowrap;
@@ -167,7 +149,7 @@
                             <tr>
                                 <td style="font-size:13px;font-weight:700;color:#1a4a4a;
                                     text-align:right;padding-right:16px;">
-                                    Descuento
+                                    Descuento 🏷️
                                 </td>
                                 <td width="110" style="font-size:13px;font-weight:700;
                                     color:#16A34A;text-align:right;white-space:nowrap;">
@@ -195,7 +177,7 @@
                         <table width="100%" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td style="font-size:15px;font-weight:700;color:#ffffff;">
-                                    Total pagado
+                                    Total a pagar
                                 </td>
                                 <td style="text-align:right;font-size:22px;font-weight:900;
                                     color:#ffffff;white-space:nowrap;">
@@ -210,7 +192,8 @@
     </tr>
 </table>
 
-{{-- ===== MÉTODO DE ENTREGA ===== --}}
+{{-- ===== DIRECCIÓN DE ENVÍO ===== --}}
+@if($shippingAddress)
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
     <tr>
         <td style="padding:0 16px;">
@@ -218,36 +201,20 @@
                 style="border:1.5px solid #2db8b0;border-radius:10px;background:#f4fdfb;">
                 <tr>
                     <td style="padding:14px 18px;">
-                        <p style="margin:0 0 4px;font-size:12px;font-weight:800;color:#0F766E;
+                        <p style="margin:0 0 6px;font-size:12px;font-weight:800;color:#0F766E;
                             text-transform:uppercase;letter-spacing:1px;">
-                            Método de entrega
+                            📍 Dirección de envío
                         </p>
                         <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">
-                            {{ $shippingMethod ?? '—' }}
+                            {{ $shippingAddress }}
                         </p>
-                        @if($shippingAddress)
-                        <p style="margin:6px 0 0;font-size:12px;color:#64748B;">
-                            📍 {{ $shippingAddress }}
-                        </p>
-                        @endif
                     </td>
                 </tr>
             </table>
         </td>
     </tr>
 </table>
-
-{{-- ===== NÚMERO DE ORDEN ===== --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-    <tr>
-        <td style="text-align:center;padding:0 16px;">
-            <span style="font-size:11px;font-weight:800;color:#94A3B8;
-                text-transform:uppercase;letter-spacing:2px;">
-                Orden N° {{ $orderNumber }}
-            </span>
-        </td>
-    </tr>
-</table>
+@endif
 
 {{-- ===== REDES SOCIALES ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0"
@@ -274,7 +241,7 @@
                     <td style="padding:0 14px;text-align:center;vertical-align:top;">
                         <a href="https://www.instagram.com/lyrium_biomarketplace/" target="_blank"
                             style="text-decoration:none;display:inline-block;">
-                            <img src="https://cdn-icons-png.flaticon.com/128/4138/4138124.png"
+                            <img src="https://cdn-icons-png.flaticon.com/128/4138/4138124.png" ;
                                 width="48" height="48" alt="Instagram"
                                 style="display:block;margin:0 auto;border-radius:10px;" />
                         </a>

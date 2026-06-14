@@ -25,7 +25,7 @@ final class NubefactProvider implements InvoiceProviderInterface
     public static function fromConfig(): self
     {
         return new self(
-            apiUrl: config('services.nubefact.url'),
+            apiUrl: config('services.nubefact.route'),
             apiToken: config('services.nubefact.token'),
             timeout: (int) config('services.nubefact.timeout', self::DEFAULT_TIMEOUT),
             connectTimeout: (int) config('services.nubefact.connect_timeout', self::DEFAULT_CONNECT_TIMEOUT),

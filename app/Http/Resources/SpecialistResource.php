@@ -28,9 +28,10 @@ final class SpecialistResource extends JsonResource
         $isSeller = $user?->hasRole('seller') || $user?->hasRole('administrator');
 
         // El vendedor solo ve datos privados de sus PROPIOS especialistas
-        $isOwner = $isSeller && $user->stores()
-            ->where('stores.id', $this->store_id)
-            ->exists();
+        $isOwner = $isSeller && (
+            $user->ownedStores()->where('stores.id', $this->store_id)->exists()
+            || $user->stores()->where('stores.id', $this->store_id)->exists()
+        );
 
         return [
             // ── Identificación pública ────────────────────────────────────

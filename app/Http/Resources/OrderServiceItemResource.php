@@ -21,7 +21,7 @@ final class OrderServiceItemResource extends JsonResource
             'quantity' => (int) $this->quantity,
             'unitPrice' => (float) $this->unit_price,
             'lineTotal' => (float) $this->line_total,
-            'status' => $this->status,
+            'status' => trim($this->status),
             'appointmentDate' => $this->appointment_date?->toIso8601String(),
             'startTime' => $this->appointment_date?->format('H:i'),
             'endTime' => $this->appointment_date
@@ -30,6 +30,7 @@ final class OrderServiceItemResource extends JsonResource
             'modality' => $this->modality,
             'durationMinutes' => $this->duration_minutes,
             'serviceBookingId' => $this->service_booking_id,
+            'bookingStatus' => $this->whenLoaded('serviceBooking', fn () => $this->serviceBooking->status, null),
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ];

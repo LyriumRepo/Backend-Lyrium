@@ -16,11 +16,18 @@ final class BookingRescheduled implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly ServiceBooking $booking) {}
+    private readonly int $storeId;
+
+    public function __construct(public readonly ServiceBooking $booking)
+    {
+        $this->storeId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $booking->id)->value('store_id')
+            ?? 0;
+    }
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('store.'.$this->booking->service->store_id)];
+        return [new PrivateChannel('store.'.$this->storeId)];
     }
 
     public function broadcastWith(): array

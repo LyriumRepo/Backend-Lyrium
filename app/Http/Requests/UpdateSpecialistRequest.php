@@ -21,8 +21,8 @@ final class UpdateSpecialistRequest extends FormRequest
 
     public function rules(): array
     {
-        // El ID del especialista viene en la ruta: /api/specialists/{specialist}
-        $specialistId = (int) $this->route('specialist');
+        // El ID del especialista viene en la ruta: /api/stores/me/specialists/{id}
+        $specialistId = (int) $this->route('id');
 
         return [
             'nombres' => ['sometimes', 'string', 'max:255'],

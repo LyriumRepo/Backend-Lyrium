@@ -143,7 +143,8 @@ final class ServiceController extends Controller
         $service = $this->serviceService->findOrFail($serviceId);
 
         // Validamos si la tienda del vendedor autenticado es dueña de este servicio
-        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+        $hasAccess = $user->ownedStores()->where('stores.id', $service->store_id)->exists()
+            || $user->stores()->where('stores.id', $service->store_id)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -161,7 +162,8 @@ final class ServiceController extends Controller
 
         $service = $this->serviceService->findOrFail($id);
 
-        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+        $hasAccess = $user->ownedStores()->where('stores.id', $service->store_id)->exists()
+            || $user->stores()->where('stores.id', $service->store_id)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -183,7 +185,8 @@ final class ServiceController extends Controller
 
         $service = $this->serviceService->findOrFail($id);
 
-        $hasAccess = $user->stores()->where('id', $service->store_id)->exists();
+        $hasAccess = $user->ownedStores()->where('stores.id', $service->store_id)->exists()
+            || $user->stores()->where('stores.id', $service->store_id)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -264,19 +267,51 @@ final class ServiceController extends Controller
 
     public function confirmBooking(Request $request, int $bookingId): JsonResponse
     {
+        \Log::debug('[confirmBooking] ENTRY', [
+            'bookingId' => $bookingId,
+            'userId' => $request->user()?->id,
+            'userRoles' => $request->user()?->getRoleNames(),
+        ]);
+
         $user = $request->user();
         $booking = $this->serviceService->confirmBooking($bookingId);
 
-        $service = $booking->service;
-        $hasAccess = $user->stores()->where('stores.id', $service->store_id)->exists();
+        \Log::debug('[confirmBooking] after serviceService.confirmBooking', [
+            'bookingId' => $bookingId,
+            'bookingStatus' => $booking->status,
+            'bookingUserId' => $booking->user_id,
+            'serviceId' => $booking->service_id,
+            'serviceStoreId' => $booking->service?->store_id,
+        ]);
+
+        $bookingStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+
+        $storeIds = $user->ownedStores()->pluck('id')
+            ->concat($user->stores()->pluck('stores.id'))
+            ->unique();
+        $hasAccess = $storeIds->contains($bookingStoreId);
+
+        \Log::debug('[confirmBooking] access check', [
+            'hasAccess' => $hasAccess,
+            'storeIds' => $storeIds->toArray(),
+            'bookingStoreId' => $bookingStoreId,
+            'isAdmin' => $user->hasRole('administrator'),
+        ]);
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
+            \Log::warning('[confirmBooking] ACCESS DENIED', [
+                'bookingId' => $bookingId,
+                'userId' => $user->id,
+                'bookingStoreId' => $bookingStoreId,
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'No tienes acceso a esta reserva',
             ], 403);
         }
 
+        \Log::debug('[confirmBooking] SUCCESS');
         return response()->json(new ServiceBookingResource($booking));
     }
 
@@ -286,9 +321,12 @@ final class ServiceController extends Controller
         $booking = \App\Models\ServiceBooking::with('service')
             ->findOrFail($bookingId);
 
+        $serviceStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+
         if (
             $booking->user_id !== $user->id &&
-            ! $user->stores()->where('id', $booking->service->store_id)->exists() &&
+            ! $user->stores()->where('id', $serviceStoreId)->exists() &&
             ! $user->hasRole('administrator')
         ) {
             return response()->json([
@@ -308,7 +346,9 @@ final class ServiceController extends Controller
         $booking = \App\Models\ServiceBooking::with('service')
             ->findOrFail($bookingId);
 
-        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+        $serviceStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+        $hasAccess = $user->stores()->where('id', $serviceStoreId)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([
@@ -368,32 +408,97 @@ final class ServiceController extends Controller
 
     public function completeBooking(Request $request, int $bookingId): JsonResponse
     {
+        \Log::debug('[completeBooking] ENTRY', [
+            'bookingId' => $bookingId,
+            'userId' => $request->user()?->id,
+            'userRoles' => $request->user()?->getRoleNames(),
+        ]);
+
         $user = $request->user();
         $booking = \App\Models\ServiceBooking::with('service.store')->findOrFail($bookingId);
 
-        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+        \Log::debug('[completeBooking] booking found', [
+            'bookingId' => $booking->id,
+            'bookingStatus' => $booking->status,
+            'serviceStoreId' => $booking->service?->store_id,
+        ]);
+
+        $storeIds = $user->ownedStores()->pluck('id')
+            ->concat($user->stores()->pluck('stores.id'))
+            ->unique();
+        $serviceStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+        $hasAccess = $storeIds->contains($serviceStoreId);
+        \Log::debug('[completeBooking] access check', [
+            'hasAccess' => $hasAccess,
+            'storeIds' => $storeIds->toArray(),
+            'serviceStoreId' => $serviceStoreId,
+            'isAdmin' => $user->hasRole('administrator'),
+        ]);
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
+            \Log::warning('[completeBooking] ACCESS DENIED', [
+                'bookingId' => $bookingId,
+                'userId' => $user->id,
+            ]);
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
         $booking = $this->serviceService->completeBooking($bookingId);
+
+        \Log::debug('[completeBooking] SUCCESS', [
+            'bookingId' => $booking->id,
+            'newStatus' => $booking->status,
+        ]);
 
         return response()->json(new ServiceBookingResource($booking));
     }
 
     public function markOnTheWay(Request $request, int $bookingId): JsonResponse
     {
+        \Log::debug('[markOnTheWay] ENTRY', [
+            'bookingId' => $bookingId,
+            'userId' => $request->user()?->id,
+            'userRoles' => $request->user()?->getRoleNames(),
+        ]);
+
         $user = $request->user();
         $booking = \App\Models\ServiceBooking::with('service.store')->findOrFail($bookingId);
 
-        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+        \Log::debug('[markOnTheWay] booking found', [
+            'bookingId' => $booking->id,
+            'bookingStatus' => $booking->status,
+            'serviceStoreId' => $booking->service?->store_id,
+        ]);
+
+        $storeIds = $user->ownedStores()->pluck('id')
+            ->concat($user->stores()->pluck('stores.id'))
+            ->unique();
+        $serviceStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+        $hasAccess = $storeIds->contains($serviceStoreId);
+        \Log::debug('[markOnTheWay] access check', [
+            'hasAccess' => $hasAccess,
+            'storeIds' => $storeIds->toArray(),
+            'serviceStoreId' => $serviceStoreId,
+            'isAdmin' => $user->hasRole('administrator'),
+        ]);
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
+            \Log::warning('[markOnTheWay] ACCESS DENIED', [
+                'bookingId' => $bookingId,
+                'userId' => $user->id,
+                'serviceStoreId' => $booking->service?->store_id,
+            ]);
             return response()->json(['message' => 'No autorizado'], 403);
         }
 
         $booking = $this->serviceService->markAsOnTheWay($bookingId);
+
+        \Log::debug('[markOnTheWay] SUCCESS', [
+            'bookingId' => $booking->id,
+            'newStatus' => $booking->status,
+        ]);
 
         return response()->json(new ServiceBookingResource($booking));
     }
@@ -438,7 +543,7 @@ final class ServiceController extends Controller
             'service_booking_id' => $bookingId,
             'specialist_id' => $booking->specialist_id,
             'user_id' => $request->user()->id,
-            'product_id' => $booking->service->id,
+            'product_id' => $booking->service?->id,
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null,
             'is_verified_purchase' => true,
@@ -453,7 +558,9 @@ final class ServiceController extends Controller
         $booking = \App\Models\ServiceBooking::with('service')
             ->findOrFail($bookingId);
 
-        $hasAccess = $user->stores()->where('id', $booking->service->store_id)->exists();
+        $serviceStoreId = $booking->service?->store_id
+            ?? \App\Models\OrderServiceItem::where('service_booking_id', $bookingId)->value('store_id');
+        $hasAccess = $user->stores()->where('id', $serviceStoreId)->exists();
 
         if (! $hasAccess && ! $user->hasRole('administrator')) {
             return response()->json([

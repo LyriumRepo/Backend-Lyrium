@@ -19,6 +19,8 @@ final class Order extends Model
 
     public const STATUS_CONFIRMED = 'confirmed';
 
+    public const STATUS_ON_THE_WAY = 'on_the_way';
+
     public const STATUS_PROCESSING = 'processing';
 
     public const STATUS_SHIPPED = 'shipped';
@@ -30,6 +32,7 @@ final class Order extends Model
     public const STATUSES = [
         self::STATUS_PENDING_SELLER,
         self::STATUS_CONFIRMED,
+        self::STATUS_ON_THE_WAY,
         self::STATUS_PROCESSING,
         self::STATUS_SHIPPED,
         self::STATUS_DELIVERED,
@@ -138,6 +141,7 @@ final class Order extends Model
         return match ($serviceStatus) {
             'pending' => self::STATUS_PENDING_SELLER,
             'confirmed' => self::STATUS_CONFIRMED,
+            'on_the_way' => self::STATUS_ON_THE_WAY,
             'completed' => self::STATUS_DELIVERED,
             'cancelled', 'no_show' => self::STATUS_CANCELLED,
             default => $serviceStatus,
@@ -186,6 +190,10 @@ final class Order extends Model
 
         if (in_array(self::STATUS_SHIPPED, $statuses)) {
             return self::STATUS_SHIPPED;
+        }
+
+        if (in_array(self::STATUS_ON_THE_WAY, $statuses)) {
+            return self::STATUS_ON_THE_WAY;
         }
 
         if (in_array(self::STATUS_DELIVERED, $statuses) && count($statuses) === 1) {
@@ -304,6 +312,7 @@ final class Order extends Model
         return match ($this->status) {
             self::STATUS_PENDING_SELLER => 'Esperando confirmación del vendedor',
             self::STATUS_CONFIRMED => 'Confirmado',
+            self::STATUS_ON_THE_WAY => 'En camino',
             self::STATUS_PROCESSING => 'Preparando pedido',
             self::STATUS_SHIPPED => 'Enviado',
             self::STATUS_DELIVERED => 'Entregado',
