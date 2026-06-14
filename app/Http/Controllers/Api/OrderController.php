@@ -83,7 +83,7 @@ final class OrderController extends Controller
         if ($user->hasRole('administrator')) {
             $orders = Order::with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->get();
         } elseif ($user->hasRole('seller')) {
             $orders = Order::where(function ($q) use ($storeIds) {
                     $q->whereHas('items', fn($q) => $q->whereIn('store_id', $storeIds))
@@ -91,23 +91,16 @@ final class OrderController extends Controller
                 })
                 ->with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->get();
         } else {
             $orders = Order::where('user_id', $user->id)
                 ->with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->get();
         }
 
         return $this->success([
             'data' => OrderResource::collection($orders),
-            'pagination' => [
-                'page' => $orders->currentPage(),
-                'perPage' => $orders->perPage(),
-                'total' => $orders->total(),
-                'totalPages' => $orders->lastPage(),
-                'hasMore' => $orders->hasMorePages(),
-            ],
         ]);
     }
 
@@ -483,22 +476,6 @@ final class OrderController extends Controller
                         }]);
                 }
 
-                if ($newStatus === Order::STATUS_PROCESSING) {
-                    $bookingIds = $order->serviceItems()
-                        ->where('status', 'confirmed')
-                        ->whereNotNull('service_booking_id')
-                        ->pluck('service_booking_id');
-
-                    $order->serviceItems()
-                        ->where('status', 'confirmed')
-                        ->update(['status' => 'completed']);
-
-                    if ($bookingIds->isNotEmpty()) {
-                        ServiceBooking::whereIn('id', $bookingIds)
-                            ->update(['status' => ServiceBooking::STATUS_COMPLETED]);
-                    }
-                }
-
                 if ($newStatus === Order::STATUS_SHIPPED && isset($data['carrier_code'])) {
                     $shippingService = app(ShippingService::class);
                     $carrierCode = $data['carrier_code'];
@@ -542,20 +519,13 @@ final class OrderController extends Controller
                 ->whereNotNull('service_booking_id')
                 ->pluck('service_booking_id');
 
-            $order->serviceItems()->update(['status' => match ($newStatus) {
-                Order::STATUS_PROCESSING => 'completed',
-                Order::STATUS_CANCELLED => 'cancelled',
-                default => $newStatus,
-            }]);
+            if ($newStatus === Order::STATUS_CANCELLED) {
+                $order->serviceItems()->update(['status' => 'cancelled']);
 
-            $serviceBookingStatus = match ($newStatus) {
-                Order::STATUS_PROCESSING => ServiceBooking::STATUS_COMPLETED,
-                Order::STATUS_CANCELLED => ServiceBooking::STATUS_CANCELLED,
-                default => $newStatus,
-            };
-
-            if ($bookingIds->isNotEmpty()) {
-                ServiceBooking::whereIn('id', $bookingIds)->update(['status' => $serviceBookingStatus]);
+                if ($bookingIds->isNotEmpty()) {
+                    ServiceBooking::whereIn('id', $bookingIds)
+                        ->update(['status' => ServiceBooking::STATUS_CANCELLED]);
+                }
             }
         } else {
             if ($order->user_id !== $user->id) {

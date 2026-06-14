@@ -189,6 +189,10 @@ final class SpecialistController extends Controller
     {
         $model = Specialist::with(['schedules', 'category.parent'])->findOrFail($specialist);
 
+        if (! $this->userOwnsSpecialist($request, $model)) {
+            return $this->unauthorizedResponse();
+        }
+
         return response()->json(new SpecialistResource($model));
     }
 
@@ -265,7 +269,7 @@ final class SpecialistController extends Controller
             return true;
         }
 
-        return $user->ownedStores()->where('id', $specialist->store_id)->exists()
+        return $user->ownedStores()->where('stores.id', $specialist->store_id)->exists()
             || $user->stores()->where('stores.id', $specialist->store_id)->exists();
     }
 

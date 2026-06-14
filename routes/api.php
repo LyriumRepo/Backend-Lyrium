@@ -398,7 +398,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services (Citas/Servicios)
     //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
-    Route::get('/services/{id}/slots', [ServiceController::class, 'availableSlots']);
     
     Route::get('/seller/services', [ServiceController::class, 'sellerServices']);
     Route::get('/seller/services/{id}', [ServiceController::class, 'showMyService']);

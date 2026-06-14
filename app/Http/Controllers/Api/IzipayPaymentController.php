@@ -90,10 +90,17 @@ final class IzipayPaymentController extends Controller
 
         $order->refresh();
 
-        event(new OrderPaymentConfirmed(
-            order: $order,
-            paymentMethod: 'izipay',
-        ));
+        try {
+            event(new OrderPaymentConfirmed(
+                order: $order,
+                paymentMethod: 'izipay',
+            ));
+        } catch (\Throwable $e) {
+            Log::error('[IzipayPayment] Error al disparar evento OrderPaymentConfirmed', [
+                'order_id' => $order->id,
+                'error'    => $e->getMessage(),
+            ]);
+        }
 
         $invoiceCount = Invoice::where('order_id', $order->id)->count();
 
