@@ -195,8 +195,8 @@ final class OrderController extends Controller
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
-            $taxRate = 0.18;
-            $taxAmount = round($subtotal * $taxRate, 2);
+            // Precios al consumidor incluyen IGV. Se extrae el componente para SUNAT/Nubefact.
+            $taxAmount = round($subtotal - ($subtotal / 1.18), 2);
             $discountAmount = 0;
             $couponId = null;
             $couponCode = null;
@@ -221,7 +221,7 @@ final class OrderController extends Controller
                 $couponCode = $coupon->code;
             }
 
-            $total = $subtotal + $shippingCost + $taxAmount - $discountAmount;
+            $total = $subtotal + $shippingCost - $discountAmount;
 
             $liriosUsed = (int) ($data['lirios_used'] ?? 0);
             $liriosDiscount = 0;

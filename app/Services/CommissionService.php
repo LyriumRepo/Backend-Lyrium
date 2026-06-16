@@ -24,13 +24,15 @@ final class CommissionService
         return $tier ?? CommissionTier::orderBy('sort_order')->first();
     }
 
-    public function calculateItemCommission(OrderItem $item): void
+    // $orderSubtotal: total del pedido CON IGV (usado para determinar tramo, no precio individual)
+    public function calculateItemCommission(OrderItem $item, float $orderSubtotal): void
     {
-        $valorVenta = $item->unit_price / 1.18;
-        $tier = $this->getTierForValue($valorVenta);
+        $valorVentaOrden = $orderSubtotal / 1.18;
+        $tier = $this->getTierForValue($valorVentaOrden);
         $rate = $tier->rate;
 
         $itemLineVenta = $item->line_total / 1.18;
+        // Comisión Total por ítem = (valor_venta_neto × tasa); incluye IGV de la comisión
         $commissionAmount = round($itemLineVenta * ($rate / 100), 2);
 
         $item->updateQuietly([
@@ -42,9 +44,10 @@ final class CommissionService
     public function calculateForOrder(Order $order): void
     {
         $order->loadMissing('items');
+        $orderSubtotal = (float) $order->subtotal;
 
         foreach ($order->items as $item) {
-            $this->calculateItemCommission($item);
+            $this->calculateItemCommission($item, $orderSubtotal);
         }
     }
 
@@ -60,24 +63,19 @@ final class CommissionService
             'commission_amount' => (float) $item->commission_amount,
         ]);
 
-        $totalCommissionItems = $items->sum('commission_amount');
+        // commission_amount por ítem = "Comisión Total" (incluye IGV de la comisión).
+        // Sin envío (fórmula Lyrium aplica solo sobre venta de productos).
+        $commissionConIgv = $items->sum('commission_amount');
 
-        $shippingValorVenta = $order->shipping_cost / 1.18;
-        $store = $this->getOrderStore($order);
-        $shippingRate = $store ? (float) $store->commission_rate * 100 : 15.0;
-        $shippingCommission = round($shippingValorVenta * ($shippingRate / 100), 2);
-
-        $totalCommission = $totalCommissionItems + $shippingCommission;
-        $commissionIgv = round($totalCommission * 0.18, 2);
+        // Descomposición SUNAT: extraer IGV de la comisión (no agregar encima)
+        $commissionBase = round($commissionConIgv / 1.18, 2);
+        $commissionIgv  = round($commissionBase * 0.18, 2);
 
         return [
-            'items' => $items,
-            'shipping_valor_venta' => round($shippingValorVenta, 2),
-            'shipping_commission_rate' => $shippingRate,
-            'shipping_commission' => $shippingCommission,
-            'total_commission' => $totalCommission,
-            'commission_igv' => $commissionIgv,
-            'commission_total' => $totalCommission + $commissionIgv,
+            'items'            => $items,
+            'commission_base'  => $commissionBase,   // base imponible (sin IGV)
+            'commission_igv'   => $commissionIgv,    // IGV extraído de la comisión
+            'commission_total' => $commissionConIgv, // total a cobrar (base + IGV)
         ];
     }
 

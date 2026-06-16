@@ -21,8 +21,18 @@
     }
 </style>
 
-<img src="https://fv5-5.files.fm/thumb_show.php?i=337x2ej3b6" alt="Gracias por tu compra - Lyrium"
-    style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;" />
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px;">
+    <tr>
+        <td style="background:linear-gradient(135deg,#0d9488,#2db8b0);padding:20px 16px;text-align:center;border-radius:8px;">
+            <p style="margin:0;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:1px;">
+                🎉 ¡Gracias por tu compra!
+            </p>
+            <p style="margin:6px 0 0;font-size:13px;color:#ccfaf7;">
+                Tu pedido ha sido confirmado con éxito
+            </p>
+        </td>
+    </tr>
+</table>
 
 {{-- ===== DETALLE DEL PEDIDO ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
@@ -306,8 +316,5 @@
         </td>
     </tr>
 </table>
-
-<img src="https://fv5-5.files.fm/thumb_show.php?i=aabbernwqc" alt="Lyrium"
-    style="display:block;width:100%;max-width:600px;height:auto;margin:4px 0 0;" />
 
 @endsection

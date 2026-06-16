@@ -48,7 +48,7 @@ final class InvoicePdfController extends Controller
             '4' => 'NOTA DE DÉBITO',
         ];
 
-        $totalGravada = 0;
+        $rawLineTotal = 0; // suma de line_total CON IGV incluido
         $formattedItems = [];
         foreach ($items as $item) {
             $cantidad = (float) ($item['cantidad'] ?? 1);
@@ -58,7 +58,7 @@ final class InvoicePdfController extends Controller
             $total = (float) ($item['total'] ?? $subtotal);
             $descuento = (float) ($item['descuento'] ?? 0);
 
-            $totalGravada += $total;
+            $rawLineTotal += $total;
 
             $formattedItems[] = [
                 'cantidad' => $cantidad,
@@ -72,13 +72,15 @@ final class InvoicePdfController extends Controller
 
         $shippingCost = (float) ($order?->shipping_cost ?? 0);
 
-        $totalConEnvio = $totalGravada + $shippingCost;
+        // Los precios al consumidor incluyen IGV — se extrae (no se agrega encima)
+        $baseGravada = round($rawLineTotal / 1.18, 2); // "Valor de Venta" SUNAT (sin IGV)
+        $igv = round($baseGravada * 0.18, 2);
         $invoiceTotal = (float) $invoice->total;
-        $igv = round($totalGravada * 0.18, 2);
-        $total = $invoiceTotal > 0 ? $invoiceTotal : ($totalGravada + $igv + $shippingCost);
+        $total = $invoiceTotal > 0 ? $invoiceTotal : ($rawLineTotal + $shippingCost);
 
         $showCommission = true;
-        $commissionBase = round($totalConEnvio / 1.18, 2);
+        // Base de cálculo de comisión = valor venta sin IGV, sin envío (fórmula Lyrium)
+        $commissionBase = $baseGravada;
 
         $commissionSummary = [];
         if ($order) {
@@ -90,7 +92,7 @@ final class InvoicePdfController extends Controller
         }
 
         $hasCommissionData = ! empty($commissionSummary);
-        $commissionAmount = $hasCommissionData ? $commissionSummary['total_commission'] : 0;
+        $commissionAmount = $hasCommissionData ? $commissionSummary['commission_base'] : 0;
         $commissionIgv = $hasCommissionData ? $commissionSummary['commission_igv'] : 0;
         $commissionTotal = $hasCommissionData ? $commissionSummary['commission_total'] : 0;
         $commissionRate = $hasCommissionData && ! empty($commissionSummary['items']) && $commissionSummary['items']->isNotEmpty()
@@ -118,7 +120,7 @@ final class InvoicePdfController extends Controller
             'customerAddress' => $invoice->customer_address ?? $order?->shipping_address ?? '—',
             'customerEmail' => $invoice->customer_email ?? $order?->shipping_email ?? null,
             'items' => $formattedItems,
-            'totalGravada' => $totalGravada,
+            'totalGravada' => $baseGravada,
             'shippingCost' => $shippingCost,
             'igv' => $igv,
             'total' => $total,

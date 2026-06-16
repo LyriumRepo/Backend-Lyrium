@@ -56,7 +56,7 @@ final class MediaController extends Controller
      * Delete product media.
      * DELETE /api/products/{productId}/media/{mediaId}
      */
-    public function deleteProductMedia(int $id, int $mediaId): JsonResponse
+    public function deleteProductMedia(int $productId, int $mediaId): JsonResponse
     {
         $product = Product::findOrFail($productId);
 

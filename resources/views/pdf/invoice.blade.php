@@ -325,7 +325,11 @@
                         <td class="right">S/ {{ number_format($commissionBase, 2) }}</td>
                     </tr>
                     <tr>
-                        <td>Comisión Lyrium ({{ number_format($commissionRate, 1) }}%)</td>
+                        <td>Tasa de Comisión Lyrium</td>
+                        <td class="right">{{ number_format($commissionRate, 1) }}%</td>
+                    </tr>
+                    <tr>
+                        <td>Comisión (Base Imponible)</td>
                         <td class="right">S/ {{ number_format($commissionAmount, 2) }}</td>
                     </tr>
                     <tr>
@@ -339,7 +343,7 @@
                 </table>
             </div>
             <p class="commission-note">
-                Comisión calculada sobre (Valor Venta + Envío) ÷ 1.18 según tabla vigente.<br>
+                Comisión calculada sobre Valor Venta ÷ 1.18 × tasa vigente (sin envío).<br>
                 No modifica los importes fiscales del comprobante.
             </p>
             @endif

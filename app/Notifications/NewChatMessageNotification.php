@@ -35,7 +35,7 @@ final class NewChatMessageNotification extends Notification implements ShouldQue
     public function toPush(object $notifiable): array
     {
         $senderName = $this->message->sender?->name ?? 'Un cliente';
-        $preview = mb_strimwidth($this->message->content, 0, 80, '…');
+        $preview = mb_strimwidth($this->message->content ?? '', 0, 80, '…');
 
         return [
             'title' => "💬 {$senderName}",
@@ -51,7 +51,7 @@ final class NewChatMessageNotification extends Notification implements ShouldQue
     public function toArray(object $notifiable): array
     {
         $senderName = $this->message->sender?->name ?? 'Un cliente';
-        $preview = mb_strimwidth($this->message->content, 0, 120, '…');
+        $preview = mb_strimwidth($this->message->content ?? '', 0, 120, '…');
 
         return [
             'type' => 'new_chat_message',
