@@ -449,6 +449,14 @@ Route::middleware('auth:sanctum')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:administrator')->group(function () {
+        // Nubefact / Facturación Electrónica
+        Route::prefix('nubefact')->group(function () {
+            Route::get('/comprobantes', [NubefactController::class, 'listar']);
+            Route::get('/comprobantes/{id}', [NubefactController::class, 'mostrar']);
+            Route::get('/kpis', [NubefactController::class, 'kpis']);
+            Route::post('/emitir', [NubefactController::class, 'emitir']);
+        });
+
         // Users management
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/role/{role}', [UserController::class, 'byRole']);
