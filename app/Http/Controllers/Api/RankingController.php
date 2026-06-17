@@ -76,14 +76,14 @@ final class RankingController extends Controller
             ->select('services.*')
             ->selectSub(
                 'SELECT COALESCE(AVG(r.rating), 0) FROM service_bookings sb '
-                . 'INNER JOIN reviews r ON r.service_booking_id = sb.id '
-                . 'WHERE sb.service_id = services.id',
+                .'INNER JOIN reviews r ON r.service_booking_id = sb.id '
+                .'WHERE sb.service_id = services.id',
                 'rating_average',
             )
             ->selectSub(
                 'SELECT COUNT(r.id) FROM service_bookings sb '
-                . 'INNER JOIN reviews r ON r.service_booking_id = sb.id '
-                . 'WHERE sb.service_id = services.id',
+                .'INNER JOIN reviews r ON r.service_booking_id = sb.id '
+                .'WHERE sb.service_id = services.id',
                 'rating_count',
             )
             ->havingRaw('rating_count >= 1')

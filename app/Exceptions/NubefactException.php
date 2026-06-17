@@ -12,6 +12,7 @@ final class NubefactException extends \RuntimeException
     public const VALIDATION_ERROR = 'VALIDATION_ERROR';
     public const SERVER_ERROR = 'SERVER_ERROR';
     public const CONNECTION_ERROR = 'CONNECTION_ERROR';
+    public const CONFIG_ERROR = 'CONFIG_ERROR';
     public const UNKNOWN_ERROR = 'UNKNOWN_ERROR';
     public const SUNAT_REJECTED = 'SUNAT_REJECTED';
     public const SUNAT_OBSERVED = 'SUNAT_OBSERVED';
@@ -72,6 +73,16 @@ final class NubefactException extends \RuntimeException
             message: "NubeFact — Error de conexión: {$message}",
             code: 503,
             nubefactCode: self::CONNECTION_ERROR,
+            context: $context,
+        );
+    }
+
+    public static function configError(string $message, ?array $context = null): self
+    {
+        return new self(
+            message: "NubeFact — Error de configuración: {$message}",
+            code: 503,
+            nubefactCode: self::CONFIG_ERROR,
             context: $context,
         );
     }

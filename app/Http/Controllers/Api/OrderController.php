@@ -10,12 +10,14 @@ use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
+use App\Notifications\OrderDeliveredSellerNotification;
 use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
 use App\Http\Requests\Order\UpdateOrderStatusRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\PaymentConfirmationResource;
 use App\Models\Cart;
 use App\Models\Conversation;
 use App\Models\ConversationMessage;
@@ -26,6 +28,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSlotHold;
+use App\Services\CommissionService;
 use App\Services\LiriosService;
 use App\Services\ShippingService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -177,7 +180,7 @@ final class OrderController extends Controller
                         'status' => 'pending_seller',
                     ];
 
-                    $product->decrement('stock', $item->quantity);
+                    $product->decrementStock($item->quantity);
                 }
             }
 
@@ -192,8 +195,8 @@ final class OrderController extends Controller
             }
 
             $shippingCost = $data['shipping_cost'] ?? 0;
-            $taxRate = 0.18;
-            $taxAmount = round($subtotal * $taxRate, 2);
+            // Precios al consumidor incluyen IGV. Se extrae el componente para SUNAT/Nubefact.
+            $taxAmount = round($subtotal - ($subtotal / 1.18), 2);
             $discountAmount = 0;
             $couponId = null;
             $couponCode = null;
@@ -218,7 +221,7 @@ final class OrderController extends Controller
                 $couponCode = $coupon->code;
             }
 
-            $total = $subtotal + $shippingCost + $taxAmount - $discountAmount;
+            $total = $subtotal + $shippingCost - $discountAmount;
 
             $liriosUsed = (int) ($data['lirios_used'] ?? 0);
             $liriosDiscount = 0;
@@ -270,6 +273,9 @@ final class OrderController extends Controller
             foreach ($orderItems as $item) {
                 $order->items()->create($item);
             }
+
+            $order->load('items');
+            app(CommissionService::class)->calculateForOrder($order);
 
             if ($couponId) {
                 $coupon->incrementUsage();
@@ -536,6 +542,14 @@ final class OrderController extends Controller
                     ->update(['status' => OrderItem::STATUS_DELIVERED]);
                 $order->refresh();
                 $order->refreshGlobalStatus();
+
+                $order->items->pluck('store_id')->unique()
+                    ->each(function ($storeId) use ($order) {
+                        $store = Store::with('owner')->find($storeId);
+                        if ($store?->owner) {
+                            $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                        }
+                    });
             } elseif ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
                     ->where('status', OrderItem::STATUS_PENDING_SELLER)
@@ -712,6 +726,40 @@ final class OrderController extends Controller
         $filename = 'comprobante-' . $order->order_number . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    public function customerPaymentConfirmations(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $query = Order::with(['items', 'latestCulqiTransaction', 'latestIzipayTransaction'])
+            ->where('user_id', $user->id)
+            ->where('payment_status', Order::PAYMENT_STATUS_PAID);
+
+        $fechaInicio = $request->query('fecha_inicio');
+        $fechaFin = $request->query('fecha_fin');
+
+        if ($fechaInicio) {
+            $query->whereDate('created_at', '>=', $fechaInicio);
+        }
+        if ($fechaFin) {
+            $query->whereDate('created_at', '<=', $fechaFin);
+        }
+
+        $orders = $query->orderBy('created_at', 'desc')
+            ->paginate((int) $request->query('per_page', 20));
+
+        return response()->json([
+            'success' => true,
+            'data' => PaymentConfirmationResource::collection($orders),
+            'pagination' => [
+                'page' => $orders->currentPage(),
+                'perPage' => $orders->perPage(),
+                'total' => $orders->total(),
+                'totalPages' => $orders->lastPage(),
+                'hasMore' => $orders->hasMorePages(),
+            ],
+        ]);
     }
 
     public function downloadPaymentConfirmation(Request $request, string $id)

@@ -16,13 +16,6 @@ final class UserDevice extends Model
         'device_name',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'last_used_at' => 'datetime',
-        ];
-    }
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

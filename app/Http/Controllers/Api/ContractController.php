@@ -72,7 +72,7 @@ final class ContractController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $contract = Contract::with(['auditTrails', 'store'])->findOrFail($id);
+        $contract = Contract::with(['auditTrails', 'store'])->where('contract_number', $id)->firstOrFail();
 
         return response()->json(['data' => new ContractResource($contract)]);
     }
@@ -133,7 +133,7 @@ final class ContractController extends Controller
      */
     public function update(UpdateContractRequest $request, string $id): JsonResponse
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
         $data = $request->validated();
         $user = $request->user();
 
@@ -201,7 +201,7 @@ final class ContractController extends Controller
      */
     public function updateStatus(Request $request, string $id): JsonResponse
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
         $user = $request->user();
 
         $data = $request->validate([
@@ -232,7 +232,7 @@ final class ContractController extends Controller
      */
     public function upload(Request $request, string $id): JsonResponse
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
         $user = $request->user();
 
         $request->validate([
@@ -266,7 +266,7 @@ final class ContractController extends Controller
      */
     public function download(string $id)
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
 
         if (! $contract->file_path || ! Storage::disk('local')->exists($contract->file_path)) {
             return response()->json(['error' => 'No hay documento cargado.'], 404);
@@ -284,7 +284,7 @@ final class ContractController extends Controller
      */
     public function downloadSigned(string $id)
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
 
         if (! $contract->signed_file_path || ! Storage::disk('local')->exists($contract->signed_file_path)) {
             return response()->json(['error' => 'No hay documento firmado cargado.'], 404);
@@ -369,7 +369,7 @@ final class ContractController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::where('contract_number', $id)->firstOrFail();
         $contract->delete();
 
         return response()->json(['success' => true]);

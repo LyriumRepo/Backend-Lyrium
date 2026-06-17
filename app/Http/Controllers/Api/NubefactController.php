@@ -25,54 +25,49 @@ final class NubefactController extends Controller
         $data = $request->validated();
 
         try {
-            $result = DB::transaction(function () use ($data, $request) {
+            $result = DB::transaction(function () use ($data) {
                 $total = (float) $data['total'];
 
-                $invoice = Invoice::create([
-                    'order_id' => $data['order_id'] ?? null,
-                    'invoice_number' => Invoice::generateInvoiceNumber(),
-                    'document_type' => $data['tipo_de_comprobante'],
-                    'series' => $data['serie'],
-                    'number' => $data['numero'],
-                    'nit' => $data['cliente_numero_de_documento'],
-                    'business_name' => $data['cliente_denominacion'],
-                    'customer_document_type' => $data['cliente_tipo_de_documento'],
-                    'customer_address' => $data['cliente_direccion'] ?? null,
-                    'customer_email' => $data['cliente_email'] ?? null,
-                    'provider' => 'nubefact',
-                    'total' => $total,
-                    'status' => 'DRAFT',
-                ]);
-
-                $nubefactData = [
-                    'tipo_de_comprobante' => $data['tipo_de_comprobante'],
-                    'serie' => $data['serie'],
-                    'numero' => $data['numero'],
-                    'sunat_transaction' => $data['sunat_transaction'] ?? '1',
-                    'cliente_tipo_de_documento' => $data['cliente_tipo_de_documento'],
-                    'cliente_numero_de_documento' => $data['cliente_numero_de_documento'],
-                    'cliente_denominacion' => $data['cliente_denominacion'],
-                    'cliente_direccion' => $data['cliente_direccion'] ?? '',
-                    'cliente_email' => $data['cliente_email'] ?? '',
-                    'fecha_de_emision' => $data['fecha_de_emision'] ?? now('America/Lima')->subDay()->format('d-m-Y'),
-                    'moneda' => $data['moneda'] ?? '1',
-                    'total_gravada' => $data['total_gravada'],
-                    'total_igv' => $data['total_igv'],
-                    'total' => $data['total'],
-                    'observaciones' => $data['observaciones'] ?? '',
-                    'items' => $data['items'],
+                $typeMap = [
+                    '1' => Invoice::TYPE_FACTURA,
+                    '2' => Invoice::TYPE_BOLETA,
+                    '3' => Invoice::TYPE_NOTA_CREDITO,
                 ];
 
-                $nubefactResponse = $this->nubefact->emitInvoice($nubefactData);
+                $invoice = Invoice::create([
+                    'order_id'               => $data['order_id'] ?? null,
+                    'invoice_number'         => Invoice::generateInvoiceNumber(),
+                    'type'                   => $typeMap[$data['tipo_de_comprobante']] ?? Invoice::TYPE_FACTURA,
+                    'document_type'          => $data['tipo_de_comprobante'],
+                    'series'                 => $data['serie'],
+                    'number'                 => $data['numero'],
+                    'customer_ruc'           => $data['cliente_numero_de_documento'],
+                    'customer_name'          => $data['cliente_denominacion'],
+                    'customer_document_type' => $data['cliente_tipo_de_documento'],
+                    'customer_address'       => $data['cliente_direccion'] ?? null,
+                    'customer_email'         => $data['cliente_email'] ?? null,
+                    'provider'               => 'nubefact',
+                    'total'                  => $total,
+                    'subtotal_sin_igv'       => (float) $data['total_gravada'],
+                    'igv_amount'             => (float) $data['total_igv'],
+                    'sunat_status'           => Invoice::SUNAT_STATUS_DRAFT,
+                    'status'                 => 'DRAFT',
+                ]);
+
+                // emitInvoice espera Invoice model + items explícitos
+                $nubefactResponse = $this->nubefact->emitInvoice($invoice, $data['items']);
 
                 $invoice->update([
-                    'status' => $nubefactResponse['status'],
-                    'provider_invoice_id' => $nubefactResponse['provider_invoice_id'],
+                    'sunat_status'       => $nubefactResponse['sunat_status'],
+                    'status'             => $nubefactResponse['sunat_status'],
+                    'provider_invoice_id'=> $nubefactResponse['id'],
                     'authorization_code' => $nubefactResponse['authorization_code'],
-                    'qr_data' => $nubefactResponse['qr_data'],
-                    'pdf_url' => $nubefactResponse['pdf_url'],
-                    'nubefact_response' => $nubefactResponse['raw'],
-                    'items' => $data['items'],
+                    'qr_data'            => $nubefactResponse['qr_data'],
+                    'pdf_url'            => $nubefactResponse['pdf_url'],
+                    'xml_url'            => $nubefactResponse['xml_url'],
+                    'cdr_url'            => $nubefactResponse['cdr_url'],
+                    'nubefact_response'  => $nubefactResponse['raw'],
+                    'items'              => $data['items'],
                 ]);
 
                 return $invoice->fresh();
@@ -83,10 +78,10 @@ final class NubefactController extends Controller
                 'Comprobante emitido exitosamente.'
             );
 
-        } catch (\RuntimeException $e) {
+        } catch (\Throwable $e) {
             Log::error('Nubefact: emision fallida', [
-                'error' => $e->getMessage(),
-                'serie' => $data['serie'],
+                'error'  => $e->getMessage(),
+                'serie'  => $data['serie'],
                 'numero' => $data['numero'],
             ]);
 

@@ -34,7 +34,7 @@ final class ServicioParser implements ParsesDocument
 
     private function lines(string $text): array
     {
-        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn(string $l) => trim($l) !== ''));
+        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn (string $l) => trim($l) !== ''));
     }
 
     private function extractDocumentNumber(string $text): ?string

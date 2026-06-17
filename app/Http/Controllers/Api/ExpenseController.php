@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ScanBatchStoreRequest;
 use App\Http\Requests\ScanDocumentRequest;
 use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
@@ -16,9 +17,9 @@ use App\Models\Supplier;
 use App\Services\DocumentScanner\DocumentScannerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 
 final class ExpenseController extends Controller
 {
@@ -36,7 +37,7 @@ final class ExpenseController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('receipt_number', 'like', "%{$search}%")
                     ->orWhere('concept', 'like', "%{$search}%")
-                    ->orWhereHas('supplier', fn($s) => $s->where('name', 'like', "%{$search}%"));
+                    ->orWhereHas('supplier', fn ($s) => $s->where('name', 'like', "%{$search}%"));
             });
         }
 
@@ -128,9 +129,8 @@ final class ExpenseController extends Controller
     /**
      * POST /api/expenses/scan
      * Escanea un PDF (archivo o ruta), extrae los datos y guarda el gasto en BD.
+     * Para estados de cuenta BCP, retorna las líneas sin crear gastos.
      */
-
-
     public function scan(ScanDocumentRequest $request, DocumentScannerService $scanner): JsonResponse
     {
         $filePath = $request->input('file_path');
@@ -149,10 +149,46 @@ final class ExpenseController extends Controller
 
         $absolutePath = Storage::disk('public')->path($filePath);
 
+        $password = $request->input('password');
+
+        \Illuminate\Support\Facades\Log::debug('Scanning document', [
+            'path' => $absolutePath,
+            'size' => filesize($absolutePath),
+            'has_password' => $password !== null && $password !== '',
+        ]);
+
         try {
-            $result = $scanner->scan($absolutePath);
+            $result = $scanner->scan($absolutePath, $password);
         } catch (\Throwable $e) {
-            return $this->error('Error al escanear el documento: ' . $e->getMessage(), 500);
+            return $this->error('Error al escanear el documento: '.$e->getMessage(), 500);
+        }
+
+        if ($result->documentType === null && $result->rawText === '') {
+            return $this->error(
+                'No se pudo extraer el texto del PDF. Verifica que la contraseña sea correcta o que el archivo no esté dañado.',
+                400,
+            );
+        }
+
+        if ($result->documentType === null) {
+            \Illuminate\Support\Facades\Log::warning('No parser matched for document', [
+                'text_preview' => mb_substr($result->rawText, 0, 500),
+            ]);
+
+            return $this->error(
+                'El formato del documento no es reconocido. Solo se aceptan facturas, boletas, recibos por honorarios o estados de cuenta BCP.',
+                400,
+            );
+        }
+
+        // ─── Estado de Cuenta BCP: retornar líneas sin crear gastos ────
+        if ($result->documentType === 'ESTADO_CUENTA_BCP') {
+            return response()->json([
+                'file_url' => Storage::disk('public')->url($filePath),
+                'file_path' => $filePath,
+                'is_bank_statement' => true,
+                'scan' => new ScannedDocumentResource($result),
+            ]);
         }
 
         // ─── Mapear tipo de documento ─────────────────────────────────
@@ -171,8 +207,8 @@ final class ExpenseController extends Controller
 
         $concept = match ($result->documentType) {
             'RECIBO_POR_HONORARIOS' => $result->serviceDescription ?? 'Recibo por honorarios',
-            'FACTURA' => 'Factura ' . ($result->documentNumber ?? ''),
-            'BOLETA' => 'Boleta ' . ($result->documentNumber ?? ''),
+            'FACTURA' => 'Factura '.($result->documentNumber ?? ''),
+            'BOLETA' => 'Boleta '.($result->documentNumber ?? ''),
             default => 'Documento escaneado',
         };
 
@@ -185,7 +221,7 @@ final class ExpenseController extends Controller
         if (! $supplier && $result->issuer !== null && $result->issuer->name) {
             $supplier = Supplier::create([
                 'name' => $result->issuer->name,
-                'slug' => Str::slug($result->issuer->name . '-' . ($result->issuer->ruc ?? uniqid())),
+                'slug' => Str::slug($result->issuer->name.'-'.($result->issuer->ruc ?? uniqid())),
                 'ruc' => $result->issuer->ruc,
                 'type' => $voucherType === 'Honorarios' ? 'Persona Natural' : 'Proveedor',
                 'status' => 'Activo',
@@ -197,7 +233,6 @@ final class ExpenseController extends Controller
         }
 
         // ─── 1. Filtro Anti-Duplicados (Idempotency) ───────────────────
-        // Si el OCR detectó un número de comprobante, verificamos si ya existe para este proveedor
         if ($result->documentNumber) {
             $existingExpense = Expense::where('supplier_id', $supplier->id)
                 ->where('voucher_type', $voucherType)
@@ -220,9 +255,6 @@ final class ExpenseController extends Controller
         // ─── 2. Guardado Seguro con Transacción ────────────────────────
         try {
             $expense = DB::transaction(function () use ($request, $supplier, $concept, $amount, $voucherType, $result, $filePath) {
-
-                // Eliminamos el do-while para evitar bloqueos infinitos de memoria.
-                // Dejamos que genere el código directamente.
                 $receiptNumber = Expense::nextReceiptNumber($voucherType);
 
                 return Expense::create([
@@ -260,7 +292,7 @@ final class ExpenseController extends Controller
                             'net_amount' => $result->payment->netAmount,
                             'currency' => $result->payment->currency,
                         ] : null,
-                        'items' => array_map(fn($item) => [
+                        'items' => array_map(fn ($item) => [
                             'description' => $item->description,
                             'quantity' => $item->quantity,
                             'unit_price' => $item->unitPrice,
@@ -286,10 +318,9 @@ final class ExpenseController extends Controller
                 ]);
             });
         } catch (\Throwable $e) {
-            return $this->error('Error al registrar el gasto de forma segura: ' . $e->getMessage(), 500);
+            return $this->error('Error al registrar el gasto de forma segura: '.$e->getMessage(), 500);
         }
 
-        // ─── Auditoría y Respuesta ────────────────────────────────────
         $expense->load(['supplier', 'registeredBy']);
 
         AuditLog::record(
@@ -306,6 +337,99 @@ final class ExpenseController extends Controller
             'scan' => new ScannedDocumentResource($result),
             'expense' => new ExpenseResource($expense),
         ]);
+    }
+
+    /**
+     * POST /api/expenses/scan/batch-store
+     * Crea múltiples gastos desde las líneas escaneadas de un estado de cuenta BCP.
+     */
+    public function scanBatchStore(ScanBatchStoreRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+        $supplier = Supplier::findOrFail($data['supplier_id']);
+
+        $fileUrl = Storage::disk('public')->url($data['file_path']);
+
+        $totalAmount = collect($data['lines'])->sum('amount');
+        $firstLine = $data['lines'][0];
+        $parsedDate = $this->parseBankDate($firstLine['date']);
+
+        $periodFull = $data['period_full'] ?? $data['period'] ?? '';
+        $monthYear = $periodFull !== '' ? $periodFull : now()->format('m/Y');
+        $concept = 'Estado de Cuenta '.$monthYear;
+
+        try {
+            $expense = DB::transaction(function () use ($data, $supplier, $fileUrl, $request, $totalAmount, $parsedDate, $concept) {
+                $linesForScanData = array_map(fn ($line) => array_filter([
+                    'date' => $line['date'],
+                    'description' => $line['description'],
+                    'amount' => $line['amount'],
+                    'reference' => $line['reference'] ?? null,
+                    'glossary_key' => $line['glossary_key'] ?? null,
+                    'glossary_description' => $line['glossary_description'] ?? null,
+                    'hour' => $line['hour'] ?? null,
+                    'med' => $line['med'] ?? null,
+                    'tipo' => $line['tipo'] ?? null,
+                    'place' => $line['place'] ?? null,
+                    'balance' => $line['balance'] ?? null,
+                ], fn ($v) => $v !== null), $data['lines']);
+
+                return Expense::create([
+                    'receipt_number' => Expense::nextReceiptNumber('Servicio'),
+                    'supplier_id' => $supplier->id,
+                    'concept' => $concept,
+                    'amount' => $totalAmount,
+                    'status' => 'Pendiente',
+                    'issued_at' => $parsedDate,
+                    'voucher_type' => 'Servicio',
+                    'file_url' => $fileUrl,
+                    'registered_by' => $request->user()->id,
+                    'scan_data' => [
+                        'document_type' => 'ESTADO_CUENTA_BCP',
+                        'period' => $data['period'] ?? null,
+                        'period_full' => $data['period_full'] ?? null,
+                        'opening_balance' => $data['opening_balance'] ?? null,
+                        'closing_balance' => $data['closing_balance'] ?? null,
+                        'lines' => $linesForScanData,
+                    ],
+                ]);
+            });
+        } catch (\Throwable $e) {
+            return $this->error('Error al registrar el gasto resumen: '.$e->getMessage(), 500);
+        }
+
+        $expense->load(['supplier', 'registeredBy']);
+
+        AuditLog::record(
+            event: 'created',
+            module: 'expenses',
+            description: "Registró {$expense->receipt_number} — {$expense->concept} (S/ {$expense->amount}, ".count($data['lines']).' líneas)',
+            auditable: $expense,
+            newValues: $expense->toArray(),
+        );
+
+        return response()->json([
+            'success' => true,
+            'expense' => new ExpenseResource($expense),
+            'count' => count($data['lines']),
+        ], 201);
+    }
+
+    private function parseBankDate(string $date): string
+    {
+        if (preg_match('/^(\d{2})\/(\d{2})$/', $date, $m)) {
+            $year = date('Y');
+            $month = $m[2];
+            $day = $m[1];
+
+            if ($month > date('m')) {
+                $year = (int) date('Y') - 1;
+            }
+
+            return "{$year}-{$month}-{$day}";
+        }
+
+        return now()->toDateString();
     }
 
     /**

@@ -11,14 +11,139 @@ use App\Http\Requests\StoreUpdateRequest;
 use App\Http\Resources\StoreResource;
 use App\Models\Contract;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\StoreProfileUpdatedNotification;
 use App\Notifications\StoreStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 final class StoreController extends Controller
 {
+    /**
+     * GET /api/stores (público)
+     * Lista tiendas aprobadas con info básica
+     */
+    public function publicIndex(Request $request): JsonResponse
+    {
+        $query = Store::with('category')
+            ->where('status', 'approved');
+
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('trade_name', 'like', "%{$search}%")
+                    ->orWhere('nombre_comercial', 'like', "%{$search}%")
+                    ->orWhere('razon_social', 'like', "%{$search}%");
+            });
+        }
+
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($city = $request->query('city')) {
+            $query->where('address', 'like', "%{$city}%");
+        }
+
+        $stores = $query->orderByDesc('created_at')
+            ->paginate(min((int) $request->query('per_page', 12), 50));
+
+        return response()->json([
+            'success' => true,
+            'data' => $stores->map(fn ($store) => [
+                'id' => $store->id,
+                'name' => $store->store_name,
+                'slug' => $store->slug,
+                'description' => $store->description,
+                'logo' => $store->getMediaUrl('logo'),
+                'banner' => $store->getMediaUrl('banner'),
+                'address' => $store->address,
+                'phone' => $store->phone,
+                'category' => $store->category?->name,
+                'rating' => (float) $store->rating,
+                'product_count' => $store->products()->where('status', 'approved')->count(),
+            ]),
+            'pagination' => [
+                'page' => $stores->currentPage(),
+                'perPage' => $stores->perPage(),
+                'total' => $stores->total(),
+                'totalPages' => $stores->lastPage(),
+                'hasMore' => $stores->hasMorePages(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/stores/{slug} (público)
+     * Retorna detalle completo de una tienda por slug
+     */
+    public function publicShow(string $slug): JsonResponse
+    {
+        $store = Store::with(['category', 'branches' => fn ($q) => $q->where('is_active', true)])
+            ->where('slug', $slug)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $store) {
+            return response()->json(['success' => false, 'message' => 'Tienda no encontrada'], 404);
+        }
+
+        $plan = 'basico';
+        if ($store->relationLoaded('subscription') && $store->subscription) {
+            $plan = $store->subscription->plan?->name === 'Premium' ? 'premium' : 'basico';
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $store->id,
+                'name' => $store->store_name,
+                'slug' => $store->slug,
+                'description' => $store->description,
+                'logo' => $store->getMediaUrl('logo'),
+                'banner' => $store->getMediaUrl('banner'),
+                'banner2' => $store->getMediaUrl('banner2'),
+                'gallery' => $store->getGalleryUrls(),
+                'address' => $store->address,
+                'phone' => $store->phone,
+                'email' => $store->corporate_email,
+                'category' => $store->category?->name,
+                'category_id' => $store->category_id,
+                'rating' => (float) $store->rating,
+                'layout' => $store->layout ?? '1',
+                'plan' => $plan,
+                'open' => true,
+                'social' => [
+                    'instagram' => $store->instagram,
+                    'facebook' => $store->facebook,
+                    'tiktok' => $store->tiktok,
+                    'whatsapp' => $store->whatsapp,
+                    'youtube' => $store->youtube,
+                    'twitter' => $store->twitter,
+                    'linkedin' => $store->linkedin,
+                    'website' => $store->website,
+                ],
+                'branches' => $store->branches->map(fn ($b) => [
+                    'id' => $b->id,
+                    'name' => $b->name,
+                    'address' => $b->address,
+                    'city' => $b->city,
+                    'phone' => $b->phone,
+                    'hours' => $b->hours,
+                    'is_principal' => $b->is_principal,
+                    'maps_url' => $b->maps_url,
+                ]),
+                'stats' => [
+                    'products' => $store->products()->where('status', 'approved')->count(),
+                    'rating' => (float) $store->rating,
+                    'reviews' => 0,
+                ],
+            ],
+        ]);
+    }
+
     /**
      * GET /api/stores/me
      * Retorna la tienda del vendedor autenticado
@@ -97,6 +222,19 @@ final class StoreController extends Controller
     }
 
     /**
+     * GET /api/stores/slug/{slug} — public endpoint for store page
+     */
+    public function showBySlug(string $slug): JsonResponse
+    {
+        $store = Store::with(['subscription.plan', 'category', 'branches'])
+            ->where('slug', $slug)
+            ->where('status', 'approved')
+            ->firstOrFail();
+
+        return response()->json(['data' => new StoreResource($store)]);
+    }
+
+    /**
      * POST /api/stores
      */
     public function store(Request $request): JsonResponse
@@ -140,6 +278,8 @@ final class StoreController extends Controller
         }
 
         $store->update($data);
+
+        $this->notifyAdminStoreChanged($store, 'general');
 
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category'])));
     }
@@ -265,6 +405,8 @@ final class StoreController extends Controller
             );
         }
 
+        $this->notifyAdminStoreChanged($store, 'branches');
+
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category', 'branches'])));
     }
 
@@ -298,6 +440,8 @@ final class StoreController extends Controller
             'gallery' => $data['gallery'] ?? $store->gallery,
         ]);
 
+        $this->notifyAdminStoreChanged($store, 'visual');
+
         return response()->json(new StoreResource($store->fresh()));
     }
 
@@ -322,6 +466,8 @@ final class StoreController extends Controller
         $media = $store->addMediaFromRequest('file')->toMediaCollection('logo');
 
         $store->update(['logo' => $media->getUrl()]);
+
+        $this->notifyAdminStoreChanged($store, 'logo');
 
         return response()->json([
             'url' => $media->getUrl(),
@@ -355,6 +501,8 @@ final class StoreController extends Controller
 
         $column = $collection === 'banner2' ? 'banner2' : 'banner';
         $store->update([$column => $media->getUrl()]);
+
+        $this->notifyAdminStoreChanged($store, 'banner');
 
         return response()->json([
             'url' => $media->getUrl(),
@@ -390,6 +538,8 @@ final class StoreController extends Controller
 
         $currentGallery = $store->gallery ?? [];
         $store->update(['gallery' => array_merge($currentGallery, $urls)]);
+
+        $this->notifyAdminStoreChanged($store, 'gallery');
 
         return response()->json([
             'urls' => $urls,
@@ -458,6 +608,8 @@ final class StoreController extends Controller
         array_splice($gallery, $index, 1);
         $store->update(['gallery' => array_values($gallery)]);
 
+        $this->notifyAdminStoreChanged($store, 'gallery');
+
         return response()->json([
             'gallery' => $store->fresh()->gallery,
             'message' => 'Imagen eliminada correctamente',
@@ -481,8 +633,30 @@ final class StoreController extends Controller
             'rep_legal_foto' => $url
         ]);
 
+        $this->notifyAdminStoreChanged($store, 'general');
+
         return response()->json([
             'url' => $url
         ]);
+    }
+
+    /**
+     * Notifica a todos los administradores sobre cambios en la tienda.
+     * Usa cache para evitar spam: máximo 1 notificación por tienda cada 30 minutos.
+     */
+    private function notifyAdminStoreChanged(Store $store, string $changeType = 'general'): void
+    {
+        $cacheKey = "store_profile_updated_notif_{$store->id}";
+
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        Cache::put($cacheKey, true, now()->addMinutes(30));
+
+        $admins = User::role('administrator')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+        }
     }
 }

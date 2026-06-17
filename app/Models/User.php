@@ -35,6 +35,7 @@ class User extends Authenticatable
         'password',
         'email_verified_at',
         'google_id',
+        'panel_visited_at',
     ];
 
     protected $hidden = [
@@ -46,8 +47,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'birthday' => 'date',
             'is_banned' => 'boolean',
             'password' => 'hashed',
+            'panel_visited_at' => 'datetime',
         ];
     }
 
@@ -106,6 +109,16 @@ class User extends Authenticatable
             ->withPivot('id', 'created_at')
             ->withTimestamps()
             ->orderByPivot('created_at', 'desc');
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function conversations(): HasMany
+    {
+        return $this->hasMany(Conversation::class, 'customer_user_id');
     }
 
     public function notificationSetting(): HasOne

@@ -24,9 +24,19 @@ final class NubefactProvider implements InvoiceProviderInterface
 
     public static function fromConfig(): self
     {
+        $apiUrl = config('services.nubefact.route')
+            ?? throw NubefactException::configError(
+                'NUBEFACT_ROUTE no está definido en .env. Sin esta clave el servicio no puede operar.'
+            );
+
+        $apiToken = config('services.nubefact.token')
+            ?? throw NubefactException::configError(
+                'NUBEFACT_TOKEN no está definido en .env.'
+            );
+
         return new self(
-            apiUrl: config('services.nubefact.route'),
-            apiToken: config('services.nubefact.token'),
+            apiUrl: $apiUrl,
+            apiToken: $apiToken,
             timeout: (int) config('services.nubefact.timeout', self::DEFAULT_TIMEOUT),
             connectTimeout: (int) config('services.nubefact.connect_timeout', self::DEFAULT_CONNECT_TIMEOUT),
         );
@@ -77,6 +87,14 @@ final class NubefactProvider implements InvoiceProviderInterface
             ]);
 
             $errorMsg = $json['message'] ?? $json['error'] ?? $body;
+
+            if ($status === 404) {
+                $codigo = $json['codigo'] ?? null;
+                throw NubefactException::configError(
+                    "Ruta inválida (HTTP 404) — verifica NUBEFACT_ROUTE en .env" . ($codigo ? " (código Nubefact: {$codigo})" : '') . ". {$errorMsg}",
+                    ['status' => $status, 'body' => $json, 'url' => $url],
+                );
+            }
 
             if ($status === 401) {
                 throw NubefactException::authError(

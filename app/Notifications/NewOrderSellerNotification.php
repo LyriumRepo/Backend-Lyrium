@@ -27,12 +27,12 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
 
         $settings = $notifiable->notificationSetting;
 
-        if ($settings?->wantsEmailOrder() ?? true) {
-            $channels[] = 'mail';
-        }
-
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
+        }
+
+        if ($settings?->wantsEmailOrder() ?? true) {
+            $channels[] = 'mail';
         }
 
         return $channels;

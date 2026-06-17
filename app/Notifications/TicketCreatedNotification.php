@@ -7,10 +7,11 @@ namespace App\Notifications;
 use App\Channels\PushChannel;
 use App\Models\Ticket;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class TicketCreatedNotification extends Notification
+final class TicketCreatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -24,12 +25,12 @@ final class TicketCreatedNotification extends Notification
 
         $settings = $notifiable->notificationSetting;
 
-        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
-            $channels[] = 'mail';
-        }
-
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
+        }
+
+        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
+            $channels[] = 'mail';
         }
 
         return $channels;

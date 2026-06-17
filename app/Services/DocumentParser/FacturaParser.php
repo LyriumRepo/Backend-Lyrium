@@ -42,7 +42,7 @@ final class FacturaParser implements ParsesDocument
 
     private function lines(string $text): array
     {
-        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn(string $l) => trim($l) !== ''));
+        return array_values(array_filter(explode("\n", str_replace("\r", '', $text)), fn (string $l) => trim($l) !== ''));
     }
 
     private function extractDocumentNumber(string $text): ?string
@@ -59,7 +59,7 @@ final class FacturaParser implements ParsesDocument
 
     private function extractDate(string $text, string $label): ?string
     {
-        if (preg_match('/Fecha\s*de\s*' . $label . '\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i', $text, $m)) {
+        if (preg_match('/Fecha\s*de\s*'.$label.'\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i', $text, $m)) {
             try {
                 return "{$m[3]}-{$m[2]}-{$m[1]}";
             } catch (\Exception) {
@@ -133,6 +133,7 @@ final class FacturaParser implements ParsesDocument
             $trimmed = trim($line);
             if ($name !== null && str_contains($trimmed, $name)) {
                 $capture = true;
+
                 continue;
             }
             if ($capture) {
@@ -152,6 +153,7 @@ final class FacturaParser implements ParsesDocument
                 $trimmed = trim($line);
                 if (preg_match('/RUC\s*:?\s*\d{11}/i', $trimmed)) {
                     $capture = true;
+
                     continue;
                 }
                 if ($capture) {
@@ -195,7 +197,7 @@ final class FacturaParser implements ParsesDocument
             }
         }
 
-        // Address after "Dirección:" 
+        // Address after "Dirección:"
         foreach ($lines as $i => $line) {
             $trimmed = trim($line);
             if (preg_match('/^Direcci[óo]n\s*:/iu', $trimmed) || preg_match('/^Direcci[óo]n$/iu', $trimmed)) {
@@ -295,6 +297,7 @@ final class FacturaParser implements ParsesDocument
                         total: $total,
                     );
                 }
+
                 continue;
             }
 
@@ -333,14 +336,14 @@ final class FacturaParser implements ParsesDocument
     {
         // Try "Label : X.XX" on same line
         foreach ($labels as $label) {
-            if (preg_match('/' . $label . '\s*:?\s*(?:S\/|s\/)?\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
+            if (preg_match('/'.$label.'\s*:?\s*(?:S\/|s\/)?\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
                 return (float) str_replace(',', '', $m[1]);
             }
         }
 
         // Try "Label" on one line, then "X.XX" on next line
         foreach ($labels as $label) {
-            if (preg_match('/' . $label . '\s*\n\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
+            if (preg_match('/'.$label.'\s*\n\s*([\d,]+\.\d{2})\b/i', $text, $m)) {
                 return (float) str_replace(',', '', $m[1]);
             }
         }

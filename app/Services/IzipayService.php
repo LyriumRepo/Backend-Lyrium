@@ -207,6 +207,10 @@ final class IzipayService
 
     public function createPaymentSession(Order $order, string $email, string $cartToken = ''): IzipayOrderTransaction
     {
+        if ($this->isMock()) {
+            return $this->mockCreatePaymentSession($order);
+        }
+
         // Service prices are already included in order->total (see OrderController::store)
         $holdIds = [];
 
@@ -317,6 +321,43 @@ final class IzipayService
 
             throw new \RuntimeException('No se pudo conectar con el servidor de pagos. Intenta nuevamente.');
         }
+    }
+
+    // ── Modo simulado para createPaymentSession ─────────────────────────
+
+    private function mockCreatePaymentSession(Order $order): IzipayOrderTransaction
+    {
+        $amountCents   = IzipayOrderTransaction::toCents((float) $order->total);
+        $izipayOrderId = IzipayOrderTransaction::generateIzipayOrderId($order->id);
+
+        Log::info('[IzipayService:MOCK] Sesión de pago simulada — confirmando inmediatamente', [
+            'order_id' => $order->id,
+            'amount'   => $order->total,
+        ]);
+
+        $transaction = IzipayOrderTransaction::create([
+            'order_id'           => $order->id,
+            'user_id'            => $order->user_id,
+            'izipay_order_id'    => $izipayOrderId,
+            'status'             => 'paid',
+            'transaction_status' => 'PAID',
+            'amount_in_cents'    => $amountCents,
+            'currency'           => 'PEN',
+            'mode'               => $this->mode,
+            'form_token'         => self::MOCK_PREFIX . bin2hex(random_bytes(16)),
+        ]);
+
+        $order->update([
+            'payment_status' => Order::PAYMENT_STATUS_PAID,
+            'payment_method' => 'izipay_mock',
+        ]);
+
+        event(new OrderPaymentConfirmed(
+            order: $order,
+            paymentMethod: 'izipay_mock',
+        ));
+
+        return $transaction;
     }
 
     // ── Tokenización de tarjetas ─────────────────────────────────────────

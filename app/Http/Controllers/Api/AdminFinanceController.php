@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\Expense;
+use App\Models\Order;
 use App\Models\SellerPayment;
-use App\Models\TicketMessage;
 use App\Models\Ticket;
+use App\Models\TicketMessage;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,14 +68,14 @@ final class AdminFinanceController extends Controller
     private function getIngresosBrutos(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as periodo"), DB::raw('SUM(total) as total'))
             ->groupBy('periodo')
             ->orderBy('periodo')
             ->get();
 
-        $labels = $rows->pluck('periodo')->map(fn($p) => ucfirst(\Carbon\Carbon::parse($p . '-01')->translatedFormat('M')))->toArray();
-        $data = $rows->pluck('total')->map(fn($v) => (float) $v)->toArray();
+        $labels = $rows->pluck('periodo')->map(fn ($p) => ucfirst(\Carbon\Carbon::parse($p.'-01')->translatedFormat('M')))->toArray();
+        $data = $rows->pluck('total')->map(fn ($v) => (float) $v)->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
@@ -87,7 +87,7 @@ final class AdminFinanceController extends Controller
         return [
             'labels' => $labels,
             'data' => $data,
-            'trend' => $total > 0 ? '+' . number_format(($total - $prevTotal) / max($prevTotal, 1) * 100, 1) . '%' : '0%',
+            'trend' => $total > 0 ? '+'.number_format(($total - $prevTotal) / max($prevTotal, 1) * 100, 1).'%' : '0%',
         ];
     }
 
@@ -96,14 +96,14 @@ final class AdminFinanceController extends Controller
         $avgCommission = (float) DB::table('stores')->avg('commission_rate') / 100;
 
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as periodo"), DB::raw('SUM(total) as total'))
             ->groupBy('periodo')
             ->orderBy('periodo')
             ->get();
 
-        $labels = $rows->pluck('periodo')->map(fn($p) => ucfirst(\Carbon\Carbon::parse($p . '-01')->translatedFormat('M')))->toArray();
-        $data = $rows->pluck('total')->map(fn($v) => round((float) $v * (1 - $avgCommission), 2))->toArray();
+        $labels = $rows->pluck('periodo')->map(fn ($p) => ucfirst(\Carbon\Carbon::parse($p.'-01')->translatedFormat('M')))->toArray();
+        $data = $rows->pluck('total')->map(fn ($v) => round((float) $v * (1 - $avgCommission), 2))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
@@ -117,7 +117,7 @@ final class AdminFinanceController extends Controller
         $avgCommission = (float) DB::table('stores')->avg('commission_rate') / 100;
 
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(
                 DB::raw("DATE_FORMAT(created_at, '%Y-%m') as periodo"),
                 DB::raw('SUM(total) as total'),
@@ -127,8 +127,8 @@ final class AdminFinanceController extends Controller
             ->orderBy('periodo')
             ->get();
 
-        $labels = $rows->pluck('periodo')->map(fn($p) => ucfirst(\Carbon\Carbon::parse($p . '-01')->translatedFormat('M')))->toArray();
-        $data = $rows->map(fn($r) => round((float) $r->total * (1 - $avgCommission) - (float) $r->shipping, 2))->toArray();
+        $labels = $rows->pluck('periodo')->map(fn ($p) => ucfirst(\Carbon\Carbon::parse($p.'-01')->translatedFormat('M')))->toArray();
+        $data = $rows->map(fn ($r) => round((float) $r->total * (1 - $avgCommission) - (float) $r->shipping, 2))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
@@ -140,14 +140,14 @@ final class AdminFinanceController extends Controller
     private function getVentasTotales(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as periodo"), DB::raw('COUNT(*) as count'))
             ->groupBy('periodo')
             ->orderBy('periodo')
             ->get();
 
-        $labels = $rows->pluck('periodo')->map(fn($p) => ucfirst(\Carbon\Carbon::parse($p . '-01')->translatedFormat('M')))->toArray();
-        $data = $rows->pluck('count')->map(fn($v) => (int) $v)->toArray();
+        $labels = $rows->pluck('periodo')->map(fn ($p) => ucfirst(\Carbon\Carbon::parse($p.'-01')->translatedFormat('M')))->toArray();
+        $data = $rows->pluck('count')->map(fn ($v) => (int) $v)->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
@@ -159,14 +159,14 @@ final class AdminFinanceController extends Controller
     private function getTicketPromedio(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m-%d') as dia"), DB::raw('AVG(total) as avg_total'))
             ->groupBy('dia')
             ->orderBy('dia')
             ->get();
 
-        $labels = $rows->pluck('dia')->map(fn($d) => \Carbon\Carbon::parse($d)->format('d/m'))->toArray();
-        $data = $rows->pluck('avg_total')->map(fn($v) => round((float) $v, 2))->toArray();
+        $labels = $rows->pluck('dia')->map(fn ($d) => \Carbon\Carbon::parse($d)->format('d/m'))->toArray();
+        $data = $rows->pluck('avg_total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['L', 'M', 'X', 'J', 'V', 'S', 'D'], 'data' => [0, 0, 0, 0, 0, 0, 0], 'trend' => '0%'];
@@ -178,15 +178,15 @@ final class AdminFinanceController extends Controller
     private function getLeadTime(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as periodo"),
                 DB::raw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours'))
             ->groupBy('periodo')
             ->orderBy('periodo')
             ->get();
 
-        $labels = $rows->pluck('periodo')->map(fn($p) => ucfirst(\Carbon\Carbon::parse($p . '-01')->translatedFormat('M')))->toArray();
-        $data = $rows->pluck('avg_hours')->map(fn($v) => round((float) $v, 1))->toArray();
+        $labels = $rows->pluck('periodo')->map(fn ($p) => ucfirst(\Carbon\Carbon::parse($p.'-01')->translatedFormat('M')))->toArray();
+        $data = $rows->pluck('avg_hours')->map(fn ($v) => round((float) $v, 1))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], 'data' => [0, 0, 0, 0]];
@@ -209,22 +209,22 @@ final class AdminFinanceController extends Controller
 
     private function getTiempoRespuesta(string $start, string $end): array
     {
-        $avgMinutes = TicketMessage::whereBetween('created_at', [$start, $end . ' 23:59:59'])
+        $avgMinutes = TicketMessage::whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->where('type', 'normal')
-            ->whereHas('ticket', fn($q) => $q->where('status', '!=', 'open'))
+            ->whereHas('ticket', fn ($q) => $q->where('status', '!=', 'open'))
             ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, created_at, COALESCE(updated_at, created_at))) as avg_min'))
             ->value('avg_min');
 
         $avgMinutes = $avgMinutes ? round((float) $avgMinutes, 1) : 0;
 
-        $weeks = TicketMessage::whereBetween('created_at', [$start, $end . ' 23:59:59'])
+        $weeks = TicketMessage::whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y-%u') as semana"), DB::raw('COUNT(*) as count'))
             ->groupBy('semana')
             ->orderBy('semana')
             ->get();
 
-        $labels = $weeks->pluck('semana')->map(fn($s) => 'S' . explode('-', $s)[1] ?? $s)->toArray();
-        $data = $weeks->pluck('count')->map(fn($v) => (int) $v)->toArray();
+        $labels = $weeks->pluck('semana')->map(fn ($s) => 'S'.explode('-', $s)[1] ?? $s)->toArray();
+        $data = $weeks->pluck('count')->map(fn ($v) => (int) $v)->toArray();
 
         if (empty($labels)) {
             $labels = ['S1', 'S2', 'S3', 'S4'];
@@ -261,14 +261,14 @@ final class AdminFinanceController extends Controller
     private function getLTV(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%Y') as año"), DB::raw('AVG(total) as avg_total'))
             ->groupBy('año')
             ->orderBy('año')
             ->get();
 
         $labels = $rows->pluck('año')->toArray();
-        $data = $rows->pluck('avg_total')->map(fn($v) => round((float) $v, 2))->toArray();
+        $data = $rows->pluck('avg_total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['2024', '2025', '2026'], 'data' => [0, 0, 0]];
@@ -280,22 +280,22 @@ final class AdminFinanceController extends Controller
     private function getCuotaMercado(string $start, string $end): array
     {
         $total = (float) Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->sum('total');
 
         $storesData = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('stores', 'order_items.store_id', '=', 'stores.id')
             ->where('orders.payment_status', 'paid')
-            ->whereBetween('orders.created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('orders.created_at', [$start, $end.' 23:59:59'])
             ->select('stores.id', 'stores.trade_name', DB::raw('SUM(order_items.line_total) as ventas'))
             ->groupBy('stores.id', 'stores.trade_name')
             ->orderByDesc('ventas')
             ->limit(4)
             ->get();
 
-        $labels = $storesData->pluck('trade_name')->map(fn($n) => $n ?: 'Sin nombre')->toArray();
-        $data = $storesData->map(fn($s) => $total > 0 ? round((float) $s->ventas / $total * 100, 1) : 0)->toArray();
+        $labels = $storesData->pluck('trade_name')->map(fn ($n) => $n ?: 'Sin nombre')->toArray();
+        $data = $storesData->map(fn ($s) => $total > 0 ? round((float) $s->ventas / $total * 100, 1) : 0)->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Tu Tienda', 'Competencia A', 'Competencia B', 'Otros'], 'data' => [35, 25, 20, 20]];
@@ -340,13 +340,13 @@ final class AdminFinanceController extends Controller
             ->selectRaw('MAX(orders.created_at) as last_purchase')
             ->join('orders', 'users.id', '=', 'orders.user_id')
             ->where('orders.payment_status', 'paid')
-            ->whereBetween('orders.created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('orders.created_at', [$start, $end.' 23:59:59'])
             ->groupBy('users.id', 'users.name')
             ->orderByDesc('clv')
             ->limit(5)
             ->get();
 
-        return $users->map(fn($u) => [
+        return $users->map(fn ($u) => [
             'id' => (string) $u->id,
             'name' => $u->name,
             'clv' => (float) $u->clv,
@@ -358,7 +358,7 @@ final class AdminFinanceController extends Controller
     private function getHeatmap(string $start, string $end): array
     {
         $rows = Order::where('payment_status', 'paid')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->select(DB::raw("DATE_FORMAT(created_at, '%w') as day_num"),
                 DB::raw("DATE_FORMAT(created_at, '%H') as hour"),
                 DB::raw('COUNT(*) as value'))
@@ -381,7 +381,7 @@ final class AdminFinanceController extends Controller
             ];
         }
 
-        return $rows->map(fn($r) => [
+        return $rows->map(fn ($r) => [
             'day' => $dayNames[(int) $r->day_num] ?? 'Dom',
             'hour' => (int) $r->hour,
             'value' => (int) $r->value,
@@ -396,15 +396,15 @@ final class AdminFinanceController extends Controller
             ->join('categories', 'category_product.category_id', '=', 'categories.id')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.payment_status', 'paid')
-            ->whereBetween('orders.created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('orders.created_at', [$start, $end.' 23:59:59'])
             ->select('categories.name', DB::raw('SUM(order_items.line_total) as total'))
             ->groupBy('categories.name')
             ->orderByDesc('total')
             ->limit(5)
             ->get();
 
-        $labels = $cats->pluck('name')->map(fn($n) => $n ?: 'General')->toArray();
-        $data = $cats->pluck('total')->map(fn($v) => round((float) $v, 2))->toArray();
+        $labels = $cats->pluck('name')->map(fn ($n) => $n ?: 'General')->toArray();
+        $data = $cats->pluck('total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
             return ['labels' => ['Categoría A', 'Categoría B', 'Categoría C', 'Categoría D'], 'data' => [40, 25, 20, 15]];
@@ -416,11 +416,11 @@ final class AdminFinanceController extends Controller
     private function getCSAT(string $start, string $end): array
     {
         $avgRating = (float) Ticket::whereNotNull('satisfaction_rating')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->avg('satisfaction_rating');
 
         $total = Ticket::whereNotNull('satisfaction_rating')
-            ->whereBetween('created_at', [$start, $end . ' 23:59:59'])
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->count();
 
         return [

@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Contracts\InvoiceProviderInterface;
+use App\Events\NewConversationMessage;
 use App\Exceptions\NubefactException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\InvoiceResource;
+use App\Models\Conversation;
+use App\Models\ConversationMessage;
 use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\Store;
+use App\Notifications\InvoiceRequestedNotification;
 use App\Services\NubefactService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -123,6 +127,8 @@ final class InvoiceController extends Controller
             'customer_name' => $data['business_name'] ?? $order->user?->name,
         ]);
 
+        $this->notifySellersOfInvoiceRequest($order);
+
         return $this->created(new InvoiceResource($invoice));
     }
 
@@ -157,6 +163,86 @@ final class InvoiceController extends Controller
         ]);
     }
 
+    private function notifySellersOfInvoiceRequest(Order $order): void
+    {
+        $order->loadMissing(['items', 'user']);
+
+        $storeGroups = $order->items->groupBy('store_id');
+
+        foreach ($storeGroups as $storeId => $items) {
+            $store = Store::with('owner')->find($storeId);
+
+            if (!$store || !$store->owner) {
+                continue;
+            }
+
+            // Notification: database + push (no mail)
+            try {
+                $store->owner->notify(new InvoiceRequestedNotification($order, $store, $items));
+            } catch (\Throwable $e) {
+                Log::error('[InvoiceRequest] Error al notificar al vendedor', [
+                    'order_id' => $order->id,
+                    'store_id' => $storeId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Chat message in the conversation between customer and this store
+            try {
+                $customerId = $order->user_id;
+                $customerName = $order->shipping_name ?: $order->user?->name ?? 'El cliente';
+                $purchaseDate = $order->created_at->setTimezone('America/Lima')->format('d/m/Y');
+                $purchaseTime = $order->created_at->setTimezone('America/Lima')->format('H:i');
+
+                $productList = $items->map(fn ($item) =>
+                    "• {$item->product_name} (x{$item->quantity}) — S/ " . number_format((float) $item->line_total, 2)
+                )->join("\n");
+
+                $content = "📄 Solicitud de comprobante de pago\n\n"
+                    . "{$customerName} ha solicitado un comprobante por el pedido #{$order->order_number}.\n\n"
+                    . "📦 Productos:\n{$productList}\n\n"
+                    . "📅 Fecha de compra: {$purchaseDate} a las {$purchaseTime}\n\n"
+                    . "Por favor revisa el pedido en tu panel de vendedor para emitir el comprobante.";
+
+                $conversation = Conversation::where('customer_user_id', $customerId)
+                    ->where('store_id', $storeId)
+                    ->where('status', 'active')
+                    ->first();
+
+                if (!$conversation) {
+                    $conversation = Conversation::create([
+                        'customer_user_id' => $customerId,
+                        'store_id' => $storeId,
+                        'category' => 'order',
+                        'subject' => "Pedido #{$order->order_number}",
+                        'status' => 'active',
+                        'last_message_at' => now(),
+                    ]);
+                }
+
+                $message = ConversationMessage::create([
+                    'conversation_id' => $conversation->id,
+                    'sender_id' => $customerId,
+                    'content' => $content,
+                ]);
+
+                $conversation->update(['last_message_at' => now()]);
+
+                broadcast(new NewConversationMessage(
+                    message: $message->loadMissing(['sender', 'conversation']),
+                    customerUserId: $customerId,
+                    storeId: $storeId,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[InvoiceRequest] Error al crear mensaje de chat', [
+                    'order_id' => $order->id,
+                    'store_id' => $storeId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
     private function getStore($user): Store
     {
         $store = $user->stores()->first()
@@ -172,7 +258,7 @@ final class InvoiceController extends Controller
     {
         $store = $this->getStore($request->user());
 
-        $query = Invoice::with(['order.user'])
+        $query = Invoice::with(['order.user', 'store'])
             ->where('store_id', $store->id);
 
         if ($request->filled('status')) {

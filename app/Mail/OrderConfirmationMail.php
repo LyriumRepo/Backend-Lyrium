@@ -12,7 +12,6 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-
 final class OrderConfirmationMail extends Mailable implements ShouldQueue
 {
     use Queueable;
@@ -31,6 +30,17 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $this->withSymfonyMessage(function ($message) {
+            $iconPath = public_path('images/iconologo.png');
+            $textPath = public_path('images/nombrelogo.png');
+            if (file_exists($iconPath)) {
+                $message->embedFromPath($iconPath, 'logo-icon');
+            }
+            if (file_exists($textPath)) {
+                $message->embedFromPath($textPath, 'logo-text');
+            }
+        });
+
         $order = $this->order->loadMissing(['items.product', 'user']);
 
         $items = $order->items->map(function ($item) {

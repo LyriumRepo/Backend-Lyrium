@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\ChatBotFaqService;
-use App\Services\OpenAIService;
+use App\Services\GeminiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,12 +19,12 @@ final class ChatBotController extends Controller
     private const RATE_LIMIT_WINDOW = 60;
 
     private ChatBotFaqService $faqService;
-    private OpenAIService $openAI;
+    private GeminiService $gemini;
 
-    public function __construct(ChatBotFaqService $faqService, OpenAIService $openAI)
+    public function __construct(ChatBotFaqService $faqService, GeminiService $gemini)
     {
         $this->faqService = $faqService;
-        $this->openAI = $openAI;
+        $this->gemini = $gemini;
     }
 
     public function ask(Request $request): JsonResponse
@@ -53,7 +53,7 @@ final class ChatBotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
 
-        $faqResponse = $this->faqService->find($message);
+        $faqResponse = $this->faqService->find($message, $history);
 
         if ($faqResponse !== null) {
             $this->trackRequest($sessionId);
@@ -64,13 +64,15 @@ final class ChatBotController extends Controller
             ]);
         }
 
-        $aiResponse = $this->openAI->ask($message, $history);
+        $aiResponse = $this->gemini->ask($message, $history);
 
         if ($aiResponse === null) {
-            return $this->error(
-                'Lo siento, no pude procesar tu consulta en este momento. Por favor, intenta de nuevo más tarde o escribe a soporte@lyrium.pe.',
-                503
-            );
+            $this->trackRequest($sessionId);
+
+            return $this->success([
+                'reply'  => "👩🏻 No pude resolver tu consulta en este momento. Un asesor de Lyrium puede ayudarte ahora mismo:\n\n📱 WhatsApp: https://wa.me/51937093420\n\n¡Escríbenos y te atendemos de inmediato! 🌱",
+                'source' => 'fallback',
+            ]);
         }
 
         $this->trackRequest($sessionId);

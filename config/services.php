@@ -67,9 +67,14 @@ return [
         'api_key' => env('OPENAI_API_KEY'),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
     'fcm' => [
-        'server_key' => env('FCM_SERVER_KEY'),
-        'api_url'    => 'https://fcm.googleapis.com/fcm/send',
+        'project_id'       => env('FCM_PROJECT_ID'),
+        'credentials_json' => env('FCM_CREDENTIALS_JSON'),     // base64 del JSON de cuenta de servicio
+        'credentials_path' => env('FCM_CREDENTIALS_PATH', storage_path('app/fcm-service-account.json')),
     ],
 
     'ses' => [
@@ -79,16 +84,17 @@ return [
     ],
 
     'nubefact' => [
-        'route' => env('NUBEFACT_ROUTE', 'https://api.nubefact.com/api/v1/06259bc7-b074-43bd-8981-53fa863f787f'),
-        'token' => env('NUBEFACT_TOKEN', 'a4e2903adce14230ac2f744c2e785b6681ad211178484c498faf0740aeeac05e'),
-        'ruc' => env('NUBEFACT_RUC', '20600695771'),
-        'branch_id' => env('NUBEFACT_BRANCH_ID', '0'),
-        'timeout' => env('NUBEFACT_TIMEOUT', 30),
+        'mock'            => env('NUBEFACT_MOCK', true),
+        'route'           => env('NUBEFACT_ROUTE'),          // sin default — falla explícitamente si no está configurado
+        'token'           => env('NUBEFACT_TOKEN'),          // sin default
+        'ruc'             => env('NUBEFACT_RUC', '20600695771'),
+        'branch_id'       => env('NUBEFACT_BRANCH_ID', '0'),
+        'timeout'         => env('NUBEFACT_TIMEOUT', 30),
         'connect_timeout' => env('NUBEFACT_CONNECT_TIMEOUT', 10),
         'series' => [
-            'FACTURA' => 'FFF1',
-            'BOLETA' => 'BBB1',
-            'NOTA_CREDITO' => 'FFF1',
+            'FACTURA'      => env('NUBEFACT_SERIES_FACTURA', 'FFF1'),
+            'BOLETA'       => env('NUBEFACT_SERIES_BOLETA', 'BBB1'),
+            'NOTA_CREDITO' => env('NUBEFACT_SERIES_NC', 'FFF1'),
         ],
     ],
 

@@ -145,7 +145,7 @@ final class PlanRequestController extends Controller
         $requests = $query->paginate($request->query('per_page', 20));
 
         return response()->json([
-            'data' => $requests->map(fn($req) => [
+            'data' => $requests->map(fn ($req) => [
                 'id' => $req->id,
                 'store_id' => $req->store_id,
                 'store_name' => $req->store->trade_name,
@@ -163,7 +163,7 @@ final class PlanRequestController extends Controller
                 'status' => $req->status,
                 'created_at' => $req->created_at->toIso8601String(),
 
-                'current_plan_slug'  => $req->store->activeSubscription?->plan?->slug ?? 'basic',
+                'current_plan_slug' => $req->store->activeSubscription?->plan?->slug ?? 'basic',
             ]),
             'pagination' => [
                 'page' => $requests->currentPage(),
@@ -179,7 +179,7 @@ final class PlanRequestController extends Controller
     {
         $req = PlanRequest::with([
             'store.owner:id,name,email',
-            'store' => fn($q) => $q->select('id', 'trade_name', 'ruc', 'owner_id'),
+            'store' => fn ($q) => $q->select('id', 'trade_name', 'ruc', 'owner_id'),
             'plan:id,name,slug,monthly_fee,commission_rate',
             'currentPlan:id,name',
             'reviewer:id,name',
@@ -226,6 +226,7 @@ final class PlanRequestController extends Controller
         $this->approvePlanRequest($planRequest, $request->user()->id);
 
         return response()->json([
+            'success' => true,
             'message' => 'Plan activado correctamente',
             'request' => [
                 'id' => $planRequest->id,
@@ -245,17 +246,19 @@ final class PlanRequestController extends Controller
             ], 422);
         }
 
-        $request->validate([
-            'notes' => ['required', 'string', 'min:10', 'max:1000'],
-        ]);
+        $notes = $request->input('admin_notes') ?? $request->input('notes') ?? '';
+        if (strlen(trim($notes)) < 10) {
+            return response()->json(['message' => 'El motivo de rechazo debe tener al menos 10 caracteres'], 422);
+        }
 
         $planRequest->update([
             'status' => PlanRequest::STATUS_REJECTED,
-            'admin_notes' => $request->input('notes'),
+            'admin_notes' => $notes,
             'reviewed_by' => $request->user()->id,
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'Solicitud rechazada',
             'request' => [
                 'id' => $planRequest->id,
@@ -263,6 +266,74 @@ final class PlanRequestController extends Controller
                 'admin_notes' => $planRequest->admin_notes,
                 'reviewed_at' => $planRequest->updated_at->toIso8601String(),
             ],
+        ]);
+    }
+
+    public function paymentHistory(Request $request): JsonResponse
+    {
+        $statusFilter = $request->query('status');
+
+        $query = PlanRequest::query()
+            ->with([
+                'store.owner:id,name,email',
+                'store.activeSubscription' => fn ($q) => $q->with('plan:id,name,slug,css_color'),
+                'plan:id,name,slug,monthly_fee,css_color',
+            ])
+            ->orderBy('created_at', 'desc');
+
+        if ($statusFilter && $statusFilter !== 'all') {
+            $query->where('payment_status', $statusFilter);
+        }
+
+        $requests = $query->get();
+
+        $byStore = $requests->groupBy('store_id');
+
+        $vendedores = $byStore->map(function ($storeRequests, $storeId) {
+            $first = $storeRequests->first();
+            $store = $first->store;
+            $sub = $store?->activeSubscription;
+
+            $transacciones = $storeRequests->map(fn ($req) => [
+                'id'          => $req->id,
+                'estado'      => $req->payment_status,
+                'monto'       => (float) $req->total_amount,
+                'meses'       => $req->months,
+                'fecha'       => $req->created_at->toIso8601String(),
+                'procesadoEn' => $req->updated_at?->toIso8601String(),
+                'metodoPago'  => strtoupper($req->payment_method ?? ''),
+                'planId'      => $req->plan?->slug ?? '',
+                'planNombre'  => $req->plan?->name ?? '',
+                'planColor'   => $req->plan?->css_color ?? '#10b981',
+            ])->values()->all();
+
+            return [
+                'usuario_id'      => (string) $storeId,
+                'username'        => $store?->trade_name ?? 'Tienda',
+                'email'           => $store?->owner?->email ?? '',
+                'correo'          => $store?->owner?->email ?? '',
+                'plan_actual'     => $sub?->plan?->slug ?? 'basic',
+                'nombre_plan'     => $sub?->plan?->name ?? 'Sin plan',
+                'css_color'       => $sub?->plan?->css_color ?? '#10b981',
+                'fecha_expiracion'=> $sub?->ends_at?->toIso8601String() ?? '',
+                'total_monto'     => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
+                'pagos_exitosos'  => $storeRequests->where('payment_status', 'paid')->count(),
+                'transacciones'   => $transacciones,
+                'historial'       => [],
+            ];
+        })->values()->all();
+
+        $totales = [
+            'total_monto'    => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
+            'pagos_exitosos' => PlanRequest::where('payment_status', 'paid')->count(),
+            'pagos_fallidos' => PlanRequest::where('payment_status', 'failed')->count(),
+            'pagos_pending'  => PlanRequest::where('payment_status', 'pending')->count(),
+        ];
+
+        return response()->json([
+            'success'  => true,
+            'data'     => $vendedores,
+            'totales'  => $totales,
         ]);
     }
 

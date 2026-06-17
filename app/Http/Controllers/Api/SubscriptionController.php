@@ -16,7 +16,7 @@ final class SubscriptionController extends Controller
 {
     public function index(Request $request): AnonymousResourceCollection
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
 
         $subscriptions = Subscription::query()
             ->where('store_id', $store->id)
@@ -33,7 +33,7 @@ final class SubscriptionController extends Controller
             'plan_id' => ['required', 'integer', 'exists:plans,id'],
         ]);
 
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
         $plan = Plan::findOrFail($request->validated('plan_id'));
 
         $activeSubscription = Subscription::query()
@@ -74,7 +74,7 @@ final class SubscriptionController extends Controller
 
     public function show(int $id, Request $request): SubscriptionResource
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
 
         $subscription = Subscription::query()
             ->where('store_id', $store->id)
@@ -87,7 +87,7 @@ final class SubscriptionController extends Controller
 
     public function cancel(int $id, Request $request): JsonResponse
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
 
         $subscription = Subscription::query()
             ->where('store_id', $store->id)
@@ -116,7 +116,7 @@ final class SubscriptionController extends Controller
             'plan_id' => ['sometimes', 'integer', 'exists:plans,id'],
         ]);
 
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
 
         $subscription = Subscription::query()
             ->where('store_id', $store->id)

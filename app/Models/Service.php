@@ -141,6 +141,7 @@ final class Service extends Model implements HasMedia
     {
         $price = (float) $this->price;
         $discount = (float) ($this->discount_percentage ?? 0);
+
         return $discount > 0 ? round($price * (1 - $discount / 100), 2) : $price;
     }
 

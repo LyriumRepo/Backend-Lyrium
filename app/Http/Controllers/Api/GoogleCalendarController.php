@@ -30,7 +30,7 @@ final class GoogleCalendarController extends Controller
     public function status(Request $request): JsonResponse
     {
         $store = $request->user()
-            ->stores()
+            ->ownedStores()
             ->where('status', 'approved')
             ->first();
 
@@ -55,7 +55,7 @@ final class GoogleCalendarController extends Controller
     public function authUrl(Request $request): JsonResponse
     {
         $store = $request->user()
-            ->stores()
+            ->ownedStores()
             ->where('status', 'approved')
             ->first();
 
@@ -104,7 +104,7 @@ final class GoogleCalendarController extends Controller
         }
 
         $user = User::find($stateData['user_id']);
-        $store = $user?->stores()->find($stateData['store_id']);
+        $store = $user?->ownedStores()->find($stateData['store_id']);
 
         if (! $user || ! $store) {
             return redirect($errorRedirect.'&reason=not_found');
@@ -154,7 +154,7 @@ final class GoogleCalendarController extends Controller
     public function disconnect(Request $request): JsonResponse
     {
         $store = $request->user()
-            ->stores()
+            ->ownedStores()
             ->where('status', 'approved')
             ->firstOrFail();
 

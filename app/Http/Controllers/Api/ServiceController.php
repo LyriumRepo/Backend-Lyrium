@@ -11,6 +11,8 @@ use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Http\Resources\ServiceBookingResource;
 use App\Http\Resources\ServiceResource;
+use App\Models\User;
+use App\Notifications\ServicePendingReviewNotification;
 use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -114,6 +116,12 @@ final class ServiceController extends Controller
             data: $request->validated()
         );
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
+
+        // Notificar a administradores: servicio pendiente de revisión
+        $admins = User::role('administrator')->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new ServicePendingReviewNotification($service));
+        }
 
         return response()->json(
             new ServiceResource($service),

@@ -12,11 +12,19 @@ final class BlogPodcast extends Model
     use HasFactory;
 
     protected $fillable = [
+        'store_id',
+        'type',
+        'platform',
+        'url',
         'title',
         'description',
-        'image',
-        'audio_url',
+        'cover_image',
+        'thumbnail',
         'duration',
+        'metadata',
+        'tags',
+        'status',
+        'views_count',
         'is_published',
         'published_at',
     ];
@@ -24,8 +32,16 @@ final class BlogPodcast extends Model
     protected function casts(): array
     {
         return [
+            'metadata' => 'array',
+            'tags' => 'array',
             'is_published' => 'boolean',
             'published_at' => 'datetime',
+            'views_count' => 'integer',
         ];
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 }

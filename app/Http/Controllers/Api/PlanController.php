@@ -7,14 +7,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Plan\StorePlanRequest;
 use App\Http\Requests\Plan\UpdatePlanRequest;
+use App\Http\Resources\AdminPlanResource;
 use App\Http\Resources\PlanResource;
 use App\Models\Plan;
 use App\Services\PlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use App\Http\Resources\AdminPlanResource;
-use Google\Service\Dfareporting\Ad;
 
 final class PlanController extends Controller
 {
@@ -56,6 +55,7 @@ final class PlanController extends Controller
         $plan = $this->planService->create($request->validated());
 
         return response()->json([
+            'success' => true,
             'message' => 'Plan creado correctamente',
             'data' => new AdminPlanResource($plan),
         ], 201);
@@ -73,6 +73,7 @@ final class PlanController extends Controller
         $updated = $this->planService->update($plan->id, $request->validated());
 
         return response()->json([
+            'success' => true,
             'message' => 'Plan actualizado correctamente',
             'data' => new AdminPlanResource($updated),
         ]);
@@ -84,10 +85,12 @@ final class PlanController extends Controller
             $this->planService->delete($plan->id);
 
             return response()->json([
+                'success' => true,
                 'message' => 'Plan eliminado correctamente',
             ]);
         } catch (\RuntimeException $e) {
             return response()->json([
+                'success' => false,
                 'message' => $e->getMessage(),
             ], 422);
         }
@@ -103,13 +106,32 @@ final class PlanController extends Controller
         ]);
     }
 
-    public function updateIcon(Request $request, Plan $plan): JsonResponse
+    public function setActive(Request $request, Plan $plan): JsonResponse
     {
-        $request->validate(['icon' => ['required', 'string', 'max:50']]);
+        $request->validate(['activo' => ['required', 'boolean']]);
 
-        $updated = $this->planService->updateIcon($plan->id, $request->input('icon'));
+        $plan->update(['is_active' => $request->boolean('activo')]);
+        $plan->refresh();
 
         return response()->json([
+            'success' => true,
+            'message' => $plan->is_active ? 'Plan activado' : 'Plan desactivado',
+            'data' => new PlanResource($plan),
+        ]);
+    }
+
+    public function updateIcon(Request $request, Plan $plan): JsonResponse
+    {
+        $iconValue = $request->input('icon') ?? $request->input('icono');
+
+        if (empty($iconValue)) {
+            return response()->json(['message' => 'El ícono es requerido'], 422);
+        }
+
+        $updated = $this->planService->updateIcon($plan->id, $iconValue);
+
+        return response()->json([
+            'success' => true,
             'message' => 'Icono actualizado correctamente',
             'data' => new PlanResource($updated),
         ]);

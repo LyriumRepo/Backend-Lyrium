@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder
             HomeSeeder::class,
             LoyaltyAndPaymentSeeder::class,
             ShippingSeeder::class,
+            CommissionTierSeeder::class,
+            GlossaryEntrySeeder::class,
         ]);
     }
 }

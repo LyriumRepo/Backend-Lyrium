@@ -6,6 +6,7 @@ namespace App\Listeners;
 
 use App\Events\NotificationCreated;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Log;
 
 final class BroadcastNotificationCreated
 {
@@ -16,13 +17,14 @@ final class BroadcastNotificationCreated
             return;
         }
 
-        $notifiable = $event->notifiable;
-
-        // Obtener la última notificación creada para este usuario
-        $notification = $notifiable->notifications()->latest()->first();
+        $notification = $event->response;
 
         if ($notification) {
-            broadcast(new NotificationCreated($notification));
+            try {
+                broadcast(new NotificationCreated($notification));
+            } catch (\Throwable $e) {
+                Log::warning('[Notifications] broadcast NotificationCreated failed (Reverb down?): ' . $e->getMessage());
+            }
         }
     }
 }

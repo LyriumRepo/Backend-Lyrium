@@ -141,4 +141,37 @@ final class SystemConfigController extends Controller
             'data' => $configs,
         ]);
     }
+
+    public function updateColors(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'primary_color'        => ['nullable', 'string', 'max:30'],
+            'success_color'        => ['nullable', 'string', 'max:30'],
+            'background_color'     => ['nullable', 'string', 'max:30'],
+            'text_secondary_color' => ['nullable', 'string', 'max:30'],
+            'error_color'          => ['nullable', 'string', 'max:30'],
+        ]);
+
+        foreach ($data as $key => $value) {
+            if ($value !== null) {
+                SystemConfig::updateOrCreate(
+                    ['key' => $key],
+                    [
+                        'value'       => $value,
+                        'category'    => 'colors',
+                        'name'        => ucwords(str_replace('_', ' ', $key)),
+                        'type'        => 'color',
+                        'is_public'   => true,
+                    ]
+                );
+            }
+        }
+
+        $colors = SystemConfig::getByCategory('colors')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $colors->mapWithKeys(fn ($c) => [$c->key => $c->value])->toArray(),
+        ]);
+    }
 }

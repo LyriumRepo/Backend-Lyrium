@@ -21,8 +21,18 @@
     }
 </style>
 
-<img src="https://fv5-5.files.fm/thumb_show.php?i=337x2ej3b6" alt="Gracias por tu compra - Lyrium"
-    style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;" />
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px;">
+    <tr>
+        <td style="background:linear-gradient(135deg,#0d9488,#2db8b0);padding:20px 16px;text-align:center;border-radius:8px;">
+            <p style="margin:0;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:1px;">
+                🎉 ¡Gracias por tu compra!
+            </p>
+            <p style="margin:6px 0 0;font-size:13px;color:#ccfaf7;">
+                Tu pedido ha sido confirmado con éxito
+            </p>
+        </td>
+    </tr>
+</table>
 
 {{-- ===== DETALLE DEL PEDIDO ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0;">
@@ -216,6 +226,36 @@
 </table>
 @endif
 
+{{-- ===== PANEL DE CLIENTE ===== --}}
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+    <tr>
+        <td style="padding:0 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+                style="background:#0d9488;border-radius:12px;">
+                <tr>
+                    <td style="padding:20px 24px;">
+                        <p style="margin:0 0 6px;font-size:13px;font-weight:900;color:#ffffff;
+                            text-transform:uppercase;letter-spacing:1.2px;">
+                            Tu Panel de Cliente Lyrium
+                        </p>
+                        <p style="margin:0 0 16px;font-size:13px;color:#ccfaf7;line-height:1.6;">
+                            Ya tienes acceso a tu panel de cliente. Desde ahí puedes
+                            revisar el estado de tus pedidos, ver tus comprobantes digitales
+                            y gestionar todas tus compras futuras en Lyrium.
+                        </p>
+                        <a href="{{ env('FRONTEND_URL', 'https://lyrium.pe') }}/customer/orders"
+                            style="display:inline-block;padding:10px 22px;background:#ffffff;
+                            color:#0d9488;font-size:12px;font-weight:900;text-decoration:none;
+                            border-radius:8px;text-transform:uppercase;letter-spacing:1px;">
+                            Ir a mi panel →
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
 {{-- ===== REDES SOCIALES ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0"
     style="border-top:1.5px solid #d1f0eb;margin:24px 16px 4px;padding:24px 0 16px;">
@@ -260,13 +300,21 @@
                                 style="display:block;margin:0 auto;" />
                         </a>
                     </td>
+                    <td style="padding:0;">
+                        <div style="width:1px;height:54px;background:#c8e8e4;"></div>
+                    </td>
+                    <td style="padding:0 14px;text-align:center;vertical-align:top;">
+                        <a href="https://www.youtube.com/@LyriumBiomarketplace"
+                            target="_blank" style="text-decoration:none;display:inline-block;">
+                            <img src="https://cdn-icons-png.flaticon.com/128/1384/1384060.png"
+                                width="48" height="48" alt="YouTube"
+                                style="display:block;margin:0 auto;" />
+                        </a>
+                    </td>
                 </tr>
             </table>
         </td>
     </tr>
 </table>
-
-<img src="https://fv5-5.files.fm/thumb_show.php?i=aabbernwqc" alt="Lyrium"
-    style="display:block;width:100%;max-width:600px;height:auto;margin:4px 0 0;" />
 
 @endsection

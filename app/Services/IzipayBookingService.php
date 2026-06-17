@@ -289,6 +289,7 @@ final class IzipayBookingService
             Log::warning('IzipayBookingService: transacción no encontrada', [
                 'transaction_id' => $transactionId,
             ]);
+
             return ['success' => false, 'message' => 'Transacción no encontrada'];
         }
 
@@ -298,6 +299,7 @@ final class IzipayBookingService
                 'transaction_user_id' => $transaction->user_id,
                 'request_user_id' => $userId,
             ]);
+
             return ['success' => false, 'message' => 'No autorizado'];
         }
 
@@ -308,6 +310,7 @@ final class IzipayBookingService
                     'transaction_id' => $transactionId,
                     'booking_id' => $booking->id,
                 ]);
+
                 return [
                     'success' => true,
                     'message' => 'Ya procesado',
@@ -325,6 +328,7 @@ final class IzipayBookingService
                 'transaction_id' => $transactionId,
                 'status' => $transaction->status,
             ]);
+
             return ['success' => false, 'message' => 'La transacción no está pendiente'];
         }
 
@@ -398,6 +402,7 @@ final class IzipayBookingService
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
             ]);
+
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
