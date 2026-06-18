@@ -203,6 +203,72 @@ final class IzipayService
         }
     }
 
+    // ── Iniciar pago de plan (sin Order, solo monto + referencia) ────────
+
+    public function initPlanPayment(float $amountSoles, string $izipayOrderId, string $email): array
+    {
+        $amountCents = (int) round($amountSoles * 100);
+
+        if ($this->isMock()) {
+            Log::info('[IzipayService:MOCK] Iniciando pago de plan simulado', [
+                'izipay_order_id' => $izipayOrderId,
+                'amount_cents'    => $amountCents,
+            ]);
+
+            return [
+                'mode'       => 'mock',
+                'public_key' => 'MOCK_PUBLIC_KEY',
+                'form_token' => self::MOCK_PREFIX . bin2hex(random_bytes(16)),
+                'amount'     => $amountSoles,
+            ];
+        }
+
+        $url = rtrim($this->apiUrl, '/') . '/V4/Charge/CreatePayment';
+
+        $payload = [
+            'amount'   => $amountCents,
+            'currency' => 'PEN',
+            'orderId'  => $izipayOrderId,
+            'customer' => ['email' => $email],
+            'transactionOptions' => [
+                'cardOptions' => [
+                    'captureDelay'     => 0,
+                    'manualValidation' => false,
+                ],
+            ],
+        ];
+
+        Log::info('[IzipayService] Iniciando pago de plan', [
+            'izipay_order_id' => $izipayOrderId,
+            'amount_cents'    => $amountCents,
+        ]);
+
+        try {
+            $response = Http::withBasicAuth($this->username, $this->password)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(15)
+                ->post($url, $payload);
+
+            if ($response->failed()) {
+                throw new \RuntimeException(
+                    'Izipay respondió con HTTP ' . $response->status() . ': ' . $response->body()
+                );
+            }
+
+            $data = $response->json();
+
+            return [
+                'mode'       => 'izipay',
+                'public_key' => $this->publicKey,
+                'form_token' => $data['answer']['formToken'] ?? '',
+                'amount'     => $amountSoles,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[IzipayService] Error al iniciar pago de plan', ['error' => $e->getMessage()]);
+            throw $e;
+        }
+    }
+
     // ── Crear sesión de pago (formToken) ─────────────────────────────────
 
     public function createPaymentSession(Order $order, string $email, string $cartToken = ''): IzipayOrderTransaction

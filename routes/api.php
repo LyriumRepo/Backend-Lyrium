@@ -59,6 +59,7 @@ use App\Http\Controllers\Api\StoreReviewController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IzipayController;
+use App\Http\Controllers\Api\IzipayPlanController;
 
 
 /*
@@ -217,8 +218,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('payments/izipay')->group(function () {
-        Route::post('/create-session', [IzipayController::class, 'createSession']);
-        Route::get('/status/{orderId}', [IzipayController::class, 'status']);
+        Route::post('/create-session',  [IzipayController::class,     'createSession']);
+        Route::post('/plan-session',    [IzipayPlanController::class,  'createSession']);
+        Route::get('/status/{orderId}', [IzipayController::class,     'status']);
     });
 
 
