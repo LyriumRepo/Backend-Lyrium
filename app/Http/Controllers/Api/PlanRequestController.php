@@ -11,6 +11,7 @@ use App\Models\PlanRequest;
 use App\Models\Store;
 use App\Models\Subscription;
 use App\Notifications\PlanActivatedNotification;
+use App\Notifications\PlanRejectedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -255,17 +256,28 @@ final class PlanRequestController extends Controller
         }
 
         $planRequest->update([
-            'status' => PlanRequest::STATUS_REJECTED,
+            'status'      => PlanRequest::STATUS_REJECTED,
             'admin_notes' => $notes,
             'reviewed_by' => $request->user()->id,
         ]);
+
+        // Notificar al vendedor (campanita + email)
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store?->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new PlanRejectedNotification($planRequest));
+            } catch (\Throwable) {
+                // No crítico — el rechazo ya quedó guardado
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Solicitud rechazada',
             'request' => [
-                'id' => $planRequest->id,
-                'status' => $planRequest->status,
+                'id'          => $planRequest->id,
+                'status'      => $planRequest->status,
                 'admin_notes' => $planRequest->admin_notes,
                 'reviewed_at' => $planRequest->updated_at->toIso8601String(),
             ],
