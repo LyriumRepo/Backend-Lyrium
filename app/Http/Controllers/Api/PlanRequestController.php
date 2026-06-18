@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Notifications\PlanActivatedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -450,7 +452,7 @@ final class PlanRequestController extends Controller
 
         $endsAt = now()->addMonths($planRequest->months);
 
-        Subscription::updateOrCreate(
+        $subscription = Subscription::updateOrCreate(
             [
                 'store_id' => $planRequest->store_id,
                 'status' => 'active',
@@ -479,6 +481,19 @@ final class PlanRequestController extends Controller
                 "Vigencia del contrato actualizada por activación del plan {$planRequest->plan->name}",
                 'Sistema'
             );
+        }
+
+        $subscription->load('plan');
+        try {
+            broadcast(new PlanStatusChanged($subscription));
+        } catch (\Throwable) {
+            // Reverb no disponible; suscripción activada correctamente en DB
+        }
+
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store->owner;
+        if ($owner) {
+            $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
         }
     }
 
