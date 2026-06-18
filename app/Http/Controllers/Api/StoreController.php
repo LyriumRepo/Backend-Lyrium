@@ -328,7 +328,11 @@ final class StoreController extends Controller
             $data['reason'] ?? null,
         ));
 
-        broadcast(new StoreStatusChanged($store->fresh()));
+        try {
+            broadcast(new StoreStatusChanged($store->fresh()));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category'])));
     }

@@ -37,24 +37,17 @@ final class ServicePendingReviewNotification extends Notification implements Sho
                 'price'       => $this->service->price,
                 'actionUrl'   => config('app.frontend_url') . '/admin/services',
             ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+;
     }
 
     public function toArray(object $notifiable): array
     {
+        $storeName = $this->service->store?->trade_name ?? 'desconocida';
+
         return [
             'type'         => 'service_pending_review',
             'title'        => "🆕 Servicio pendiente: {$this->service->name}",
-            'message'      => "La tienda \"{$this->service->store?->trade_name ?? 'desconocida'}\" registró el servicio \"{$this->service->name}\" y está esperando aprobación.",
+            'message'      => "La tienda \"{$storeName}\" registró el servicio \"{$this->service->name}\" y está esperando aprobación.",
             'service_id'   => $this->service->id,
             'service_name' => $this->service->name,
             'store_id'     => $this->service->store_id,

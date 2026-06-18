@@ -12,6 +12,7 @@ use App\Models\OrderServiceItem;
 use App\Notifications\BookingCancelledNotification;
 use App\Notifications\BookingConfirmedNotification;
 use App\Notifications\BookingCreatedNotification;
+use App\Notifications\BookingOnTheWayNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -612,14 +613,7 @@ final class ServiceService
         $booking = $booking->fresh()->load('service', 'user');
 
         if ($booking->user) {
-            Mail::to($booking->user->email)
-                ->send(new BookingConfirmationMail(
-                    booking: $booking,
-                    recipientName: $booking->user->name,
-                    role: 'client',
-                    icsContent: null,
-                    gcalOk: true,
-                ));
+            $booking->user->notify(new BookingOnTheWayNotification($booking));
         }
 
         return $booking;

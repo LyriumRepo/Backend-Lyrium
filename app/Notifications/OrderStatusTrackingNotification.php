@@ -29,6 +29,10 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
             'image' => 'tracking-stage3.jpg',
             'title' => '¡TU PEDIDO VA EN CAMINO!',
         ],
+        Order::STATUS_ON_THE_WAY => [
+            'image' => 'tracking-stage3.jpg',
+            'title' => null, // resuelto dinámicamente según shipping_type
+        ],
         Order::STATUS_DELIVERED => [
             'image' => 'tracking-stage4.jpg',
             'title' => '¡RECIBIDO! CONFIRMAMOS LA ENTREGA DE TU PEDIDO',
@@ -43,7 +47,8 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
         Order::STATUS_PENDING_SELLER => 'Pedido recibido',
         Order::STATUS_CONFIRMED      => 'Validado por el vendedor',
         Order::STATUS_PROCESSING     => 'En preparación / despachado',
-        Order::STATUS_SHIPPED        => 'En camino',
+        Order::STATUS_SHIPPED        => 'En camino (transporte)',
+        Order::STATUS_ON_THE_WAY     => 'Listo para recojo / en camino a domicilio',
         Order::STATUS_DELIVERED      => 'Entregado',
         Order::STATUS_CANCELLED      => 'Cancelado',
     ];
@@ -74,7 +79,14 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     public function toPush(object $notifiable): array
     {
-        $label = self::STATUS_LABELS[$this->order->status] ?? 'Actualizado';
+        if ($this->order->status === Order::STATUS_ON_THE_WAY) {
+            $shippingType = $this->order->shipping_type ?? 'delivery';
+            $label = in_array($shippingType, self::PICKUP_SHIPPING_TYPES, true)
+                ? 'Listo para recojo en sucursal'
+                : 'En camino a tu domicilio';
+        } else {
+            $label = self::STATUS_LABELS[$this->order->status] ?? 'Actualizado';
+        }
 
         return [
             'title' => '📦 Pedido actualizado',
@@ -89,6 +101,21 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
         ];
     }
 
+    private const PICKUP_SHIPPING_TYPES = ['pickup', 'service_store'];
+
+    private function resolveTrackingTitle(): ?string
+    {
+        if ($this->order->status !== Order::STATUS_ON_THE_WAY) {
+            return self::TRACKING_MAP[$this->order->status]['title'] ?? null;
+        }
+
+        $shippingType = $this->order->shipping_type ?? 'delivery';
+
+        return in_array($shippingType, self::PICKUP_SHIPPING_TYPES, true)
+            ? '¡TU PEDIDO ESTÁ LISTO PARA RECOJO EN SUCURSAL!'
+            : '¡TU PEDIDO ESTÁ EN CAMINO A TU DOMICILIO!';
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
         $status = $this->order->status;
@@ -98,11 +125,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
             return $this->fallbackMail($notifiable);
         }
 
-        $imagePath = $tracking['image'] ? public_path('images/email/' . $tracking['image']) : null;
-        $imageCid = $tracking['image'] ? 'tracking-' . str_replace('_', '-', $status) : null;
-
-        $bannerTopPath = public_path('images/email/' . self::BANNER_TOP);
-        $bannerBottomPath = public_path('images/email/' . self::BANNER_BOTTOM);
+        $trackingTitle = $this->resolveTrackingTitle();
 
         $carrierInfo = $this->getCarrierInfo();
 
@@ -117,10 +140,10 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
             ->view('emails.notifications.order-tracking', [
                 'customerName'       => $notifiable->name,
                 'orderNumber'        => $this->order->order_number,
-                'trackingTitle'      => $tracking['title'],
-                'imageCid'           => $imageCid,
-                'bannerTopCid'       => 'banner-top',
-                'bannerBottomCid'    => 'banner-bottom',
+                'trackingTitle'      => $trackingTitle ?? $tracking['title'],
+                'imageCid'           => null,
+                'bannerTopCid'       => null,
+                'bannerBottomCid'    => null,
                 'items'              => $items,
                 'subtotal'           => number_format((float) $this->order->subtotal, 2),
                 'shippingCost'       => number_format((float) $this->order->shipping_cost, 2),
@@ -132,18 +155,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'trackingCode'       => $carrierInfo['tracking_code'],
                 'trackingUrl'        => $carrierInfo['tracking_url'],
                 'carrierFields'      => $carrierInfo['fields'],
-            ])
-            ->withSymfonyMessage(function ($message) use ($imagePath, $imageCid, $bannerTopPath, $bannerBottomPath) {
-                if (file_exists($bannerTopPath)) {
-                    $message->embedFromPath($bannerTopPath, 'banner-top');
-                }
-                if ($imagePath && $imageCid && file_exists($imagePath)) {
-                    $message->embedFromPath($imagePath, $imageCid);
-                }
-                if (file_exists($bannerBottomPath)) {
-                    $message->embedFromPath($bannerBottomPath, 'banner-bottom');
-                }
-            });
+            ]);
     }
 
     private function fallbackMail(object $notifiable): MailMessage
@@ -177,9 +189,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'trackingUrl'     => $carrierInfo['tracking_url'],
                 'carrierFields'   => $carrierInfo['fields'],
             ])
-            ->withSymfonyMessage(function ($message) {
-                //
-            });
+;
     }
 
     private function getCarrierInfo(): array

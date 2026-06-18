@@ -93,7 +93,7 @@ final class NubefactController extends Controller
     {
         $user = $request->user();
 
-        $query = Invoice::where('provider', 'nubefact')->with(['order.items.store']);
+        $query = Invoice::where('provider', 'nubefact')->with(['order.items.store', 'store.owner']);
 
         if (! $user->hasRole('administrator')) {
             $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));

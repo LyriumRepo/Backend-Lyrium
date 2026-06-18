@@ -43,16 +43,7 @@ final class StockAlertNotification extends Notification implements ShouldQueue
                 'level'       => $this->level,
                 'actionUrl'   => config('app.frontend_url') . '/seller/inventario',
             ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+;
     }
 
     public function toArray(object $notifiable): array

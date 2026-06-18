@@ -8,6 +8,8 @@ use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Notifications\InvoiceRequestedNotification;
+use App\Notifications\OrderCancelledSellerNotification;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
 use App\Notifications\OrderDeliveredSellerNotification;
@@ -303,15 +305,27 @@ final class OrderController extends Controller
 
         $user->notify(new OrderCreatedNotification($order));
 
-        // Notificar a cada tienda involucrada en la orden
-        $order->items->pluck('store_id')->unique()->each(function ($storeId) use ($order) {
-            broadcast(new NewOrderReceived($order, $storeId));
-
-            $store = Store::with('owner')->find($storeId);
-            if ($store && $store->owner) {
-                $store->owner->notify(new NewOrderSellerNotification($order, $store));
+        // Notificar a cada tienda involucrada (el listener SendNewOrderToSellerListener
+        // se encarga de enviar NewOrderSellerNotification al vendedor)
+        $productStoreIds = $order->items->pluck('store_id')->unique();
+        $productStoreIds->each(function ($storeId) use ($order) {
+            try {
+                broadcast(new NewOrderReceived($order, $storeId));
+            } catch (\Throwable) {
+                // Real-time broadcast unavailable; data was saved successfully
             }
         });
+
+        // También notificar a tiendas de servicios que no estén ya cubiertas por productos
+        $order->serviceItems->pluck('store_id')->unique()
+            ->diff($productStoreIds)
+            ->each(function ($storeId) use ($order) {
+                try {
+                    broadcast(new NewOrderReceived($order, $storeId));
+                } catch (\Throwable) {
+                    // Real-time broadcast unavailable; data was saved successfully
+                }
+            });
 
         event(new OrderStatusChanged($order));
 
@@ -422,6 +436,7 @@ final class OrderController extends Controller
             $sellerAllowedStatuses = [
                 Order::STATUS_PROCESSING,
                 Order::STATUS_SHIPPED,
+                Order::STATUS_ON_THE_WAY,
                 Order::STATUS_DELIVERED,
                 Order::STATUS_CANCELLED,
             ];
@@ -463,9 +478,10 @@ final class OrderController extends Controller
                 }
             } else {
                 $currentItemStatus = match ($newStatus) {
-                    Order::STATUS_PROCESSING => OrderItem::STATUS_CONFIRMED,
-                    Order::STATUS_SHIPPED => OrderItem::STATUS_PROCESSING,
-                    Order::STATUS_DELIVERED => OrderItem::STATUS_SHIPPED,
+                    Order::STATUS_PROCESSING  => OrderItem::STATUS_CONFIRMED,
+                    Order::STATUS_SHIPPED     => OrderItem::STATUS_PROCESSING,
+                    Order::STATUS_ON_THE_WAY  => OrderItem::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED   => OrderItem::STATUS_SHIPPED,
                     default => null,
                 };
 
@@ -473,9 +489,10 @@ final class OrderController extends Controller
                     $order->items()
                         ->where('status', $currentItemStatus)
                         ->update(['status' => match ($newStatus) {
-                            Order::STATUS_PROCESSING => OrderItem::STATUS_PROCESSING,
-                            Order::STATUS_SHIPPED => OrderItem::STATUS_SHIPPED,
-                            Order::STATUS_DELIVERED => OrderItem::STATUS_DELIVERED,
+                            Order::STATUS_PROCESSING  => OrderItem::STATUS_PROCESSING,
+                            Order::STATUS_SHIPPED     => OrderItem::STATUS_SHIPPED,
+                            Order::STATUS_ON_THE_WAY  => OrderItem::STATUS_SHIPPED,
+                            Order::STATUS_DELIVERED   => OrderItem::STATUS_DELIVERED,
                             default => $newStatus,
                         }]);
                 }
@@ -550,6 +567,7 @@ final class OrderController extends Controller
                             $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
                         }
                     });
+
             } elseif ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
                     ->where('status', OrderItem::STATUS_PENDING_SELLER)
@@ -569,6 +587,18 @@ final class OrderController extends Controller
             } else {
                 return $this->forbidden('No tienes permiso para cambiar a este estado.');
             }
+        }
+
+        // Notificar al vendedor de cada tienda cuando la orden es cancelada
+        if ($newStatus === Order::STATUS_CANCELLED) {
+            $order->load(['items', 'user']);
+            $order->items->pluck('store_id')->unique()
+                ->each(function ($storeId) use ($order) {
+                    $store = Store::with('owner')->find($storeId);
+                    if ($store?->owner) {
+                        $store->owner->notify(new OrderCancelledSellerNotification($order, $store));
+                    }
+                });
         }
 
         if (isset($data['payment_status'])) {
@@ -661,53 +691,72 @@ final class OrderController extends Controller
             return $this->forbidden('Esta orden no te pertenece.');
         }
 
-        $firstItem = $order->items->first();
+        // Agrupar ítems por tienda para cubrir pedidos multi-tienda
+        $itemsByStore = $order->items
+            ->filter(fn ($item) => $item->store !== null)
+            ->groupBy('store_id');
 
-        if (! $firstItem || ! $firstItem->store) {
+        if ($itemsByStore->isEmpty()) {
             return $this->error('No se encontró una tienda asociada a esta orden.', 404);
         }
 
-        $storeId = $firstItem->store_id;
         $orderNumber = $order->order_number;
+        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
+        $firstConversation = null;
 
-        // Buscar conversación existente de facturación con esta tienda
-        $conversation = Conversation::where('customer_user_id', $user->id)
-            ->where('store_id', $storeId)
-            ->where('category', 'facturacion')
-            ->where('status', 'active')
-            ->first();
+        foreach ($itemsByStore as $storeId => $storeItems) {
+            $store = $storeItems->first()->store;
 
-        if (! $conversation) {
-            $conversation = Conversation::create([
-                'customer_user_id' => $user->id,
-                'store_id' => $storeId,
-                'category' => 'facturacion',
-                'subject' => "Solicitud de comprobante - Pedido {$orderNumber}",
-                'last_message_at' => now(),
+            // Conversación de facturación existente o nueva para esta tienda
+            $conversation = Conversation::where('customer_user_id', $user->id)
+                ->where('store_id', $storeId)
+                ->where('category', 'facturacion')
+                ->where('status', 'active')
+                ->first();
+
+            if (! $conversation) {
+                $conversation = Conversation::create([
+                    'customer_user_id' => $user->id,
+                    'store_id'         => $storeId,
+                    'category'         => 'facturacion',
+                    'subject'          => "Solicitud de comprobante - Pedido {$orderNumber}",
+                    'last_message_at'  => now(),
+                ]);
+            }
+
+            $message = ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'sender_id'       => $user->id,
+                'content'         => $messageContent,
             ]);
+
+            $conversation->update(['last_message_at' => now()]);
+
+            try {
+                broadcast(new NewConversationMessage(
+                    message: $message->loadMissing(['sender', 'conversation']),
+                    customerUserId: $user->id,
+                    storeId: (int) $storeId,
+                ));
+            } catch (\Throwable) {
+                // Real-time broadcast unavailable; data was saved successfully
+            }
+
+            // Campanita al dueño de esta tienda
+            if ($store->owner) {
+                $store->owner->notify(
+                    new InvoiceRequestedNotification($order, $store, $storeItems->values())
+                );
+            }
+
+            $firstConversation ??= $conversation;
         }
 
-        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
-
-        $message = ConversationMessage::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $user->id,
-            'content' => $messageContent,
-        ]);
-
-        $conversation->update(['last_message_at' => now()]);
-
-        broadcast(new NewConversationMessage(
-            message: $message->loadMissing(['sender', 'conversation']),
-            customerUserId: $user->id,
-            storeId: (int) $storeId,
-        ));
-
-        $conversation->load(['store.owner', 'latestMessage']);
+        $firstConversation->load(['store.owner', 'latestMessage']);
 
         return response()->json([
             'success' => true,
-            'data' => new ConversationResource($conversation),
+            'data'    => new ConversationResource($firstConversation),
             'message' => 'Solicitud enviada al vendedor correctamente.',
         ]);
     }

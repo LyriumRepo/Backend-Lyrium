@@ -43,6 +43,16 @@ final class InvoiceResource extends JsonResource
             'subtotalSinIgv'       => (float) $this->subtotal_sin_igv,
             'igvAmount'            => (float) $this->igv_amount,
 
+            // Total del pedido (lo que pagó el cliente por Izipay, incluye envío)
+            'orderTotal'           => $this->whenLoaded('order', fn () => (float) $this->order->total, (float) $this->total),
+
+            // Comisión: usa los campos del item si existen; si no, cae al commission_rate de la tienda
+            'commissionRate'       => $this->resolveCommissionRate(),
+            'commissionAmount'     => $this->resolveCommissionAmount(),
+
+            // Vendedor (para panel de admin)
+            'sellerName'           => $this->whenLoaded('store', fn () => $this->store?->owner?->name ?? ''),
+
             // Estado
             'status'               => $this->sunat_status ?? 'DRAFT',
 
@@ -88,5 +98,59 @@ final class InvoiceResource extends JsonResource
             'createdAt'  => $this->emission_date?->toIso8601String() ?? $this->created_at?->toIso8601String(),
             'updatedAt'  => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function resolveCommissionRate(): ?float
+    {
+        // 1. Desde order_items (pedidos nuevos desde jun-2026)
+        if ($this->relationLoaded('order') && $this->order?->relationLoaded('items')) {
+            $items = $this->store_id
+                ? $this->order->items->where('store_id', $this->store_id)
+                : $this->order->items;
+
+            $rate = $items->first()?->commission_rate;
+            if ($rate !== null) {
+                return (float) $rate;
+            }
+        }
+
+        // 2. Fallback: commission_rate de la tienda (plan de suscripción)
+        if ($this->relationLoaded('store') && $this->store?->commission_rate !== null) {
+            return (float) $this->store->commission_rate;
+        }
+
+        return null;
+    }
+
+    private function resolveCommissionAmount(): ?float
+    {
+        // 1. Desde order_items (pedidos nuevos desde jun-2026)
+        if ($this->relationLoaded('order') && $this->order?->relationLoaded('items')) {
+            $items = $this->store_id
+                ? $this->order->items->where('store_id', $this->store_id)
+                : $this->order->items;
+
+            $stored = (float) $items->sum('commission_amount');
+            if ($stored > 0) {
+                return $stored;
+            }
+
+            // Calcular desde line_total × rate (pedidos antiguos sin el campo poblado)
+            $rate = $this->resolveCommissionRate();
+            if ($rate !== null) {
+                $lineTotal = (float) $items->sum('line_total');
+                if ($lineTotal > 0) {
+                    return round($lineTotal * $rate, 2);
+                }
+            }
+        }
+
+        // 3. Último recurso: total del invoice × rate
+        $rate = $this->resolveCommissionRate();
+        if ($rate !== null) {
+            return round((float) $this->total * $rate, 2);
+        }
+
+        return null;
     }
 }

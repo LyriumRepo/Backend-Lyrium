@@ -71,7 +71,11 @@ final class TicketController extends Controller
             ->update(['is_read' => true]);
 
         if ($unread > 0) {
-            broadcast(new TicketMessagesRead($ticket->id, $request->user()->id));
+            try {
+                broadcast(new TicketMessagesRead($ticket->id, $request->user()->id));
+            } catch (\Throwable) {
+                // Broadcast unavailable; read-status updated in DB
+            }
         }
 
         return response()->json([
@@ -137,15 +141,19 @@ final class TicketController extends Controller
             ? Str::limit($request->input('mensaje'), 100)
             : $this->buildImagePreview($request->file('adjuntos') ?? []);
         $updatedAt = now()->toIso8601String();
-        foreach ($admins as $admin) {
-            broadcast(new TicketInboxUpdated(
-                $admin->id,
-                $ticket->id,
-                1,
-                $previewText,
-                1,
-                $updatedAt,
-            ));
+        try {
+            foreach ($admins as $admin) {
+                broadcast(new TicketInboxUpdated(
+                    $admin->id,
+                    $ticket->id,
+                    1,
+                    $previewText,
+                    1,
+                    $updatedAt,
+                ));
+            }
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable (Reverb may be down); ticket was created successfully
         }
         $ticket->load(['store', 'assignedAdmin', 'messages.user', 'messages.attachments']);
         $ticket->loadCount('messages');
@@ -192,23 +200,26 @@ final class TicketController extends Controller
         $message->load(['user', 'attachments']);
         $message->setRelation('ticket', $ticket);
         $ticket->touch();
-        broadcast(new TicketMessageReceived($message));
         $previewText = $request->filled('content')
             ? Str::limit($message->content, 100)
             : $this->buildImagePreview($request->file('attachments') ?? []);
         $totalMessages = $ticket->messages()->count();
         $updatedAt = $message->created_at?->toIso8601String() ?? now()->toIso8601String();
-
-        User::role('administrator')->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
-            broadcast(new TicketInboxUpdated(
-                $admin->id,
-                $ticket->id,
-                $ticket->unreadMessagesFor($admin->id),
-                $previewText,
-                $totalMessages,
-                $updatedAt,
-            ));
-        });
+        try {
+            broadcast(new TicketMessageReceived($message));
+            User::role('administrator')->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
+                broadcast(new TicketInboxUpdated(
+                    $admin->id,
+                    $ticket->id,
+                    $ticket->unreadMessagesFor($admin->id),
+                    $previewText,
+                    $totalMessages,
+                    $updatedAt,
+                ));
+            });
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; message was saved successfully
+        }
 
         return response()->json([
             'success' => true,

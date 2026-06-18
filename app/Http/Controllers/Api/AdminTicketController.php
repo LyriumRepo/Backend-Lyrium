@@ -89,7 +89,11 @@ final class AdminTicketController extends Controller
             ->update(['is_read' => true]);
 
         if ($unread > 0) {
-            broadcast(new TicketMessagesRead($ticket->id, $request->user()->id));
+            try {
+                broadcast(new TicketMessagesRead($ticket->id, $request->user()->id));
+            } catch (\Throwable) {
+                // Broadcast unavailable; read-status updated in DB
+            }
         }
 
         return response()->json([
@@ -133,34 +137,36 @@ final class AdminTicketController extends Controller
 
         $message->load(['user', 'attachments']);
         $ticket->touch();
-        broadcast(new TicketMessageReceived($message));
         $previewText = $request->filled('content')
             ? Str::limit($message->content, 100)
             : $this->buildImagePreview($request->file('attachments') ?? []);
         $totalMessages = $ticket->messages()->count();
         $updatedAt = $message->created_at?->toIso8601String() ?? now()->toIso8601String();
-
-        broadcast(new TicketInboxUpdated(
-            $ticket->user_id,
-            $ticket->id,
-            $ticket->unreadMessagesFor($ticket->user_id),
-            $previewText,
-            $totalMessages,
-            $updatedAt,
-        ));
-
-        User::role('administrator')
-            ->where('id', '!=', $request->user()->id)
-            ->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
-                broadcast(new TicketInboxUpdated(
-                    $admin->id,
-                    $ticket->id,
-                    $ticket->unreadMessagesFor($admin->id),
-                    $previewText,
-                    $totalMessages,
-                    $updatedAt,
-                ));
-            });
+        try {
+            broadcast(new TicketMessageReceived($message));
+            broadcast(new TicketInboxUpdated(
+                $ticket->user_id,
+                $ticket->id,
+                $ticket->unreadMessagesFor($ticket->user_id),
+                $previewText,
+                $totalMessages,
+                $updatedAt,
+            ));
+            User::role('administrator')
+                ->where('id', '!=', $request->user()->id)
+                ->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
+                    broadcast(new TicketInboxUpdated(
+                        $admin->id,
+                        $ticket->id,
+                        $ticket->unreadMessagesFor($admin->id),
+                        $previewText,
+                        $totalMessages,
+                        $updatedAt,
+                    ));
+                });
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; message was saved successfully
+        }
 
         return response()->json([
             'success' => true,
@@ -232,30 +238,30 @@ final class AdminTicketController extends Controller
         $previewText = "Estado cambiado de {$oldStatus} a {$newStatus}.";
         $totalMessages = $ticket->messages()->count();
         $updatedAt = now()->toIso8601String();
-
-        // Notificar al seller dueño del ticket
-        broadcast(new TicketInboxUpdated(
-            $ticket->user_id,
-            $ticket->id,
-            $ticket->unreadMessagesFor($ticket->user_id),
-            $previewText,
-            $totalMessages,
-            $updatedAt,
-        ));
-
-        // Notificar a los demás admins (excluir al que hizo el cambio)
-        User::role('administrator')
-            ->where('id', '!=', $request->user()->id)
-            ->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
-                broadcast(new TicketInboxUpdated(
-                    $admin->id,
-                    $ticket->id,
-                    $ticket->unreadMessagesFor($admin->id),
-                    $previewText,
-                    $totalMessages,
-                    $updatedAt,
-                ));
-            });
+        try {
+            broadcast(new TicketInboxUpdated(
+                $ticket->user_id,
+                $ticket->id,
+                $ticket->unreadMessagesFor($ticket->user_id),
+                $previewText,
+                $totalMessages,
+                $updatedAt,
+            ));
+            User::role('administrator')
+                ->where('id', '!=', $request->user()->id)
+                ->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
+                    broadcast(new TicketInboxUpdated(
+                        $admin->id,
+                        $ticket->id,
+                        $ticket->unreadMessagesFor($admin->id),
+                        $previewText,
+                        $totalMessages,
+                        $updatedAt,
+                    ));
+                });
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; status was updated in DB
+        }
 
         return response()->json([
             'success' => true,

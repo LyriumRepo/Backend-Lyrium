@@ -60,18 +60,7 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
                 'items' => $items,
                 'shippingAddress' => $this->order->shipping_address,
                 'actionUrl' => config('app.frontend_url') . '/seller/orders/' . $this->order->id,
-                'showTagline' => true,
-            ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
     }
 
     public function toPush(object $notifiable): array

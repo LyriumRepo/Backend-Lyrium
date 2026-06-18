@@ -24,3 +24,6 @@ Schedule::command('birthday:advance')->dailyAt('08:00')->name('birthday-advance-
 
 // Recordatorios del panel de cliente: días 7, 30 y 90 tras la primera compra
 Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer-panel-reminders');
+
+// Recordatorios de plan por vencer (7, 3 y 1 día antes)
+Schedule::command('app:send-plan-expiring-reminders')->dailyAt('09:00')->name('plan-expiring-reminders');

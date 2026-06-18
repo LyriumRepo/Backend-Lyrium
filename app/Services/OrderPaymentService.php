@@ -8,6 +8,7 @@ use App\Contracts\InvoiceProviderInterface;
 use App\Exceptions\NubefactException;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\SellerPayment;
 use App\Models\Store;
 use Illuminate\Support\Facades\DB;
@@ -101,9 +102,10 @@ final class OrderPaymentService
         $customerDoc = $store->ruc ?: config('services.nubefact.ruc', '20600695771');
         $docType = Invoice::TYPE_FACTURA;
 
-        $baseGravada = $subtotalSinIgv;
-        $totalConIgv = round($baseGravada * (1 + self::IGV_RATE), 2);
-        $igvAmount = round($totalConIgv - $baseGravada, 2);
+        // line_total viene CON IGV incluido → extraer base neta
+        $baseGravada = round($subtotalSinIgv / (1 + self::IGV_RATE), 2);
+        $igvAmount   = round($baseGravada * self::IGV_RATE, 2);
+        $totalConIgv = round($baseGravada + $igvAmount, 2);
 
         $series = $this->resolveSeries($docType);
 
@@ -149,11 +151,12 @@ final class OrderPaymentService
 
         $customItems = [];
         foreach ($storeItems as $item) {
-            $lineTotal = (float) $item->line_total;
+            $lineTotal = (float) $item->line_total; // CON IGV
             $qty = max((int) ($item->quantity ?? 1), 1);
-            $unitPrice = round($lineTotal / $qty, 2);
-            $igv = round($lineTotal * self::IGV_RATE, 2);
-            $itemTotal = round($lineTotal + $igv, 2);
+            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
+            $unitPrice = round($lineNetTotal / $qty, 2);
+            $igv = round($lineNetTotal * self::IGV_RATE, 2);
+            $itemTotal = $lineTotal; // precio con IGV = base + igv
 
             $customItems[] = [
                 'unidad_de_medida' => 'NIU',
@@ -161,7 +164,7 @@ final class OrderPaymentService
                 'cantidad' => (string) $qty,
                 'valor_unitario' => $unitPrice,
                 'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
-                'subtotal' => $lineTotal,
+                'subtotal' => $lineNetTotal,
                 'tipo_de_igv' => '1',
                 'igv' => $igv,
                 'total' => $itemTotal,
@@ -266,23 +269,26 @@ final class OrderPaymentService
 
     private function scheduleCommissionForStore(Order $order, Store $store, float $subtotalSinIgv): void
     {
-        $commissionRate = (float) ($store->commission_rate ?? 0);
+        // Usar la tasa y monto escalonados ya calculados por CommissionService en los order_items
+        $storeItems = $order->items->where('store_id', $store->id);
 
-        $commissionRatePercent = $commissionRate * 100;
+        $commissionAmount = (float) $storeItems->sum('commission_amount');
+        // commission_rate viene como entero (ej: 15) desde CommissionTier
+        $commissionRate   = (float) ($storeItems->first()?->commission_rate ?? 0);
 
         $this->paymentScheduler->schedulePayment(
             storeId: $store->id,
             amount: $subtotalSinIgv,
             orderId: $order->id,
-            commissionRate: $commissionRatePercent,
+            commissionRate: $commissionRate,
         );
 
-        Log::info('OrderPaymentService: comisión programada', [
-            'store_id' => $store->id,
-            'order_id' => $order->id,
+        Log::info('OrderPaymentService: comisión programada (tasa escalonada)', [
+            'store_id'         => $store->id,
+            'order_id'         => $order->id,
             'subtotal_sin_igv' => $subtotalSinIgv,
-            'commission_rate' => $commissionRate,
-            'commission_amount' => $subtotalSinIgv * $commissionRate,
+            'commission_rate'  => $commissionRate,
+            'commission_amount'=> $commissionAmount,
         ]);
     }
 

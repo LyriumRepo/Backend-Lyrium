@@ -12,7 +12,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class OrderDeliveredSellerNotification extends Notification implements ShouldQueue
+final class OrderCancelledSellerNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -24,7 +24,6 @@ final class OrderDeliveredSellerNotification extends Notification implements Sho
     public function via(object $notifiable): array
     {
         $channels = ['database'];
-
         $settings = $notifiable->notificationSetting;
         if ($settings?->wantsEmailOrder() ?? true) {
             $channels[] = 'mail';
@@ -32,59 +31,54 @@ final class OrderDeliveredSellerNotification extends Notification implements Sho
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
         }
-
         return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        $customerName = $this->order->shipping_name ?: ($this->order->user?->name ?? 'El cliente');
-        $storeItems   = $this->order->items->where('store_id', $this->store->id);
-        $total        = (float) $storeItems->sum('line_total');
+        $storeItems = $this->order->items->where('store_id', $this->store->id);
+        $total = (float) $storeItems->sum('line_total');
 
         return (new MailMessage)
-            ->subject('✅ Pedido #' . $this->order->order_number . ' entregado — Lyrium BioMarketplace')
-            ->view('emails.notifications.order-delivered-seller', [
-                'name'         => $notifiable->name,
-                'storeName'    => $this->store->trade_name,
-                'orderNumber'  => $this->order->order_number,
-                'customerName' => $customerName,
-                'total'        => $total,
-                'items'        => $storeItems->map(fn($item) => [
+            ->subject('Pedido #' . $this->order->order_number . ' cancelado — Lyrium BioMarketplace')
+            ->view('emails.notifications.order-cancelled-seller', [
+                'name'        => $notifiable->name,
+                'storeName'   => $this->store->trade_name,
+                'orderNumber' => $this->order->order_number,
+                'customerName'=> $this->order->shipping_name ?: ($this->order->user?->name ?? 'Cliente'),
+                'total'       => $total,
+                'items'       => $storeItems->map(fn($item) => [
                     'name'       => $item->product_name,
                     'quantity'   => $item->quantity,
                     'line_total' => (float) $item->line_total,
                 ])->toArray(),
-                'actionUrl'    => config('app.frontend_url') . '/seller/orders',
+                'actionUrl'   => config('app.frontend_url') . '/seller/orders',
             ]);
     }
 
     public function toPush(object $notifiable): array
     {
         return [
-            'title' => '✅ Pedido entregado',
-            'body' => "El cliente confirmó la recepción del pedido #{$this->order->order_number} en {$this->store->trade_name}",
-            'data' => [
-                'type' => 'order_delivered_seller',
+            'title' => '⚠️ Pedido cancelado',
+            'body'  => "El pedido #{$this->order->order_number} en {$this->store->trade_name} fue cancelado.",
+            'data'  => [
+                'type'     => 'order_cancelled',
                 'order_id' => (string) $this->order->id,
-                'order_number' => $this->order->order_number,
                 'store_id' => (string) $this->store->id,
+                'url'      => '/seller/orders',
             ],
         ];
     }
 
     public function toArray(object $notifiable): array
     {
-        $customerName = $this->order->shipping_name ?: $this->order->user?->name ?? 'El cliente';
-
         return [
-            'type'         => 'order_delivered_seller',
+            'type'         => 'order_cancelled',
             'order_id'     => $this->order->id,
             'order_number' => $this->order->order_number,
             'store_id'     => $this->store->id,
             'store_name'   => $this->store->trade_name,
-            'customer_name' => $customerName,
-            'subject'      => "Pedido #{$this->order->order_number} entregado — confirmado por {$customerName}",
+            'subject'      => "Pedido #{$this->order->order_number} cancelado en {$this->store->trade_name}",
         ];
     }
 }

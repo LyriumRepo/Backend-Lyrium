@@ -11,11 +11,11 @@ final class ChatBotFaqService
     // Respuesta del asesor reutilizada en vender_f, comprar_9 y keyword directo "contáctame"
     private const ASESOR_RESPONSE = "👩🏻¡Por supuesto! En un momento te conectamos con uno de nuestros asesores comerciales para atender todas tus consultas. Por favor, mantente en línea con nosotros.";
 
-    // Lily menu intents — checked before FAQs, no AI cost
+    // Lyrio menu intents — checked before FAQs, no AI cost
     private const LILY_INTENTS = [
         'inicio' => [
             'keywords' => ['hola', 'buenas', 'consulta', 'que tal', 'holis', 'volver', 'inicio'],
-            'response' => "¡Hola! 😊\nSoy Lily👩🏻, tu asistente virtual de LYRIUM BIOMARKETPLACE. Estoy aquí para hacer tu experiencia más fácil y saludable 🌱.\n¿En qué puedo ayudarte hoy? Puedes decirme si deseas \"vender\" o \"comprar\".\n\n¡Estoy lista para ayudarte! 🛍️✨",
+            'response' => "¡Hola! 😊\nSoy Lyrio🌿, tu asistente virtual de LYRIUM BIOMARKETPLACE. Estoy aquí para hacer tu experiencia más fácil y saludable 🌱.\n¿En qué puedo ayudarte hoy? Puedes decirme si deseas \"vender\" o \"comprar\".\n\n¡Estoy listo para ayudarte! 🛍️✨",
         ],
         'vender_menu' => [
             'keywords' => ['vender', 'menu', 'menú'],
@@ -120,7 +120,7 @@ final class ChatBotFaqService
     {
         $normalized = $this->normalize($message);
 
-        // 1. Lily menu intents — whole-word match, keywords normalized before compare
+        // 1. Lyrio menu intents — whole-word match, keywords normalized before compare
         foreach (self::LILY_INTENTS as $intent) {
             foreach ($intent['keywords'] as $keyword) {
                 if ($this->matchesWholeWord($normalized, $keyword)) {

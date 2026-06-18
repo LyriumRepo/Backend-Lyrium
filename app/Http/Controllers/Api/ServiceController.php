@@ -12,7 +12,9 @@ use App\Http\Requests\UpdateServiceRequest;
 use App\Http\Resources\ServiceBookingResource;
 use App\Http\Resources\ServiceResource;
 use App\Models\User;
+use App\Models\Service;
 use App\Notifications\ServicePendingReviewNotification;
+use App\Notifications\ServiceStatusNotification;
 use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -236,7 +238,11 @@ final class ServiceController extends Controller
         );
 
         $booking->load(['service', 'schedule', 'user']);
-        broadcast(new NewBookingReceived($booking));
+        try {
+            broadcast(new NewBookingReceived($booking));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new ServiceBookingResource($booking), 201);
     }
@@ -625,5 +631,43 @@ final class ServiceController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * PUT /api/services/{id}/status  (admin only)
+     */
+    public function updateStatus(Request $request, string $id): JsonResponse
+    {
+        $service = Service::with('store.owner')->findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'required|string|in:approved,rejected,pending_review',
+            'reason' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validated['status'] === 'rejected' && empty($validated['reason'])) {
+            return response()->json([
+                'message' => 'El motivo de rechazo es obligatorio.',
+                'errors'  => ['reason' => ['Debes indicar el motivo del rechazo.']],
+            ], 422);
+        }
+
+        $service->update([
+            'status'           => $validated['status'],
+            'rejection_reason' => $validated['status'] === 'rejected' ? $validated['reason'] : null,
+        ]);
+
+        if (in_array($validated['status'], ['approved', 'rejected'])) {
+            $owner = $service->store?->owner;
+            if ($owner) {
+                $owner->notify(new ServiceStatusNotification(
+                    service: $service,
+                    newStatus: $validated['status'],
+                    reason: $validated['reason'] ?? null,
+                ));
+            }
+        }
+
+        return response()->json(new ServiceResource($service));
     }
 }

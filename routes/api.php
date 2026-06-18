@@ -505,6 +505,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Products: aprobar/rechazar
         Route::put('/products/{id}/status', [ProductController::class, 'updateStatus']);
 
+        // Services: aprobar/rechazar
+        Route::put('/services/{id}/status', [ServiceController::class, 'updateStatus']);
+
         // Products: Admin - obtener todos los productos incluyendo pendientes
         Route::get('/admin/products', [ProductController::class, 'adminIndex']);
 

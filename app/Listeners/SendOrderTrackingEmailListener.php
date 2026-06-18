@@ -15,6 +15,7 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
         Order::STATUS_CONFIRMED,
         Order::STATUS_PROCESSING,
         Order::STATUS_SHIPPED,
+        Order::STATUS_ON_THE_WAY,
         Order::STATUS_DELIVERED,
         Order::STATUS_CANCELLED,
     ];
@@ -35,11 +36,6 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
 
         if (!$order->relationLoaded('items')) {
             $order->load('items');
-        }
-
-        // Solo enviar tracking email si la orden tiene items de producto
-        if ($order->items->isEmpty()) {
-            return;
         }
 
         $user->notify(new OrderStatusTrackingNotification($order));

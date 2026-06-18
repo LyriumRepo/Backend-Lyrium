@@ -24,11 +24,11 @@ final class CommissionService
         return $tier ?? CommissionTier::orderBy('sort_order')->first();
     }
 
-    // $orderSubtotal: total del pedido CON IGV (usado para determinar tramo, no precio individual)
+    // $orderSubtotal: total del pedido CON IGV (sin envío); los tramos están en valores con IGV
     public function calculateItemCommission(OrderItem $item, float $orderSubtotal): void
     {
-        $valorVentaOrden = $orderSubtotal / 1.18;
-        $tier = $this->getTierForValue($valorVentaOrden);
+        // Los tramos (0-400, 401-800…) son en base venta CON IGV → comparar directo
+        $tier = $this->getTierForValue($orderSubtotal);
         $rate = $tier->rate;
 
         $itemLineVenta = $item->line_total / 1.18;

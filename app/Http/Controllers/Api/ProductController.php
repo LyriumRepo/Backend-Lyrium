@@ -13,6 +13,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\ProductPendingReviewNotification;
+use App\Notifications\ProductStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -293,7 +294,23 @@ final class ProductController extends Controller
 
         $product->load(self::RELATIONS_DETAIL);
 
-        broadcast(new ProductStatusChanged($product));
+        try {
+            broadcast(new ProductStatusChanged($product));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
+
+        // Notificar al vendedor si el admin aprueba o rechaza
+        if (in_array($validated['status'], ['approved', 'rejected'])) {
+            $owner = $product->store?->owner;
+            if ($owner) {
+                $owner->notify(new ProductStatusNotification(
+                    product: $product,
+                    newStatus: $validated['status'],
+                    reason: $validated['reason'] ?? null,
+                ));
+            }
+        }
 
         return response()->json(new ProductResource($product));
     }

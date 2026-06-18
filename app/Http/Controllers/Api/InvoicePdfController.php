@@ -72,11 +72,11 @@ final class InvoicePdfController extends Controller
 
         $shippingCost = (float) ($order?->shipping_cost ?? 0);
 
-        // Los precios al consumidor incluyen IGV — se extrae (no se agrega encima)
-        $baseGravada = round($rawLineTotal / 1.18, 2); // "Valor de Venta" SUNAT (sin IGV)
-        $igv = round($baseGravada * 0.18, 2);
-        $invoiceTotal = (float) $invoice->total;
-        $total = $invoiceTotal > 0 ? $invoiceTotal : ($rawLineTotal + $shippingCost);
+        // Siempre recalcular desde ítems reales (ignorar total guardado en invoice,
+        // que puede estar mal por el bug pre-fix del doble IGV)
+        $baseGravada = round($rawLineTotal / 1.18, 2); // valor venta sin IGV
+        $igv         = round($baseGravada * 0.18, 2);
+        $total       = round($rawLineTotal + $shippingCost, 2);
 
         $showCommission = true;
         // Base de cálculo de comisión = valor venta sin IGV, sin envío (fórmula Lyrium)

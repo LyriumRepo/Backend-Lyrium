@@ -11,13 +11,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class BookingCancelledNotification extends Notification implements ShouldQueue
+final class BookingOnTheWayNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
         private readonly ServiceBooking $booking,
-        private readonly string $role, // 'seller' | 'client'
     ) {}
 
     public function via(object $notifiable): array
@@ -38,27 +37,13 @@ final class BookingCancelledNotification extends Notification implements ShouldQ
     public function toMail(object $notifiable): MailMessage
     {
         $serviceName = $this->booking->service?->name ?? 'servicio';
-        $date        = $this->booking->appointment_date?->format('d/m/Y H:i') ?? '—';
         $storeName   = $this->booking->service?->store?->trade_name ?? '—';
-
-        if ($this->role === 'seller') {
-            return (new MailMessage)
-                ->subject('❌ Reserva cancelada — ' . $serviceName . ' · Lyrium BioMarketplace')
-                ->view('emails.notifications.booking-cancelled', [
-                    'name'        => $notifiable->name,
-                    'role'        => 'seller',
-                    'serviceName' => $serviceName,
-                    'storeName'   => $storeName,
-                    'date'        => $date,
-                    'actionUrl'   => config('app.frontend_url') . '/seller/bookings',
-                ]);
-        }
+        $date        = $this->booking->appointment_date?->format('d/m/Y H:i') ?? '—';
 
         return (new MailMessage)
-            ->subject('❌ Tu reserva fue cancelada — ' . $serviceName . ' · Lyrium BioMarketplace')
-            ->view('emails.notifications.booking-cancelled', [
+            ->subject('🚗 El proveedor está en camino — ' . $serviceName . ' · Lyrium BioMarketplace')
+            ->view('emails.notifications.booking-on-the-way', [
                 'name'        => $notifiable->name,
-                'role'        => 'client',
                 'serviceName' => $serviceName,
                 'storeName'   => $storeName,
                 'date'        => $date,
@@ -69,25 +54,13 @@ final class BookingCancelledNotification extends Notification implements ShouldQ
     public function toPush(object $notifiable): array
     {
         $serviceName = $this->booking->service?->name ?? 'servicio';
-        $date        = $this->booking->appointment_date?->format('d/m/Y H:i') ?? '—';
-
-        if ($this->role === 'seller') {
-            return [
-                'title' => '❌ Reserva cancelada',
-                'body'  => "La reserva de \"{$serviceName}\" del {$date} fue cancelada por el cliente.",
-                'data'  => [
-                    'type'       => 'booking_cancelled_seller',
-                    'booking_id' => (string) $this->booking->id,
-                    'url'        => '/seller/bookings',
-                ],
-            ];
-        }
+        $storeName   = $this->booking->service?->store?->trade_name ?? '—';
 
         return [
-            'title' => '❌ Reserva cancelada',
-            'body'  => "Tu reserva de \"{$serviceName}\" para el {$date} ha sido cancelada.",
+            'title' => '🚗 El proveedor está en camino',
+            'body'  => "El equipo de \"{$storeName}\" ya va en camino para brindarte el servicio de \"{$serviceName}\".",
             'data'  => [
-                'type'       => 'booking_cancelled_client',
+                'type'       => 'booking_on_the_way',
                 'booking_id' => (string) $this->booking->id,
                 'url'        => '/customer/orders',
             ],
@@ -97,11 +70,11 @@ final class BookingCancelledNotification extends Notification implements ShouldQ
     public function toArray(object $notifiable): array
     {
         return [
-            'type'             => 'booking_cancelled',
-            'role'             => $this->role,
+            'type'             => 'booking_on_the_way',
             'booking_id'       => $this->booking->id,
             'service_name'     => $this->booking->service?->name ?? '—',
             'appointment_date' => $this->booking->appointment_date?->toIso8601String(),
+            'subject'          => 'El proveedor está en camino para tu servicio',
         ];
     }
 }

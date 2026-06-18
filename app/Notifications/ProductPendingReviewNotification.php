@@ -37,29 +37,20 @@ final class ProductPendingReviewNotification extends Notification implements Sho
                 'productType' => $this->product->type ?? 'physical',
                 'price'       => $this->product->price,
                 'actionUrl'   => config('app.frontend_url') . '/admin/products',
-            ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
     }
 
     public function toArray(object $notifiable): array
     {
+        $storeName = $this->product->store?->trade_name ?? 'desconocida';
         return [
             'type'        => 'product_pending_review',
-            'title'       => "🆕 Producto pendiente: {$this->product->name}",
-            'message'     => "La tienda \"{$this->product->store?->trade_name ?? 'desconocida'}\" registró el producto \"{$this->product->name}\" y está esperando aprobación.",
+            'title'       => '🆕 Producto pendiente: ' . $this->product->name,
+            'message'     => "La tienda \"{$storeName}\" registró el producto \"{$this->product->name}\" y está esperando aprobación.",
             'product_id'  => $this->product->id,
             'product_name' => $this->product->name,
             'store_id'    => $this->product->store_id,
-            'store_name'  => $this->product->store?->trade_name ?? '',
+            'store_name'  => $storeName,
             'action_url'  => '/admin/products',
         ];
     }
