@@ -133,7 +133,7 @@ final class PlanRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = PlanRequest::query()
-            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,monthly_fee'])
+            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,slug,monthly_fee'])
             ->orderBy('created_at', 'desc');
 
         if ($status = $request->query('status')) {
@@ -154,8 +154,9 @@ final class PlanRequestController extends Controller
                 'seller_name' => $req->store->owner?->name,
                 'seller_email' => $req->store->owner?->email,
                 'plan' => [
-                    'id' => $req->plan->id,
-                    'name' => $req->plan->name,
+                    'id'          => $req->plan->id,
+                    'name'        => $req->plan->name,
+                    'slug'        => $req->plan->slug,
                     'monthly_fee' => $req->plan->monthly_fee,
                 ],
                 'months' => $req->months,
