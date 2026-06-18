@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\NewPlanRequestNotification;
 use App\Services\IzipayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 
 final class IzipayPlanController extends Controller
 {
@@ -20,7 +23,8 @@ final class IzipayPlanController extends Controller
      * POST /api/payments/izipay/plan-session
      *
      * Crea una sesión de pago Izipay para un plan de suscripción.
-     * Devuelve el formToken necesario para abrir el widget de pago.
+     * Aplica el descuento por duración, guarda el PlanRequest pendiente
+     * y devuelve formToken + publicKey para abrir el widget de pago.
      */
     public function createSession(Request $request): JsonResponse
     {
@@ -47,9 +51,11 @@ final class IzipayPlanController extends Controller
             ], 422);
         }
 
-        $plan        = Plan::findOrFail($data['plan_id']);
-        $months      = (int) $data['months'];
-        $totalAmount = round((float) $plan->monthly_fee * $months, 2);
+        $plan         = Plan::findOrFail($data['plan_id']);
+        $months       = (int) $data['months'];
+        $discount     = $this->getDiscountPercent($months);
+        $base         = (float) $plan->monthly_fee * $months;
+        $totalAmount  = round($base * (1 - $discount / 100), 2);
 
         // ID único de referencia para Izipay (prefijo PLAN para distinguirlo de órdenes)
         $izipayOrderId = 'PLAN-' . $store->id . '-' . time();
@@ -67,11 +73,22 @@ final class IzipayPlanController extends Controller
             'status'          => PlanRequest::STATUS_PENDING,
         ]);
 
+        // Notificar a todos los administradores (campanita + email)
+        try {
+            $planRequest->load(['store.owner', 'plan']);
+            $admins = User::role('administrator')->get();
+            if ($admins->isNotEmpty()) {
+                Notification::send($admins, new NewPlanRequestNotification($planRequest));
+            }
+        } catch (\Throwable) {
+            // Notificación no crítica — el PlanRequest ya fue creado
+        }
+
         try {
             $session = $this->izipayService->initPlanPayment(
-                amountSoles:     $totalAmount,
-                izipayOrderId:   $izipayOrderId,
-                email:           $user->email,
+                amountSoles:   $totalAmount,
+                izipayOrderId: $izipayOrderId,
+                email:         $user->email,
             );
         } catch (\Throwable $e) {
             // Si falla Izipay, eliminamos el PlanRequest para no dejar basura
@@ -89,7 +106,25 @@ final class IzipayPlanController extends Controller
             'izipay_order_id'  => $izipayOrderId,
             'plan_request_id'  => $planRequest->id,
             'amount'           => $totalAmount,
+            'discount_percent' => $discount,
             'mode'             => $session['mode'],
         ]);
+    }
+
+    /**
+     * Tabla de descuentos por duración — idéntica a getDiscountForMonths() del frontend.
+     */
+    private function getDiscountPercent(int $months): int
+    {
+        return match(true) {
+            $months <= 1  => 0,
+            $months <= 3  => 5,
+            $months <= 6  => 12,
+            $months <= 12 => 22,
+            $months <= 18 => 30,
+            $months <= 24 => 38,
+            $months <= 36 => 48,
+            default       => min(48 + ($months - 36), 60),
+        };
     }
 }
