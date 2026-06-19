@@ -4,13 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Agrega campos de origen de despacho a la tabla stores.
- * Estos campos alimentan CartResource → origen → LogisticsService.
- *
- * Corre ANTES de las otras migraciones de logistics.
- * Es segura: usa hasColumn() para no fallar si ya existen.
- */
+
 return new class extends Migration
 {
     public function up(): void
