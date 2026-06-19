@@ -1,20 +1,9 @@
 <?php
 
 namespace Database\Seeders;
-
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-/**
- * LogisticsSeeder
- *
- * Siembra:
- *   ✅ box_types         — 7 tipos de caja (XXS → XL)
- *   ✅ courier_operators — cobertura geográfica de couriers (desde operators_data.json)
- *
- * Ejecutar:
- *   php artisan db:seed --class=LogisticsSeeder
- */
 class LogisticsSeeder extends Seeder
 {
     public function run(): void
@@ -23,7 +12,6 @@ class LogisticsSeeder extends Seeder
         $this->seedCourierOperators();
     }
 
-    // ── Tipos de caja ─────────────────────────────────────────────────────────
     private function seedBoxTypes(): void
     {
         $this->command->info('📦 Sembrando box_types...');
@@ -49,7 +37,6 @@ class LogisticsSeeder extends Seeder
         $this->command->info('   ✅ ' . count($boxTypes) . ' tipos de caja sembrados.');
     }
 
-    // ── Operadores de courier por distrito ────────────────────────────────────
     private function seedCourierOperators(): void
     {
         $this->command->info('🗺️  Sembrando courier_operators...');
@@ -69,7 +56,6 @@ class LogisticsSeeder extends Seeder
             return;
         }
 
-        // Insertar en chunks de 500 para evitar límites de MySQL
         $chunks = array_chunk($data, 500);
         $total  = 0;
 
