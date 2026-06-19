@@ -4,17 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * shalom_data — tabla unificada que reemplaza los 3 JSON del scraper:
- *   ❌ shalom-ids-reales.json
- *   ❌ distritos_con_reparto_shalom.json
- *   ❌ todos_los_distritos_shalom.json
- *
- * ✅ UNA sola tabla con todo lo que necesita shalom.js:
- *   ter_id          → ID de terminal para la API /tarifa/mostrar
- *   departamento/provincia/zona → para buscarTerminal()
- *   tiene_reparto + ids + tarifas → para buscarReparto()
- */
 return new class extends Migration
 {
     public function up(): void
@@ -22,7 +11,6 @@ return new class extends Migration
         Schema::create('shalom_data', function (Blueprint $table) {
             $table->id();
 
-            // ── Terminal / Agencia ────────────────────────────────────────────
             $table->unsignedInteger('ter_id')->nullable()->unique()
                 ->comment('ID terminal Shalom — usado en /tarifa/mostrar');
             $table->string('nombre', 150)
@@ -39,7 +27,6 @@ return new class extends Migration
             $table->string('latitud',  20)->nullable();
             $table->string('longitud', 20)->nullable();
 
-            // ── Reparto a domicilio ────────────────────────────────────────────
             $table->boolean('tiene_reparto')->default(false)
                 ->comment('true = tiene entrega a domicilio');
             $table->unsignedSmallInteger('departamento_id')->nullable()
@@ -55,7 +42,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // ── Índices ───────────────────────────────────────────────────────
             $table->index('departamento',                         'ix_sd_dept');
             $table->index('provincia',                            'ix_sd_prov');
             $table->index('zona',                                 'ix_sd_zona');
