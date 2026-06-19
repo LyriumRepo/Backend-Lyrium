@@ -6,18 +6,6 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * ShalomDataSeeder
- *
- * Siembra shalom_data desde database/data/shalom_data.json.
- *
- * Este JSON ya está procesado y combina:
- *   - shalom-ids-reales.json       (terminales con ter_id)
- *   - distritos_con_reparto_shalom.json (datos de reparto a domicilio)
- *
- * Ejecutar:
- *   php artisan db:seed --class=ShalomDataSeeder
- */
 class ShalomDataSeeder extends Seeder
 {
     public function run(): void
@@ -40,7 +28,6 @@ class ShalomDataSeeder extends Seeder
             return;
         }
 
-        // Limpiar tabla antes de re-sembrar (truncate es seguro aquí)
         Schema::disableForeignKeyConstraints();
         DB::table('shalom_data')->truncate();
         Schema::enableForeignKeyConstraints();
@@ -50,12 +37,9 @@ class ShalomDataSeeder extends Seeder
 
         foreach ($chunks as $chunk) {
             $rows = array_map(function ($row) {
-                // tarifas_reparto puede venir como array o como string JSON
                 if (isset($row['tarifas_reparto']) && is_array($row['tarifas_reparto'])) {
                     $row['tarifas_reparto'] = json_encode($row['tarifas_reparto']);
                 }
-
-                // Asegurarse de que solo están las columnas que existen en la tabla
                 return array_intersect_key($row, array_flip([
                     'ter_id', 'nombre', 'departamento', 'provincia',
                     'zona', 'direccion', 'abreviatura', 'ubigeo',
