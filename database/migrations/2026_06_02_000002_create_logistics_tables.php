@@ -4,21 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Tablas de logística:
- *   ✅ courier_operators     — cobertura por distrito (seeded desde operators_data.json)
- *   ✅ box_types             — tipos de caja (seeded desde LogisticsSeeder)
- *   ✅ courier_quotes_cache  — caché de cotizaciones (TTL 1h, por parámetros)
- *
- * IMPORTANTE: La caché NO es por usuario — es por parámetros de envío.
- * El mismo (courier + origen + destino + cajas) devuelve el mismo precio
- * a cualquier usuario, que es el comportamiento correcto.
- */
 return new class extends Migration
 {
     public function up(): void
     {
-        // ── 1. courier_operators ─────────────────────────────────────────────
         Schema::create('courier_operators', function (Blueprint $table) {
             $table->id();
             $table->string('departamento', 80);
@@ -35,13 +24,12 @@ return new class extends Migration
             $table->index(['departamento', 'provincia'],              'ix_co_dept_prov');
         });
 
-        // ── 2. box_types ─────────────────────────────────────────────────────
         Schema::create('box_types', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 10)->unique();        // XXS, XS, S, M, ML, L, XL
-            $table->unsignedSmallInteger('largo');          // cm
-            $table->unsignedSmallInteger('ancho');          // cm
-            $table->unsignedSmallInteger('alto');           // cm
+            $table->string('nombre', 10)->unique();        
+            $table->unsignedSmallInteger('largo');          
+            $table->unsignedSmallInteger('ancho');         
+            $table->unsignedSmallInteger('alto');           
             $table->decimal('peso_max_kg', 5, 2);
             $table->unsignedSmallInteger('orden')->default(0);
             $table->boolean('activo')->default(true);
@@ -50,7 +38,6 @@ return new class extends Migration
             $table->index('orden', 'ix_bt_orden');
         });
 
-        // ── 3. courier_quotes_cache ──────────────────────────────────────────
         Schema::create('courier_quotes_cache', function (Blueprint $table) {
             $table->id();
             $table->string('courier',      20);
@@ -60,7 +47,7 @@ return new class extends Migration
             $table->string('destino_dept', 80);
             $table->string('destino_prov', 80);
             $table->string('destino_dist', 80);
-            $table->string('cajas_hash',   64); // SHA-256 del array de cajas
+            $table->string('cajas_hash',   64); 
             $table->decimal('precio_domicilio', 8, 2)->nullable();
             $table->decimal('precio_agencia',   8, 2)->nullable();
             $table->json('respuesta_completa')->nullable();
