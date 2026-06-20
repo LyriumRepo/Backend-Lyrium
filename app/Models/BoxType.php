@@ -6,12 +6,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * App\Models\BoxType
- *
- * Tipos de caja usados por BoxCalculatorService.
- * Seeded por LogisticsSeeder — código también tiene fallback hardcoded.
- */
 class BoxType extends Model
 {
     protected $table = 'box_types';
@@ -37,14 +31,10 @@ class BoxType extends Model
             'activo'      => 'boolean',
         ];
     }
-
-    /** Volumen de la caja en cm³ */
     public function getVolumenAttribute(): int
     {
         return $this->largo * $this->ancho * $this->alto;
     }
-
-    /** Peso volumétrico estándar courier (÷5000) */
     public function getPesoVolumetricoAttribute(): float
     {
         return round($this->volumen / 5000, 3);
