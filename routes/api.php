@@ -59,6 +59,8 @@ use App\Http\Controllers\Api\StoreReviewController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IzipayController;
+use App\Http\Controllers\Api\AdminMedalController;
+use App\Http\Controllers\Api\SellerMedalController;
 
 
 /*
@@ -121,10 +123,14 @@ Route::post('/webhooks/izipay/order', [IzipayController::class, 'webhook']);
 
 Route::post('/webhooks/culqi', [CulqiController::class, 'webhook']);
 
+// Medallas Top 100 — consulta pública (active approved)
+Route::get('/medals/active', [\App\Http\Controllers\Api\MedalController::class, 'active']);
+
 // ranking
 Route::prefix('rankings')->group(function () {
     Route::get('/products', [RankingController::class, 'products']);
     Route::get('/stores',   [RankingController::class, 'stores']);
+    Route::get('/services', [RankingController::class, 'services']);
 });
 
 // ChatBot — Asistente Virtual Lyrium (público)
@@ -471,6 +477,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/reviews/{id}/moderate', [ReviewModerationController::class, 'moderate']);
         Route::delete('/admin/reviews/{id}',      [ReviewModerationController::class, 'destroy']);
 
+        // Medallas Top 100
+        Route::prefix('admin/medals')->group(function () {
+            Route::get('/',             [AdminMedalController::class, 'index']);
+            Route::put('/{medal}/approve', [AdminMedalController::class, 'approve']);
+            Route::put('/{medal}/suspend', [AdminMedalController::class, 'suspend']);
+        });
+
         Route::prefix('admin/sellers')->group(function () {
 
             // GET  /api/admin/sellers/stats   → cards del dashboard
@@ -748,6 +761,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/orders/{orderId}', [InvoiceController::class, 'sellerOrderData']);
         });
 
+        // Medallas Top 100 — Vendedor
+        Route::prefix('seller/medals')->group(function () {
+            Route::get('/',                          [SellerMedalController::class, 'index']);
+            Route::put('/{medal}/visibility',        [SellerMedalController::class, 'toggleVisibility']);
+        });
+
         Route::post('/url-metadata', [\App\Http\Controllers\Api\UrlMetadataController::class, 'preview']);
 
         // ── BioBlog ──────────────────────────────────────────────────
@@ -805,6 +824,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/content-reports/{id}/dismiss', [\App\Http\Controllers\Api\ContentReportController::class, 'dismiss']);
         });
     });
+});
+
+// ── Security Admin Panel ────────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:security_admin'])->prefix('security')->group(function () {
+    Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

@@ -8,30 +8,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductRankingResource;
 use App\Http\Resources\ServiceRankingResource;
 use App\Http\Resources\StoreRankingResource;
-use App\Models\Product;
-use App\Models\Service;
-use App\Models\Store;
+use App\Services\RankingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class RankingController extends Controller
 {
-    /**
-     * GET /api/rankings/products?limit=100&min_reviews=1
-     * Público — top productos por rating
-     */
+    public function __construct(
+        private readonly RankingService $rankingService,
+    ) {}
+
     public function products(Request $request): JsonResponse
     {
         $limit = min((int) $request->query('limit', 100), 100);
         $minReviews = max((int) $request->query('min_reviews', 1), 1);
 
-        $products = Product::with(['store:id,store_name,slug,logo', 'categories:id,name,slug', 'media'])
-            ->where('status', 'approved')
-            ->where('rating_count', '>=', $minReviews)
-            ->orderByDesc('rating_promedio')
-            ->orderByDesc('rating_count')  // desempate por más reseñas
-            ->limit($limit)
-            ->get();
+        $products = $this->rankingService->getTopProducts($limit, $minReviews);
 
         return response()->json([
             'success' => true,
@@ -40,22 +32,11 @@ final class RankingController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/rankings/stores?limit=20
-     * Público — top tiendas por rating promedio
-     */
     public function stores(Request $request): JsonResponse
     {
         $limit = min((int) $request->query('limit', 20), 50);
 
-        // Una query con subquery para evitar N+1
-        $stores = Store::withCount('reviews as review_count')
-            ->withAvg('reviews as average_rating', 'rating')
-            ->having('review_count', '>=', 1)
-            ->orderByDesc('average_rating')
-            ->orderByDesc('review_count')
-            ->limit($limit)
-            ->get();
+        $stores = $this->rankingService->getTopStores($limit);
 
         return response()->json([
             'success' => true,
@@ -63,34 +44,11 @@ final class RankingController extends Controller
         ]);
     }
 
-    /**
-     * GET /api/rankings/services?limit=20
-     * Público — top servicios por rating promedio
-     */
     public function services(Request $request): JsonResponse
     {
         $limit = min((int) $request->query('limit', 20), 100);
 
-        $services = Service::with('store:id,store_name,slug,logo')
-            ->where('status', Service::STATUS_ACTIVE)
-            ->select('services.*')
-            ->selectSub(
-                'SELECT COALESCE(AVG(r.rating), 0) FROM service_bookings sb '
-                .'INNER JOIN reviews r ON r.service_booking_id = sb.id '
-                .'WHERE sb.service_id = services.id',
-                'rating_average',
-            )
-            ->selectSub(
-                'SELECT COUNT(r.id) FROM service_bookings sb '
-                .'INNER JOIN reviews r ON r.service_booking_id = sb.id '
-                .'WHERE sb.service_id = services.id',
-                'rating_count',
-            )
-            ->havingRaw('rating_count >= 1')
-            ->orderByDesc('rating_average')
-            ->orderByDesc('rating_count')
-            ->limit($limit)
-            ->get();
+        $services = $this->rankingService->getTopServices($limit);
 
         return response()->json([
             'success' => true,
