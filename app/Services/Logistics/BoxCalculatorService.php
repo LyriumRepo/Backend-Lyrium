@@ -56,6 +56,7 @@ class BoxCalculatorService
             ];
         }
     }
+
     public function calcular(array $productos): array
     {
         if (empty($productos)) {
@@ -80,7 +81,7 @@ class BoxCalculatorService
         }
 
         $eficiencia = $this->calcularEficiencia($prods, $todasLasCajas);
-        $resumen = $this->generarResumen($todasLasCajas);
+        $resumen    = $this->generarResumen($todasLasCajas);
 
         return [
             'resumen'    => $resumen,
@@ -88,6 +89,7 @@ class BoxCalculatorService
             'eficiencia' => round($eficiencia, 4),
         ];
     }
+
     private function normalizarProducto(array $p): array
     {
         $peso  = max(0.001, min(50,  (float) ($p['peso']   ?? 0.5)));
@@ -105,6 +107,7 @@ class BoxCalculatorService
             'alto'     => $alto,
         ];
     }
+
     private function clasificarGrupo(string $nombre): string
     {
         $n = $this->norm($nombre);
@@ -149,6 +152,7 @@ class BoxCalculatorService
         );
         return preg_replace('/[^a-z0-9\s]/', '', $s);
     }
+
     private function segregarPorIncompatibilidades(array $productos): array
     {
         $grupos = [];
@@ -188,6 +192,7 @@ class BoxCalculatorService
         }
         return false;
     }
+
     private function calcularCajasParaGrupo(array $grupo): array
     {
         $items = [];
@@ -196,21 +201,33 @@ class BoxCalculatorService
                 $items[] = $p;
             }
         }
-        $cajasUnicas = $this->intentarCajaUnica($items);
+
+        [$cajasUnicas, $esFallback] = $this->intentarCajaUnica($items);
+
+        // FIX BUG 3: si ninguna caja cabía (fallback), forzar multi-caja directamente
+        // sin comparar pesoFacturable (porque 1 caja de fallback no es físicamente válida)
+        if ($esFallback) {
+            return $this->intentarMultiCaja($items);
+        }
+
+        // Si resultó L o XL real, comparar si multi es más barato en peso facturable
         if (count($cajasUnicas) === 1 && in_array($cajasUnicas[0]['tipo'], ['L', 'XL'])) {
             $cajasMulti = $this->intentarMultiCaja($items);
-            $pesoFact1 = array_sum(array_column($cajasUnicas, 'pesoFacturable'));
-            $pesoFact2 = array_sum(array_column($cajasMulti,  'pesoFacturable'));
+            $pesoFact1  = array_sum(array_column($cajasUnicas, 'pesoFacturable'));
+            $pesoFact2  = array_sum(array_column($cajasMulti,  'pesoFacturable'));
             return $pesoFact2 < $pesoFact1 ? $cajasMulti : $cajasUnicas;
         }
 
         return $cajasUnicas;
     }
 
+    /**
+     * @return array{0: array, 1: bool}  [$cajas, $esFallback]
+     */
     private function intentarCajaUnica(array $items): array
     {
         $pesoTotal = array_sum(array_map(fn($p) => $p['peso'], $items));
-        $volTotal = array_sum(array_map(
+        $volTotal  = array_sum(array_map(
             fn($p) => $p['largo'] * $p['ancho'] * $p['alto'],
             $items
         )) / 0.7;
@@ -220,17 +237,19 @@ class BoxCalculatorService
             $pesoMaxKg = (float) $caja['peso_max_kg'];
 
             if ($pesoTotal <= $pesoMaxKg && $volTotal <= $volCaja) {
-                return [$this->buildCajaResult($caja, $pesoTotal)];
+                // Caja real encontrada — no es fallback
+                return [[$this->buildCajaResult($caja, $pesoTotal)], false];
             }
         }
 
+        // FIX BUG 3: marcar como fallback para que calcularCajasParaGrupo fuerce multi-caja
         $xl = end($this->cajas);
-        return [$this->buildCajaResult($xl, $pesoTotal)];
+        return [[$this->buildCajaResult($xl, $pesoTotal)], true];
     }
 
     private function intentarMultiCaja(array $items): array
     {
-        $cajas = [];
+        $cajas        = [];
         $currentItems = [];
         $currentPeso  = 0;
 
@@ -238,14 +257,18 @@ class BoxCalculatorService
             $currentItems[] = $item;
             $currentPeso   += $item['peso'];
             $caja = $this->encontrarMejorCaja($currentItems);
+
             if ($caja === null) {
+                // Este item hace overflow — sacar y cerrar el batch anterior
                 array_pop($currentItems);
                 $currentPeso -= $item['peso'];
 
                 if (!empty($currentItems)) {
                     $c = $this->encontrarMejorCaja($currentItems);
-                    $cajas[] = $this->buildCajaResult($c ?? end($this->cajas), $currentPeso - $item['peso']);
+                    $cajas[] = $this->buildCajaResult($c ?? end($this->cajas), $currentPeso);
                 }
+
+                // Empezar nuevo batch con el item que no cabía
                 $currentItems = [$item];
                 $currentPeso  = $item['peso'];
             }
@@ -256,7 +279,7 @@ class BoxCalculatorService
             $cajas[] = $this->buildCajaResult($c ?? end($this->cajas), $currentPeso);
         }
 
-        return empty($cajas) ? $this->intentarCajaUnica($items) : $cajas;
+        return empty($cajas) ? $this->intentarCajaUnica($items)[0] : $cajas;
     }
 
     private function encontrarMejorCaja(array $items): ?array
@@ -275,8 +298,8 @@ class BoxCalculatorService
 
     private function buildCajaResult(array $caja, float $pesoReal): array
     {
-        $pesoVol     = round(($caja['largo'] * $caja['ancho'] * $caja['alto']) / self::DIV_VOL_PESO, 3);
-        $pesoFact    = round(max($pesoReal, $pesoVol), 3);
+        $pesoVol  = round(($caja['largo'] * $caja['ancho'] * $caja['alto']) / self::DIV_VOL_PESO, 3);
+        $pesoFact = round(max($pesoReal, $pesoVol), 3);
 
         return [
             'tipo'            => $caja['nombre'],
@@ -291,15 +314,18 @@ class BoxCalculatorService
 
     private function calcularEficiencia(array $productos, array $cajas): float
     {
-        $volProductos = array_sum(array_map(fn($p) => $p['largo'] * $p['ancho'] * $p['alto'], $productos));
-        $volCajas     = array_sum(array_map(fn($c) => $c['largo'] * $c['ancho'] * $c['alto'], $cajas));
+        $volProductos = array_sum(array_map(
+            fn($p) => $p['largo'] * $p['ancho'] * $p['alto'] * $p['cantidad'],
+            $productos
+        ));
+        $volCajas = array_sum(array_map(fn($c) => $c['largo'] * $c['ancho'] * $c['alto'], $cajas));
         return $volCajas > 0 ? min(1.0, $volProductos / $volCajas) : 0.0;
     }
 
     private function generarResumen(array $cajas): string
     {
         if (empty($cajas)) return '0 cajas';
-        $tipos = array_count_values(array_column($cajas, 'tipo'));
+        $tipos  = array_count_values(array_column($cajas, 'tipo'));
         $partes = [];
         foreach ($tipos as $tipo => $cant) {
             $partes[] = "{$cant} caja" . ($cant > 1 ? 's' : '') . " {$tipo}";
