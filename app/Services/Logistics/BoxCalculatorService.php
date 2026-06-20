@@ -203,14 +203,10 @@ class BoxCalculatorService
         }
 
         [$cajasUnicas, $esFallback] = $this->intentarCajaUnica($items);
-
-        // FIX BUG 3: si ninguna caja cabía (fallback), forzar multi-caja directamente
-        // sin comparar pesoFacturable (porque 1 caja de fallback no es físicamente válida)
         if ($esFallback) {
             return $this->intentarMultiCaja($items);
         }
 
-        // Si resultó L o XL real, comparar si multi es más barato en peso facturable
         if (count($cajasUnicas) === 1 && in_array($cajasUnicas[0]['tipo'], ['L', 'XL'])) {
             $cajasMulti = $this->intentarMultiCaja($items);
             $pesoFact1  = array_sum(array_column($cajasUnicas, 'pesoFacturable'));
@@ -237,12 +233,9 @@ class BoxCalculatorService
             $pesoMaxKg = (float) $caja['peso_max_kg'];
 
             if ($pesoTotal <= $pesoMaxKg && $volTotal <= $volCaja) {
-                // Caja real encontrada — no es fallback
                 return [[$this->buildCajaResult($caja, $pesoTotal)], false];
             }
         }
-
-        // FIX BUG 3: marcar como fallback para que calcularCajasParaGrupo fuerce multi-caja
         $xl = end($this->cajas);
         return [[$this->buildCajaResult($xl, $pesoTotal)], true];
     }
@@ -259,7 +252,6 @@ class BoxCalculatorService
             $caja = $this->encontrarMejorCaja($currentItems);
 
             if ($caja === null) {
-                // Este item hace overflow — sacar y cerrar el batch anterior
                 array_pop($currentItems);
                 $currentPeso -= $item['peso'];
 
@@ -268,7 +260,6 @@ class BoxCalculatorService
                     $cajas[] = $this->buildCajaResult($c ?? end($this->cajas), $currentPeso);
                 }
 
-                // Empezar nuevo batch con el item que no cabía
                 $currentItems = [$item];
                 $currentPeso  = $item['peso'];
             }
