@@ -24,3 +24,6 @@ Schedule::command('birthday:advance')->dailyAt('08:00')->name('birthday-advance-
 
 // Recordatorios del panel de cliente: días 7, 30 y 90 tras la primera compra
 Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer-panel-reminders');
+
+// Detectar cambios en Top 100 y actualizar medallas
+Schedule::command('top-medals:detect')->dailyAt('03:00')->name('top-medals-detection')->withoutOverlapping();
