@@ -59,7 +59,7 @@ use App\Http\Controllers\Api\StoreReviewController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IzipayController;
-
+use App\Http\Controllers\Api\LogisticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,6 +84,30 @@ Route::prefix('auth')->group(function () {
         Route::post('/refresh', [AuthController::class, 'refreshToken']);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Logística (públicos: geo + shalom | calcular usa carrito auth implícito)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('logistics')->group(function () {
+    // Geo — alimentan los selects de destino en checkout (siempre públicos)
+    Route::get('/departamentos',              [LogisticsController::class, 'departamentos']);
+    Route::get('/provincias/{departamento}',  [LogisticsController::class, 'provincias']);
+    Route::get('/distritos',                  [LogisticsController::class, 'distritos']);
+    Route::get('/operadores',                 [LogisticsController::class, 'operadores']);
+
+    // Shalom — endpoints para que shalom.js del scraper consulte la BD
+    Route::get('/shalom/terminal',            [LogisticsController::class, 'shalomTerminal']);
+    Route::get('/shalom/reparto',             [LogisticsController::class, 'shalomReparto']);
+
+    // Cálculo — Paso 2 (sin destino) y Paso 3 (con destino + couriers)
+    Route::post('/calcular-caja',             [LogisticsController::class, 'calcularCaja']);
+    Route::post('/calcular',                  [LogisticsController::class, 'calcular']);
+    Route::post('/confirmar-envio',           [LogisticsController::class, 'confirmarEnvio']);
+});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -421,7 +445,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services (Citas/Servicios)
     //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
-    
+
     Route::get('/seller/services', [ServiceController::class, 'sellerServices']);
     Route::get('/seller/services/{id}', [ServiceController::class, 'showMyService']);
 
@@ -658,7 +682,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/stores/{id}', [StoreController::class, 'update']);
         Route::get('/stores/{id}/branches', [StoreController::class, 'branches']);
         Route::put('/stores/{id}/branches', [StoreController::class, 'updateBranches']);
-        Route::post('/stores/{id}/rep-photo',[StoreController::class, 'uploadRepLegalPhoto']);
+        Route::post('/stores/{id}/rep-photo', [StoreController::class, 'uploadRepLegalPhoto']);
 
         Route::get('/stores/me/specialists', [\App\Http\Controllers\Api\SpecialistController::class, 'index']);
         Route::get('/stores/me/specialists/{specialist}', [\App\Http\Controllers\Api\SpecialistController::class, 'show']);
