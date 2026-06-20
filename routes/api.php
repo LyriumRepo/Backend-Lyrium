@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\RankingController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\ReviewModerationController;
+use App\Http\Controllers\Api\SellerApplicationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\StoreController;
@@ -72,6 +73,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/verify-otp-reset', [AuthController::class, 'verifyOtpReset']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register-seller-fallback', [AuthController::class, 'registerSellerFallback']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -79,6 +81,9 @@ Route::prefix('auth')->group(function () {
         Route::post('/refresh', [AuthController::class, 'refreshToken']);
     });
 });
+
+// Endpoint interno usado por el servicio RPA para disparar el OTP
+Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
 
 Route::prefix('cart')->group(function () {
     // Obtener el carrito (R19/R20)
@@ -310,6 +315,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Plan Requests - Seller
     Route::post('/plans/requests', [PlanRequestController::class, 'store']);
     Route::get('/stores/me/plan-request', [PlanRequestController::class, 'me']);
+    Route::post('/plans/izipay/init', [PlanRequestController::class, 'createIzipaySession']);
 
     // Tickets — Mesa de Ayuda (customer, seller, cualquier usuario autenticado)
     Route::prefix('tickets')->group(function () {
@@ -451,6 +457,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // PUT  /api/admin/sellers/{storeId}/store-status → cambiar estado tienda
             Route::put('/{storeId}/store-status', [AdminSellerController::class, 'updateStoreStatus']);
+        });
+
+        Route::prefix('admin/seller-applications')->group(function () {
+            Route::get('/', [SellerApplicationController::class, 'index']);
+            Route::get('/{id}', [SellerApplicationController::class, 'show']);
+            Route::put('/{id}/estado', [SellerApplicationController::class, 'updateEstado']);
         });
 
         // Stores management

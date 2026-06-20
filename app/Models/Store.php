@@ -123,6 +123,11 @@ final class Store extends Model implements HasMedia
         return $this->hasMany(Subscription::class);
     }
 
+    public function planRequests(): HasMany
+    {
+        return $this->hasMany(PlanRequest::class);
+    }
+
     public function branches(): HasMany
     {
         return $this->hasMany(StoreBranch::class);

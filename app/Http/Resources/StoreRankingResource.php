@@ -16,8 +16,8 @@ final class StoreRankingResource extends JsonResource
             'name' => $this->store_name,
             'slug' => $this->slug,
             'logo' => $this->logo,
-            'rating_average' => round((float) ($this->average_rating ?? 0), 1),
-            'review_count' => (int) ($this->review_count ?? 0),
+            'rating_average' => round((float) ($this->store_rating_average ?? 0), 1),
+            'review_count' => (int) ($this->store_review_count ?? 0),
         ];
     }
 }

@@ -91,6 +91,8 @@ final class StoreController extends Controller
             $plan = $store->subscription->plan?->name === 'Premium' ? 'premium' : 'basico';
         }
 
+        $storeReviewStats = \App\Models\StoreReview::getStoreStats($store->id);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -107,7 +109,7 @@ final class StoreController extends Controller
                 'email' => $store->corporate_email,
                 'category' => $store->category?->name,
                 'category_id' => $store->category_id,
-                'rating' => (float) $store->rating,
+                'rating' => (float) $storeReviewStats['average'],
                 'layout' => $store->layout ?? '1',
                 'plan' => $plan,
                 'open' => true,
@@ -133,8 +135,8 @@ final class StoreController extends Controller
                 ]),
                 'stats' => [
                     'products' => $store->products()->where('status', 'approved')->count(),
-                    'rating' => (float) $store->rating,
-                    'reviews' => 0,
+                    'rating' => (float) $storeReviewStats['average'],
+                    'reviews' => $storeReviewStats['count'],
                 ],
             ],
         ]);

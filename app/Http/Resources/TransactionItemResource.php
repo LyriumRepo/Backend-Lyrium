@@ -17,6 +17,9 @@ final class TransactionItemResource extends JsonResource
             'unitPrice' => (float) $this->unit_price,
             'quantity' => (int) $this->quantity,
             'lineTotal' => (float) $this->line_total,
+            'commissionRate' => (float) ($this->commission_rate ?? 0),
+            'commissionAmount' => (float) ($this->commission_amount ?? 0),
+            'productType' => $this->whenLoaded('product', fn () => $this->product?->type),
             'store' => $this->whenLoaded('store', fn () => [
                 'id' => (string) $this->store->id,
                 'name' => $this->store->trade_name,

@@ -12,7 +12,7 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResendOtpRequest;
 use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Store;
+use App\Models\SellerApplication;
 use App\Models\User;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
@@ -76,45 +76,35 @@ final class AuthController extends Controller
     {
         $data = $request->validated();
 
-        return DB::transaction(function () use ($data): JsonResponse {
-            $username = Str::slug($data['storeName'], '_');
-            $baseUsername = $username;
-            $counter = 1;
-            while (User::where('username', $username)->exists()) {
-                $username = $baseUsername.'_'.$counter++;
-            }
+        $username = Str::slug($data['storeName'], '_');
+        $baseUsername = $username;
+        $counter = 1;
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername.'_'.$counter++;
+        }
 
-            $user = User::create([
-                'name' => $data['storeName'],
-                'username' => $username,
-                'email' => $data['email'],
-                'nicename' => Str::slug($data['storeName']),
-                'phone' => $data['phone'],
-                'document_type' => 'RUC',
-                'document_number' => $data['ruc'],
-                'password' => $data['password'],
-            ]);
+        $user = User::create([
+            'name' => $data['storeName'],
+            'username' => $username,
+            'email' => $data['email'],
+            'nicename' => Str::slug($data['storeName']),
+            'phone' => $data['phone'],
+            'document_type' => 'RUC',
+            'document_number' => $data['ruc'],
+            'password' => $data['password'],
+        ]);
 
-            $user->assignRole('seller');
+        $user->assignRole('seller');
 
-            Store::create([
-                'owner_id' => $user->id,
-                'ruc' => $data['ruc'],
-                'trade_name' => $data['storeName'],
-                'corporate_email' => $data['email'],
-                'slug' => Str::slug($data['storeName']),
-                'status' => 'pending',
-            ]);
+        $this->otpService->generate($user);
 
-            $this->otpService->generate($user);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Registro exitoso. Revisa tu correo para el código de verificación.',
-                'requires_verification' => true,
-                'email' => $user->email,
-            ], 201);
-        });
+        return response()->json([
+            'success' => true,
+            'message' => 'Registro exitoso. Revisa tu correo para el código de verificación.',
+            'requires_verification' => true,
+            'email' => $user->email,
+            'user_id' => $user->id,
+        ], 201);
     }
 
     /**
@@ -378,6 +368,110 @@ final class AuthController extends Controller
             'user' => new UserResource($user),
             'is_new_user' => $result['is_new_user'],
         ]);
+    }
+
+    /**
+     * POST /api/internal/trigger-otp
+     */
+    public function triggerOtp(Request $request): JsonResponse
+    {
+        $secret = config('app.internal_rpa_secret', 'CAMBIAR_EN_ENV');
+
+        if ($request->input('secret') !== $secret) {
+            return response()->json(['error' => 'No autorizado'], 401);
+        }
+
+        $user = User::where('email', $request->input('email'))->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'Usuario no encontrado'], 404);
+        }
+
+        if (!$user->hasVerifiedEmail()) {
+            $this->otpService->generate($user);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * POST /api/auth/register-seller-fallback
+     */
+    public function registerSellerFallback(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'storeName' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'ruc' => 'required|string|size:11',
+            'dni' => 'required|string|size:8',
+            'phone' => 'required|string|max:20',
+            'categoria' => 'nullable|string|max:100',
+        ]);
+
+        $username = Str::slug($validated['storeName'], '_');
+        $baseUsername = $username;
+        $counter = 1;
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername . '_' . $counter++;
+        }
+
+        $user = User::create([
+            'name' => $validated['storeName'],
+            'username' => $username,
+            'email' => $validated['email'],
+            'nicename' => Str::slug($validated['storeName']),
+            'phone' => $validated['phone'],
+            'document_type' => 'RUC',
+            'document_number' => $validated['ruc'],
+            'password' => $validated['password'],
+        ]);
+
+        $user->assignRole('seller');
+
+        $application = SellerApplication::create([
+            'user_id' => $user->id,
+            'store_id' => null,
+            'nombre_comercial' => $validated['storeName'],
+            'ruc' => $validated['ruc'],
+            'dni' => $validated['dni'],
+            'telefono' => $validated['phone'],
+            'correo' => $validated['email'],
+            'categoria' => $validated['categoria'] ?? null,
+            'razon_social' => null,
+            'sunat_data' => null,
+            'tipo_evidencia' => 'sin_evaluacion',
+            'evidencia_valor' => null,
+            'etapa' => 1,
+            'score' => 0,
+            'riesgo' => 'medio',
+            'estado' => 'REVISION',
+            'diagnostico' => [
+                'Solicitud registrada sin evaluaci\u00f3n autom\u00e1tica.',
+                'El servicio RPA no estaba disponible al momento del registro.',
+                'Esta solicitud requiere revisi\u00f3n manual por parte del administrador.',
+            ],
+        ]);
+
+        if (!$user->hasVerifiedEmail()) {
+            $this->otpService->generate($user);
+        }
+
+        return response()->json([
+            'success' => true,
+            'fallback' => true,
+            'estado' => 'REVISION',
+            'score' => 0,
+            'riesgo' => 'medio',
+            'etapa' => 1,
+            'diagnostico' => [
+                'Tu solicitud fue registrada pero no pudo ser evaluada autom\u00e1ticamente.',
+                'Nuestro equipo la revisar\u00e1 manualmente y te notificaremos por correo.',
+            ],
+            'application_id' => $application->id,
+            'store_id' => null,
+            'email' => $user->email,
+        ], 201);
     }
 
     /**
