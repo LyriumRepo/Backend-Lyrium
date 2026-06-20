@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\SellerPayment;
 use App\Models\Store;
+use App\Notifications\CommissionGeneratedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -282,6 +283,19 @@ final class OrderPaymentService
             orderId: $order->id,
             commissionRate: $commissionRate,
         );
+
+        $netAmount = round($subtotalSinIgv - $commissionAmount, 2);
+        $owner = $store->owner;
+        if ($owner) {
+            $owner->notify(new CommissionGeneratedNotification(
+                order: $order,
+                store: $store,
+                grossAmount: $subtotalSinIgv,
+                commissionRate: $commissionRate,
+                commissionAmount: $commissionAmount,
+                netAmount: $netAmount,
+            ));
+        }
 
         Log::info('OrderPaymentService: comisión programada (tasa escalonada)', [
             'store_id'         => $store->id,

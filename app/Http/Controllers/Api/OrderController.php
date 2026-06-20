@@ -9,6 +9,7 @@ use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
 use App\Notifications\InvoiceRequestedNotification;
+use App\Notifications\OrderCancelledCustomerNotification;
 use App\Notifications\OrderCancelledSellerNotification;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
@@ -589,7 +590,7 @@ final class OrderController extends Controller
             }
         }
 
-        // Notificar al vendedor de cada tienda cuando la orden es cancelada
+        // Notificar a vendedor(es) y cliente cuando la orden es cancelada
         if ($newStatus === Order::STATUS_CANCELLED) {
             $order->load(['items', 'user']);
             $order->items->pluck('store_id')->unique()
@@ -599,6 +600,9 @@ final class OrderController extends Controller
                         $store->owner->notify(new OrderCancelledSellerNotification($order, $store));
                     }
                 });
+            if ($order->user) {
+                $order->user->notify(new OrderCancelledCustomerNotification($order));
+            }
         }
 
         if (isset($data['payment_status'])) {

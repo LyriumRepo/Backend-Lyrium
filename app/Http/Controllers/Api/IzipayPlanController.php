@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\NewPlanRequestNotification;
+use App\Notifications\PlanActivatedNotification;
 use App\Services\IzipayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,10 +48,16 @@ final class IzipayPlanController extends Controller
             ->first();
 
         if ($pending) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ya tienes una solicitud de plan pendiente.',
-            ], 422);
+            // Si no tiene izipay_order_id, viene del flujo antiguo (sin pago real iniciado).
+            // Es seguro eliminarlo y proceder con la nueva sesión.
+            if (is_null($pending->izipay_order_id)) {
+                $pending->delete();
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tienes un pago en proceso. Espera unos minutos o contacta soporte si el problema persiste.',
+                ], 422);
+            }
         }
 
         $plan         = Plan::findOrFail($data['plan_id']);
@@ -99,6 +108,12 @@ final class IzipayPlanController extends Controller
             ], 502);
         }
 
+        // En modo simulación (sin credenciales Izipay reales), aprobar automáticamente
+        // para que el plan se active sin requerir un webhook real.
+        if ($session['mode'] === 'mock') {
+            $this->autoApproveMockRequest($planRequest, $user);
+        }
+
         return response()->json([
             'success'          => true,
             'form_token'       => $session['form_token'],
@@ -109,6 +124,55 @@ final class IzipayPlanController extends Controller
             'discount_percent' => $discount,
             'mode'             => $session['mode'],
         ]);
+    }
+
+    /**
+     * Aprueba un PlanRequest de forma inmediata en modo simulación.
+     * Replica la lógica de PlanRequestController::approvePlanRequest().
+     */
+    private function autoApproveMockRequest(PlanRequest $planRequest, object $user): void
+    {
+        try {
+            $planRequest->update([
+                'status'         => PlanRequest::STATUS_APPROVED,
+                'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
+                'reviewed_by'    => null,
+            ]);
+
+            $endsAt = now()->addMonths($planRequest->months);
+
+            $subscription = Subscription::updateOrCreate(
+                ['store_id' => $planRequest->store_id, 'status' => 'active'],
+                [
+                    'plan_id'   => $planRequest->plan_id,
+                    'starts_at' => now(),
+                    'ends_at'   => $endsAt,
+                    'status'    => 'active',
+                ]
+            );
+
+            $planRequest->store->update(['commission_rate' => $planRequest->plan->commission_rate]);
+
+            $contract = $planRequest->store->contracts()
+                ->whereIn('status', ['ACTIVE', 'PENDING'])
+                ->latest()
+                ->first();
+
+            if ($contract) {
+                $contract->update(['end_date' => $endsAt->toDateString()]);
+            }
+
+            $subscription->load('plan');
+            try {
+                broadcast(new PlanStatusChanged($subscription));
+            } catch (\Throwable) {}
+
+            if ($user) {
+                $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
+            }
+        } catch (\Throwable) {
+            // No crítico — el PlanRequest fue creado; el admin puede aprobar manualmente
+        }
     }
 
     /**

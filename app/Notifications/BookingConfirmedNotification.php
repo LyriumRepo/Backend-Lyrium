@@ -24,13 +24,13 @@ final class BookingConfirmedNotification extends Notification implements ShouldQ
         $channels = ['database'];
 
         $settings = $notifiable->notificationSetting;
-        if ($settings?->wantsEmailOrder() ?? true) {
-            $channels[] = 'mail';
-        }
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
         }
 
+        // El correo rico (con ICS adjunto y Google Calendar) lo envía
+        // BookingConfirmationMail directamente desde ServiceService::confirmBooking()
+        // para evitar duplicación.
         return $channels;
     }
 

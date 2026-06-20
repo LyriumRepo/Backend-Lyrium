@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Service;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -23,7 +24,22 @@ final class ServicePendingReviewNotification extends Notification implements Sho
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        return ['database', 'mail', PushChannel::class];
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $storeName = $this->service->store?->trade_name ?? 'una tienda';
+
+        return [
+            'title' => '🆕 Servicio pendiente de revisión',
+            'body'  => "\"{$this->service->name}\" de {$storeName} requiere aprobación.",
+            'data'  => [
+                'type'       => 'service_pending_review',
+                'service_id' => (string) $this->service->id,
+                'url'        => '/admin/services',
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -14,8 +14,11 @@ use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Store;
 use App\Models\User;
+use App\Notifications\NewSellerRegistrationNotification;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +110,12 @@ final class AuthController extends Controller
             ]);
 
             $this->otpService->generate($user);
+
+            $store->load('owner');
+            $admins = User::role('administrator')->get();
+            if ($admins->isNotEmpty()) {
+                NotificationFacade::send($admins, new NewSellerRegistrationNotification($user, $store));
+            }
 
             return response()->json([
                 'success' => true,

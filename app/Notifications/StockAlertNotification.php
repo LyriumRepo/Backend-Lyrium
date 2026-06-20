@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Product;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,7 +25,32 @@ final class StockAlertNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database', 'mail'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $isOut = $this->level === 'out';
+
+        return [
+            'title' => $isOut ? '⚠️ Producto agotado' : '🔔 Stock crítico',
+            'body'  => $isOut
+                ? "\"{$this->product->name}\" se agotó. Repón stock para seguir vendiéndolo."
+                : "\"{$this->product->name}\" tiene solo {$this->product->stock} unidad(es).",
+            'data'  => [
+                'type'       => 'stock_alert',
+                'level'      => $this->level,
+                'product_id' => (string) $this->product->id,
+                'url'        => '/seller/inventario',
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

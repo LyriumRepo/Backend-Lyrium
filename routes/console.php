@@ -27,3 +27,6 @@ Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer
 
 // Recordatorios de plan por vencer (7, 3 y 1 día antes)
 Schedule::command('app:send-plan-expiring-reminders')->dailyAt('09:00')->name('plan-expiring-reminders');
+
+// Recordatorios de cupones por vencer (3 y 1 día antes)
+Schedule::command('app:send-coupon-expiring-reminders')->dailyAt('09:00')->name('coupon-expiring-reminders');
