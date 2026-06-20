@@ -12,7 +12,6 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
-use App\Notifications\ProductPendingReviewNotification;
 use App\Notifications\ProductStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -198,8 +197,9 @@ final class ProductController extends Controller
 
         // Notificar a administradores: producto pendiente de revisión
         $admins = User::role('administrator')->get();
+        $notification = new ProductStatusNotification($product, 'pending_review');
         foreach ($admins as $admin) {
-            $admin->notify(new ProductPendingReviewNotification($product));
+            $admin->notify($notification);
         }
 
         return response()->json(new ProductResource($product), 201);
@@ -310,6 +310,16 @@ final class ProductController extends Controller
                     reason: $validated['reason'] ?? null,
                 ));
             }
+        }
+
+        // Notificar al vendedor sobre cambio de estado
+        $product->load('store.owner');
+        if ($product->store && $product->store->owner) {
+            $product->store->owner->notify(new ProductStatusNotification(
+                $product,
+                $validated['status'],
+                $validated['reason'] ?? null,
+            ));
         }
 
         return response()->json(new ProductResource($product));

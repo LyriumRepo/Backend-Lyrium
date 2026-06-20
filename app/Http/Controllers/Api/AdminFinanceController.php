@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\SellerPayment;
 use App\Models\Ticket;
@@ -39,6 +40,8 @@ final class AdminFinanceController extends Controller
         $heatmap = $this->getHeatmap($startDate, $endDate);
         $categories = $this->getCategories($startDate, $endDate);
         $csat = $this->getCSAT($startDate, $endDate);
+        $desgloseFinanciero = $this->getDesgloseFinanciero($startDate, $endDate);
+        $comprobantesRecientes = $this->getComprobantesRecientes();
 
         return response()->json([
             'success' => true,
@@ -60,7 +63,8 @@ final class AdminFinanceController extends Controller
                 'csat' => $csat,
                 'heatmap' => $heatmap,
                 'topBuyers' => $topBuyers,
-                'proximoPago' => $proxPago['value'],
+                'desgloseFinanciero' => $desgloseFinanciero,
+                'comprobantesRecientes' => $comprobantesRecientes,
             ],
         ]);
     }
@@ -419,13 +423,65 @@ final class AdminFinanceController extends Controller
             ->whereBetween('created_at', [$start, $end.' 23:59:59'])
             ->avg('satisfaction_rating');
 
-        $total = Ticket::whereNotNull('satisfaction_rating')
-            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
-            ->count();
+        $percentage = $avgRating > 0 ? round($avgRating / 5 * 100, 1) : 0;
 
         return [
-            'promedio' => $avgRating ? round($avgRating, 1) : 0,
-            'total' => $total,
+            'labels' => ['CSAT'],
+            'data' => [$percentage],
         ];
+    }
+
+    private function getDesgloseFinanciero(string $start, string $end): array
+    {
+        $totalConIgv = (float) Order::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
+            ->sum('total');
+
+        $totalIgv = round($totalConIgv * 0.18 / 1.18, 2);
+        $baseImponible = $totalConIgv - $totalIgv;
+
+        $avgCommissionRate = (float) DB::table('stores')->avg('commission_rate') / 100;
+        $totalCommission = round($baseImponible * $avgCommissionRate, 2);
+        $totalNeto = round($baseImponible - $totalCommission, 2);
+
+        $pendingPayments = SellerPayment::where('status', SellerPayment::STATUS_PENDING);
+        $completedPayments = SellerPayment::where('status', SellerPayment::STATUS_COMPLETED);
+
+        $totalPending = (float) $pendingPayments->sum('net_amount');
+        $pendingCount = $pendingPayments->count();
+        $totalCompleted = (float) $completedPayments->sum('net_amount');
+        $completedCount = $completedPayments->count();
+
+        return [
+            'totalConIgv' => $totalConIgv,
+            'totalIgv' => $totalIgv,
+            'totalCommission' => $totalCommission,
+            'totalNeto' => $totalNeto,
+            'totalPending' => $totalPending,
+            'totalCompleted' => $totalCompleted,
+            'pendingCount' => $pendingCount,
+            'completedCount' => $completedCount,
+        ];
+    }
+
+    private function getComprobantesRecientes(): array
+    {
+        $invoices = Invoice::orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return [];
+        }
+
+        return $invoices->map(fn (Invoice $inv) => [
+            'id' => (string) $inv->id,
+            'series' => $inv->series ?? '—',
+            'number' => $inv->number ?? $inv->invoice_number,
+            'type' => $inv->document_type ?? 'Factura',
+            'sunat_status' => strtoupper($inv->status),
+            'total' => (float) $inv->total,
+            'emission_date' => $inv->created_at->toDateString(),
+        ])->toArray();
     }
 }

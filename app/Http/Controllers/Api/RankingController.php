@@ -48,12 +48,11 @@ final class RankingController extends Controller
     {
         $limit = min((int) $request->query('limit', 20), 50);
 
-        // Una query con subquery para evitar N+1
-        $stores = Store::withCount('reviews as review_count')
-            ->withAvg('reviews as average_rating', 'rating')
-            ->having('review_count', '>=', 1)
-            ->orderByDesc('average_rating')
-            ->orderByDesc('review_count')
+        $stores = Store::withCount('storeReviews as store_review_count')
+            ->withAvg('storeReviews as store_rating_average', 'rating')
+            ->having('store_review_count', '>=', 1)
+            ->orderByDesc('store_rating_average')
+            ->orderByDesc('store_review_count')
             ->limit($limit)
             ->get();
 

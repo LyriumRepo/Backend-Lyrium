@@ -20,6 +20,7 @@ final class BlogArticle extends Model
         'meta_description',
         'keywords',
         'status',
+        'is_featured',
         'published_at',
         'views_count',
     ];
@@ -28,6 +29,7 @@ final class BlogArticle extends Model
     {
         return [
             'keywords' => 'array',
+            'is_featured' => 'boolean',
             'published_at' => 'datetime',
             'views_count' => 'integer',
         ];

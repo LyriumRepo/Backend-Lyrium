@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BlogArticleResource;
 use App\Http\Resources\BlogCategoryResource;
 use App\Http\Resources\BlogCommentResource;
 use App\Http\Resources\BlogPodcastResource;
-use App\Http\Resources\BlogPostResource;
+use App\Http\Resources\BlogShortResource;
 use App\Http\Resources\BlogVideoResource;
+use App\Models\BlogArticle;
 use App\Models\BlogCategory;
 use App\Models\BlogComment;
 use App\Models\BlogPodcast;
-use App\Models\BlogPost;
+use App\Models\BlogShort;
 use App\Models\BlogVideo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +24,7 @@ final class BlogController extends Controller
 {
     public function categories(): JsonResponse
     {
-        $categories = BlogCategory::withCount('posts')
+        $categories = BlogCategory::withCount('articles')
             ->orderBy('sort_order')
             ->get();
 
@@ -31,8 +33,8 @@ final class BlogController extends Controller
 
     public function posts(Request $request): JsonResponse
     {
-        $query = BlogPost::with(['category', 'comments'])
-            ->where('is_published', true);
+        $query = BlogArticle::with(['category', 'store'])
+            ->where('status', 'published');
 
         if ($categorySlug = $request->query('category')) {
             $query->whereHas('category', fn ($q) => $q->where('slug', $categorySlug));
@@ -41,7 +43,7 @@ final class BlogController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('excerpt', 'like', "%{$search}%");
+                    ->orWhere('summary', 'like', "%{$search}%");
             });
         }
 
@@ -50,7 +52,7 @@ final class BlogController extends Controller
             ->paginate($perPage);
 
         return $this->success([
-            'data' => BlogPostResource::collection($posts),
+            'data' => BlogArticleResource::collection($posts),
             'meta' => [
                 'current_page' => $posts->currentPage(),
                 'per_page' => $posts->perPage(),
@@ -64,55 +66,61 @@ final class BlogController extends Controller
     {
         $limit = min((int) $request->query('limit', 5), 20);
 
-        $posts = BlogPost::with(['category'])
-            ->where('is_published', true)
+        $posts = BlogArticle::with(['category', 'store'])
+            ->where('status', 'published')
             ->orderBy('published_at', 'desc')
             ->limit($limit)
             ->get();
 
-        return $this->success(BlogPostResource::collection($posts));
+        return $this->success(BlogArticleResource::collection($posts));
     }
 
     public function featured(Request $request): JsonResponse
     {
         $limit = min((int) $request->query('limit', 5), 20);
 
-        $posts = BlogPost::with(['category'])
-            ->where('is_published', true)
+        $posts = BlogArticle::with(['category', 'store'])
+            ->where('status', 'published')
             ->where('is_featured', true)
             ->orderBy('published_at', 'desc')
             ->limit($limit)
             ->get();
 
-        return $this->success(BlogPostResource::collection($posts));
+        return $this->success(BlogArticleResource::collection($posts));
     }
 
     public function show(string $slug): JsonResponse
     {
-        $post = BlogPost::with(['category', 'comments'])
+        $post = BlogArticle::with(['category', 'store'])
             ->where('slug', $slug)
-            ->where('is_published', true)
+            ->where('status', 'published')
             ->first();
 
         if (! $post) {
-            return $this->error('Post no encontrado', 404);
+            return $this->error('Artículo no encontrado', 404);
         }
 
-        return $this->success(new BlogPostResource($post));
+        return $this->success(new BlogArticleResource($post));
     }
 
     public function comments(Request $request): JsonResponse
     {
+        $articleId = $request->query('article_id');
         $postId = $request->query('post_id');
 
-        if (! $postId) {
-            return $this->error('post_id es requerido', 422);
+        $query = BlogComment::where('is_approved', true);
+
+        if ($articleId) {
+            $query->where('commentable_id', $articleId)
+                ->where('commentable_type', 'article');
+        } elseif ($postId) {
+            $query->where('commentable_id', $postId)
+                ->where('commentable_type', 'post');
+        } else {
+            return $this->error('article_id o post_id es requerido', 422);
         }
 
-        $comments = BlogComment::where('blog_post_id', $postId)
-            ->where('is_approved', true)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $comments = $query->orderBy('created_at', 'desc')->get();
 
         return $this->success(BlogCommentResource::collection($comments));
     }
@@ -120,14 +128,26 @@ final class BlogController extends Controller
     public function storeComment(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'post_id' => 'required|integer|exists:blog_posts,id',
+            'article_id' => 'nullable|integer|exists:blog_articles,id',
+            'post_id' => 'nullable|integer|exists:blog_posts,id',
             'author_name' => 'required|string|max:255',
             'author_email' => 'required|email|max:255',
             'content' => 'required|string|max:5000',
         ]);
 
+        if ($data['article_id'] ?? null) {
+            $commentableType = 'article';
+            $commentableId = $data['article_id'];
+        } elseif ($data['post_id'] ?? null) {
+            $commentableType = 'post';
+            $commentableId = $data['post_id'];
+        } else {
+            return $this->error('article_id o post_id es requerido', 422);
+        }
+
         $comment = BlogComment::create([
-            'blog_post_id' => $data['post_id'],
+            'commentable_id' => $commentableId,
+            'commentable_type' => $commentableType,
             'author_name' => $data['author_name'],
             'author_email' => $data['author_email'],
             'content' => $data['content'],
@@ -139,7 +159,7 @@ final class BlogController extends Controller
 
     public function podcasts(): JsonResponse
     {
-        $podcasts = BlogPodcast::where('is_published', true)
+        $podcasts = BlogPodcast::where('status', 'published')
             ->orderBy('published_at', 'desc')
             ->get();
 
@@ -148,10 +168,19 @@ final class BlogController extends Controller
 
     public function videos(): JsonResponse
     {
-        $videos = BlogVideo::where('is_published', true)
+        $videos = BlogVideo::where('status', 'published')
             ->orderBy('published_at', 'desc')
             ->get();
 
         return $this->success(BlogVideoResource::collection($videos));
+    }
+
+    public function shorts(): JsonResponse
+    {
+        $shorts = BlogShort::where('status', 'published')
+            ->orderBy('published_at', 'desc')
+            ->get();
+
+        return $this->success(BlogShortResource::collection($shorts));
     }
 }

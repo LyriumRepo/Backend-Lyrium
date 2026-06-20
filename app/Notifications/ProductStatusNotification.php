@@ -18,6 +18,7 @@ final class ProductStatusNotification extends Notification implements ShouldQueu
     public int $tries = 3;
     public int $backoff = 60;
 
+
     public function __construct(
         private readonly Product $product,
         private readonly string $newStatus,

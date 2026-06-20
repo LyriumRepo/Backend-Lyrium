@@ -26,6 +26,12 @@ final class Service extends Model implements HasMedia
 
     public const STATUS_DRAFT = 'draft';
 
+    public const STATUS_PENDING_REVIEW = 'pending_review';
+
+    public const STATUS_APPROVED = 'approved';
+
+    public const STATUS_REJECTED = 'rejected';
+
     public const CANCELLATION_NO_REFUND = 'no_refund';
 
     public const CANCELLATION_FLEXIBLE = 'flexible';
@@ -47,6 +53,9 @@ final class Service extends Model implements HasMedia
         'booking_advance_hours',
         'max_capacity',
         'status',
+        'rejection_reason',
+        'reviewed_at',
+        'reviewed_by',
         'cancellation_policy',
         'max_cancellations',
         'settings',

@@ -18,6 +18,7 @@ final class ServiceStatusNotification extends Notification implements ShouldQueu
     public int $tries = 3;
     public int $backoff = 60;
 
+
     public function __construct(
         private readonly Service $service,
         private readonly string $newStatus,

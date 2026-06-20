@@ -10,6 +10,8 @@ use App\Http\Requests\UpdateContractRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\ContractStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -123,6 +125,10 @@ final class ContractController extends Controller
             $user->name ?? 'Admin'
         );
 
+        User::role('administrator')->each(function (User $admin) use ($contract): void {
+            $admin->notify(new ContractStatusNotification($contract, 'created'));
+        });
+
         $contract->load(['auditTrails', 'store']);
 
         return response()->json(['data' => new ContractResource($contract)], 201);
@@ -221,6 +227,20 @@ final class ContractController extends Controller
             $actionMap[$data['status']] ?? "Estado cambiado de {$oldStatus} a {$data['status']}",
             $user->name ?? 'Admin'
         );
+
+        $action = match ($data['status']) {
+            'ACTIVE' => 'activated',
+            'EXPIRED' => 'expired',
+            default => 'updated',
+        };
+
+        if ($contract->store && $contract->store->owner) {
+            $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
+        }
+
+        User::role('administrator')->each(function (User $admin) use ($contract, $action): void {
+            $admin->notify(new ContractStatusNotification($contract, $action));
+        });
 
         $contract->load(['auditTrails', 'store']);
 
@@ -370,6 +390,18 @@ final class ContractController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $contract = Contract::where('contract_number', $id)->firstOrFail();
+        $user = request()->user();
+
+        $contract->addAuditEntry(
+            'Contrato Eliminado',
+            $user->name ?? 'Admin'
+        );
+
+        User::role('administrator')->each(function (User $admin) use ($contract): void {
+            $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+        });
+
+
         $contract->delete();
 
         return response()->json(['success' => true]);
@@ -464,5 +496,88 @@ final class ContractController extends Controller
         );
 
         return response()->json(['data' => new ContractResource($contract->fresh()->load('auditTrails'))]);
+    }
+
+    /**
+     * POST /api/contracts/{id}/renew
+     * Renueva un contrato creando una nueva versión (V+1).
+     * Accesible por admin y por el dueño de la tienda.
+     */
+    public function renew(Request $request, string $id): JsonResponse
+    {
+        $contract = Contract::findOrFail($id);
+        $user = $request->user();
+
+        // Seller must own the contract's store
+        if ($user->hasRole('seller')) {
+            $store = Store::where('owner_id', $user->id)->first();
+            if (! $store || $contract->store_id !== $store->id) {
+                return response()->json(['error' => 'No tienes permiso para renovar este contrato.'], 403);
+            }
+        }
+
+        $parentId = $contract->parent_contract_id ?? $contract->id;
+        $newVersion = $contract->version + 1;
+
+        $year = now()->year;
+        $lastContract = Contract::where('contract_number', 'like', "CTR-{$year}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastContract) {
+            $parts = explode('-', $lastContract->contract_number);
+            $nextNumber = ((int) end($parts)) + 1;
+        }
+
+        $contractNumber = sprintf('CTR-%d-%03d', $year, $nextNumber);
+
+        $duration = $contract->start_date && $contract->end_date
+            ? $contract->start_date->diffInDays($contract->end_date)
+            : 365;
+
+        $renewed = Contract::create([
+            'parent_contract_id' => $parentId,
+            'contract_number' => $contractNumber,
+            'store_id' => $contract->store_id,
+            'company' => $contract->company,
+            'ruc' => $contract->ruc,
+            'representative' => $contract->representative,
+            'dni' => $contract->dni,
+            'direccion' => $contract->direccion,
+            'admin_name' => $contract->admin_name,
+            'admin_phone' => $contract->admin_phone,
+            'admin_email' => $contract->admin_email,
+            'type' => $contract->type,
+            'modality' => $contract->modality,
+            'plan' => $contract->plan,
+            'status' => 'ACTIVE',
+            'version' => $newVersion,
+            'start_date' => now(),
+            'end_date' => now()->addDays($duration),
+            'notes' => $contract->notes,
+        ]);
+
+        $renewed->addAuditEntry(
+            "Contrato Renovado a V{$newVersion} (desde V{$contract->version})",
+            $user->name ?? 'Admin'
+        );
+
+        $contract->addAuditEntry(
+            "Renovado a contrato #{$renewed->contract_number} (V{$newVersion})",
+            $user->name ?? 'Admin'
+        );
+
+        $renewed->load(['auditTrails', 'store']);
+
+        if ($renewed->store && $renewed->store->owner) {
+            $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+        }
+
+        User::role('administrator')->each(function (User $admin) use ($renewed): void {
+            $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+        });
+
+        return response()->json(['data' => new ContractResource($renewed)], 201);
     }
 }

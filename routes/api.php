@@ -38,6 +38,8 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileRequestController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\ReviewModerationController;
+use App\Http\Controllers\Api\SellerApplicationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\StoreController;
@@ -78,6 +80,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/verify-otp-reset', [AuthController::class, 'verifyOtpReset']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register-seller-fallback', [AuthController::class, 'registerSellerFallback']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -85,6 +88,10 @@ Route::prefix('auth')->group(function () {
         Route::post('/refresh', [AuthController::class, 'refreshToken']);
     });
 });
+
+// Endpoint interno usado por el servicio RPA para disparar el OTP
+Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -172,6 +179,7 @@ Route::get('/blog/comments', [BlogController::class, 'comments']);
 Route::post('/blog/comments', [BlogController::class, 'storeComment']);
 Route::get('/blog/podcasts', [BlogController::class, 'podcasts']);
 Route::get('/blog/videos', [BlogController::class, 'videos']);
+Route::get('/blog/shorts', [BlogController::class, 'shorts']);
 
 /*
 |--------------------------------------------------------------------------
@@ -294,14 +302,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stores/me/profile-request', [ProfileRequestController::class, 'me']);
     Route::post('/stores/me/profile-request', [ProfileRequestController::class, 'store']);
 
-    // Contratos - Vendedor (ver, descargar y subir firmado)
+    // Contratos - Vendedor (ver, descargar, subir firmado y renovar)
     Route::get('/contracts/me', [ContractController::class, 'myContract']);
     Route::get('/contracts/me/download', [ContractController::class, 'downloadMyContract']);
     Route::post('/contracts/me/upload-signed', [ContractController::class, 'uploadSigned']);
+    Route::post('/contracts/{id}/renew', [ContractController::class, 'renew']);
 
     // Plan Requests - Seller
     Route::post('/plans/requests', [PlanRequestController::class, 'store']);
     Route::get('/stores/me/plan-request', [PlanRequestController::class, 'me']);
+    Route::post('/plans/izipay/init', [PlanRequestController::class, 'createIzipaySession']);
 
     // Tickets — Mesa de Ayuda (customer, seller, cualquier usuario autenticado)
     Route::prefix('tickets')->group(function () {
@@ -492,6 +502,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{storeId}/store-status', [AdminSellerController::class, 'updateStoreStatus']);
         });
 
+        Route::prefix('admin/seller-applications')->group(function () {
+            Route::get('/', [SellerApplicationController::class, 'index']);
+            Route::get('/{id}', [SellerApplicationController::class, 'show']);
+            Route::put('/{id}/estado', [SellerApplicationController::class, 'updateEstado']);
+        });
+
 
         // Stores management
         Route::get('/stores', [StoreController::class, 'index']);
@@ -508,6 +524,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/products/{id}/status', [ProductController::class, 'updateStatus']);
 
         // Services: aprobar/rechazar
+        Route::get('/admin/services', [ServiceController::class, 'adminIndex']);
         Route::put('/services/{id}/status', [ServiceController::class, 'updateStatus']);
 
         // Products: Admin - obtener todos los productos incluyendo pendientes
@@ -765,21 +782,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'update']);
             Route::delete('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'destroy']);
 
-            Route::get('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'index']);
             Route::get('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'show']);
             Route::post('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'store']);
             Route::put('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'update']);
             Route::delete('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'destroy']);
 
-            Route::get('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'index']);
             Route::get('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'show']);
             Route::post('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'store']);
             Route::put('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'update']);
             Route::delete('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'destroy']);
 
-            Route::get('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'index']);
-            Route::get('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'show']);
             Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
+            Route::get('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'show']);
             Route::put('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'update']);
             Route::delete('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'destroy']);
 
