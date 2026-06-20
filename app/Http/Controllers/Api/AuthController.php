@@ -79,27 +79,37 @@ final class AuthController extends Controller
     {
         $data = $request->validated();
 
-        $username = Str::slug($data['storeName'], '_');
-        $baseUsername = $username;
-        $counter = 1;
-        while (User::where('username', $username)->exists()) {
-            $username = $baseUsername.'_'.$counter++;
-        }
+        return DB::transaction(function () use ($data): JsonResponse {
+            $username = Str::slug($data['storeName'], '_');
+            $baseUsername = $username;
+            $counter = 1;
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername.'_'.$counter++;
+            }
 
-        $user = User::create([
-            'name' => $data['storeName'],
-            'username' => $username,
-            'email' => $data['email'],
-            'nicename' => Str::slug($data['storeName']),
-            'phone' => $data['phone'],
-            'document_type' => 'RUC',
-            'document_number' => $data['ruc'],
-            'password' => $data['password'],
-        ]);
+            $user = User::create([
+                'name' => $data['storeName'],
+                'username' => $username,
+                'email' => $data['email'],
+                'nicename' => Str::slug($data['storeName']),
+                'phone' => $data['phone'],
+                'document_type' => 'RUC',
+                'document_number' => $data['ruc'],
+                'password' => $data['password'],
+            ]);
 
-        $user->assignRole('seller');
+            $user->assignRole('seller');
 
-        $this->otpService->generate($user);
+            $store = Store::create([
+                'owner_id' => $user->id,
+                'ruc' => $data['ruc'],
+                'trade_name' => $data['storeName'],
+                'corporate_email' => $data['email'],
+                'slug' => Str::slug($data['storeName']),
+                'status' => 'pending',
+            ]);
+
+            $this->otpService->generate($user);
 
             $store->load('owner');
             $admins = User::role('administrator')->get();

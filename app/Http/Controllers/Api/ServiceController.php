@@ -732,41 +732,4 @@ final class ServiceController extends Controller
         }
     }
 
-    /**
-     * PUT /api/services/{id}/status  (admin only)
-     */
-    public function updateStatus(Request $request, string $id): JsonResponse
-    {
-        $service = Service::with('store.owner')->findOrFail($id);
-
-        $validated = $request->validate([
-            'status' => 'required|string|in:approved,rejected,pending_review',
-            'reason' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validated['status'] === 'rejected' && empty($validated['reason'])) {
-            return response()->json([
-                'message' => 'El motivo de rechazo es obligatorio.',
-                'errors'  => ['reason' => ['Debes indicar el motivo del rechazo.']],
-            ], 422);
-        }
-
-        $service->update([
-            'status'           => $validated['status'],
-            'rejection_reason' => $validated['status'] === 'rejected' ? $validated['reason'] : null,
-        ]);
-
-        if (in_array($validated['status'], ['approved', 'rejected'])) {
-            $owner = $service->store?->owner;
-            if ($owner) {
-                $owner->notify(new ServiceStatusNotification(
-                    service: $service,
-                    newStatus: $validated['status'],
-                    reason: $validated['reason'] ?? null,
-                ));
-            }
-        }
-
-        return response()->json(new ServiceResource($service));
-    }
 }
