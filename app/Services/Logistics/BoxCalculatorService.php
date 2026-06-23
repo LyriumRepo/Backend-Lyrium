@@ -22,20 +22,20 @@ class BoxCalculatorService
         ['FRESCO',  'CALZADO'],
     ];
 
-    private const EFICIENCIA = [
-        'TEXTIL'      => 0.85,
-        'CALZADO'     => 0.70,
-        'ALIMENTO'    => 0.65,
+        private const EFICIENCIA = [
+        'TEXTIL'      => 0.85,  // bolsa plástica, comprimible
+        'CALZADO'     => 0.70,  // caja propia + tissue + silica
+        'ALIMENTO'    => 0.65,  // chips o papel kraft alrededor
         'GENERAL'     => 0.65,
         'MASCOTA'     => 0.65,
-        'FRESCO'      => 0.60,
-        'MEDICO'      => 0.55,
-        'REFRIGERADO' => 0.50,
-        'QUIMICO'     => 0.50,
-        'BEBIDA'      => 0.45,
+        'FRESCO'      => 0.60,  // clamshell + ventilación, sin compresión
+        'MEDICO'      => 0.55,  // burbuja 2 vueltas + chips
+        'REFRIGERADO' => 0.50,  // burbuja + gel pack
+        'QUIMICO'     => 0.50,  // burbuja + Ziploc + almohadilla absorbente
+        'BEBIDA'      => 0.45,  // colmena de cartón por botella + burbuja
     ];
 
-    private const PESO_MAT = [
+        private const PESO_MAT = [
         'TEXTIL'      => 0.03,
         'CALZADO'     => 0.05,
         'ALIMENTO'    => 0.07,
@@ -43,9 +43,9 @@ class BoxCalculatorService
         'MASCOTA'     => 0.07,
         'FRESCO'      => 0.05,
         'MEDICO'      => 0.10,
-        'REFRIGERADO' => 0.20,
+        'REFRIGERADO' => 0.20,  // incluye gel pack
         'QUIMICO'     => 0.15,
-        'BEBIDA'      => 0.12,
+        'BEBIDA'      => 0.12,  // colmena cartón + burbuja
     ];
 
     private array $cajas;
@@ -82,10 +82,52 @@ class BoxCalculatorService
 
         $prods = array_map([$this, 'normalizarProducto'], $productos);
 
+        $productIds = array_values(array_filter(array_column($prods, 'product_id')));
+        $catsPorProducto = [];
+
+        if (!empty($productIds)) {
+            $rows = DB::table('category_product as cp')
+                ->join('categories as c', 'cp.category_id', '=', 'c.id')
+                ->leftJoin('categories as p', 'c.parent_id', '=', 'p.id')
+                ->whereIn('cp.product_id', $productIds)
+                ->select('cp.product_id', 'c.name as cat', 'p.name as parent')
+                ->get();
+
+            foreach ($rows as $row) {
+                if (!isset($catsPorProducto[$row->product_id])) {
+                    $catsPorProducto[$row->product_id] = [
+                        'cat'    => $row->cat,
+                        'parent' => $row->parent ?? null,
+                    ];
+                }
+            }
+        }
+
+        $descsPorProducto = [];
+        if (!empty($productIds)) {
+            $descsPorProducto = DB::table('products')
+                ->whereIn('id', $productIds)
+                ->pluck('description', 'id')
+                ->toArray();
+        }
+
         foreach ($prods as &$p) {
-            $p['grupo']      = $this->clasificarGrupo($p['nombre']);
+            $pid = $p['product_id'] ?? 0;
+
+            $catInfo         = $catsPorProducto[$pid] ?? null;
+            $p['grupo']      = $this->clasificarGrupo(
+                $p['nombre'],
+                $catInfo['cat']    ?? null,
+                $catInfo['parent'] ?? null
+            );
             $p['factor_emp'] = self::EFICIENCIA[$p['grupo']] ?? 0.65;
             $p['peso_mat']   = self::PESO_MAT[$p['grupo']]   ?? 0.07;
+
+            $rawDesc = $descsPorProducto[$pid] ?? '';
+            if (!empty($rawDesc)) {
+                $material = $this->detectarMaterial((string) $rawDesc);
+                $this->aplicarAjusteMaterial($p, $material);
+            }
         }
         unset($p);
 
@@ -107,165 +149,331 @@ class BoxCalculatorService
     private function normalizarProducto(array $p): array
     {
         return [
-            'nombre'   => (string) ($p['nombre']   ?? 'Producto'),
-            'cantidad' => max(1,     (int)   ($p['cantidad'] ?? 1)),
-            'peso'     => max(0.001, min(50,  (float) ($p['peso']  ?? 0.5))),
-            'precio'   => (float) ($p['precio']   ?? 0),
-            'largo'    => max(0.5,   min(200, (float) ($p['largo'] ?? 30))),
-            'ancho'    => max(0.5,   min(200, (float) ($p['ancho'] ?? 20))),
-            'alto'     => max(0.5,   min(200, (float) ($p['alto']  ?? 15))),
+            'nombre'     => (string) ($p['nombre']     ?? 'Producto'),
+            'cantidad'   => max(1,     (int)   ($p['cantidad']   ?? 1)),
+            'peso'       => max(0.001, min(50,  (float) ($p['peso']    ?? 0.5))),
+            'precio'     => (float) ($p['precio']     ?? 0),
+            'largo'      => max(0.5,   min(200, (float) ($p['largo']   ?? 30))),
+            'ancho'      => max(0.5,   min(200, (float) ($p['ancho']   ?? 20))),
+            'alto'       => max(0.5,   min(200, (float) ($p['alto']    ?? 15))),
+            'product_id' => isset($p['product_id']) ? (int) $p['product_id'] : null,
         ];
     }
 
 
-    private function clasificarGrupo(string $nombre): string
+        private function clasificarGrupo(string $nombre, ?string $catBD = null, ?string $parentBD = null): string
+    {
+        if ($catBD !== null) {
+            $grupo = $this->mapearCategoriaBD($catBD, $parentBD);
+            if ($grupo !== 'GENERAL') return $grupo;
+        }
+
+        return $this->clasificarPorNombre($nombre);
+    }
+
+        private function mapearCategoriaBD(string $cat, ?string $parent = null): string
+    {
+        $c    = $this->norm($cat);
+        $p    = $parent ? $this->norm($parent) : '';
+        $full = trim("$p $c");   // contexto completo para búsquedas
+
+        if (preg_match(
+            '/limpieza|desinfect|quimico|lejia|cloro\b|detergente|insecticida|' .
+            'blanqueador|proteccion.*limpieza|limpieza.*bano|limpieza.*cocina|' .
+            'limpieza.*hogar|limpieza.*ropa|accesorios de limpieza|' .
+            'equipo de proteccion/',
+            $full)) return 'QUIMICO';
+
+        if (preg_match(
+            '/\bbebidas?\b|aguas\b|gaseosas|cervezas|jugos\b|licores|' .
+            'vinos\b|rehidratantes|kombucha|otras bebidas/',
+            $full)) return 'BEBIDA';
+
+        if (preg_match('/\bfrutas?\b/', $full)) return 'FRESCO';
+        if (preg_match(
+            '/fresas|arandanos|aguaymantos|moras\b|frambuesas|sauco|cerezas|berries|' .
+            'granadillas|maracuyas|granadas|pitahayas|tunas\b|guanabanas|chirimoyas|' .
+            'guayabas|lucumas|manzanas|peras\b|membrillos|melocotones|duraznos|mangos|' .
+            'naranjas|mandarinas|paltas|papayas|pinas\b|pepinos|platanos|uvas\b|' .
+            'sandias|melones|tamarindos|carambolas|ciruelas|cocos\b|jugos naturales/',
+            $full)) return 'FRESCO';
+
+        if (preg_match('/\bverduras?\b/', $full)) return 'FRESCO';
+        if (preg_match(
+            '/berenjenas|beterragas|brocolis|coliflores|alcachofas|caiguas|' .
+            'cebollas.*ajos|ajos\b|rocotos|ajies|curcumas|kiones|choclo|coles\b|' .
+            'esparragos|hongos.*setas|lechugas.*espinacas|espinacas|acelgas|' .
+            'albahacas|culantros|apios|poros\b|perejiles|papas.*camotes|' .
+            'tomates.*pepinos|vainitas.*arvejas|zanahorias|zapallos/',
+            $full)) return 'FRESCO';
+
+        if (preg_match(
+            '/lacteos.*frescos|lacteos\b|embutidos|fiambres|' .
+            'chorizos|hotdogs|salames|salchichones|salchichas|mortadela|cecina/',
+            $full)) return 'REFRIGERADO';
+        if (preg_match('/^(huevos|leches|mantequillas|quesos|yogures|yogurt|jamones|kefir)$/', $c))
+            return 'REFRIGERADO';
+
+        if (preg_match(
+            '/suplementos vitaminicos|suplemento vitaminico|' .
+            'bienestar emocional|medicina natural|' .
+            'equipos.*medicos|dispositivos.*medicos/',
+            $full)) return 'MEDICO';
+        if (preg_match(
+            '/cardiologia|radiologia|dermatologia|endocrinologia|enfermeria|' .
+            'gastroenterologia|geriatria|ginecologia|laboratorio clinico|' .
+            'neurologia|nutriologia|odontologia|oftalmologia|oncologia|' .
+            'pediatria|psicologia|psiquiatria|reumatologia|neumologia|' .
+            'medicina fisica|rehabilitacion/',
+            $full)) return 'MEDICO';
+        if (preg_match(
+            '/sistema circulatorio|sistema digestivo|sistema excretor|' .
+            'sistema inmunologico|sistema linfatico|sistema muscular|' .
+            'sistema nervioso|sistema oseo|sistema reproductivo|' .
+            'sistema respiratorio|gusto\b|oido\b|olfato\b|vista\b|tacto\b/',
+            $full)) return 'MEDICO';
+        if (preg_match('/suplementos nutricionales/', $c))
+            return 'MEDICO';
+
+        if (preg_match('/calzado/', $p) || preg_match('/\bcalzado\b/', $c))
+            return 'CALZADO';
+
+        if (preg_match('/\bropa\b/', $p) || preg_match('/\bropa\b/', $c))
+            return 'TEXTIL';
+        if (preg_match(
+            '/^(bras|buzos|camisetas de futbol|casacas y poleras|faldas|' .
+            'licras|pantalones|polos|shorts|vestidos|' .
+            'bebe mujercita|bebe varoncito|infante mujercita|infante varoncito)$/',
+            $c)) return 'TEXTIL';
+
+        if (preg_match(
+            '/mascotas?|animales de granja|cobayas|conejos|hamsters|pajaros|' .
+            'peces\b|perros|gatos|tortugas|ranas.*sapos/',
+            $full)) return 'MASCOTA';
+
+        if (preg_match(
+            '/\babarrotes?\b|dulces.*snacks|panaderia|pasteleria|' .
+            'infusiones|cacaos|cafes\b|cocoas|endulzantes|mermeladas|' .
+            'kekes.*bizcochos|panes\b|panetones|pasteles|reposteria|' .
+            'snacks|galletas|caramelos|chocolates|frutos secos|' .
+            'conservas|aceites\b|harinas|fideos|pastas\b|cereales.*avenas|' .
+            'sales.*condimentos/',
+            $full)) return 'ALIMENTO';
+        if (preg_match('/^desayunos?$/', $p)) return 'ALIMENTO';
+
+        return 'GENERAL';
+    }
+
+        private function clasificarPorNombre(string $nombre): string
     {
         $n = $this->norm($nombre);
 
         if (preg_match(
             '/lejia|hipoclorito|insecticida|raticida|veneno\b|' .
-                'desengrasante|limpiavidrios|amoniaco|blanqueador|clorox|' .
-                'quitamanchas|quitagrasa|desincrustante|' .
-                'detergente\b|suavizante\b|desinfectante\b|' .
-                'limpiador\b|limpiapiso|limpiahogar|limpieza de\b/',
-            $n
-        )) return 'QUIMICO';
+            'desengrasante|limpiavidrios|amoniaco|blanqueador|clorox|' .
+            'quitamanchas|quitagrasa|desincrustante|' .
+            'detergente\b|suavizante\b|desinfectante\b|' .
+            'limpiador\b|limpiapiso|limpiahogar|limpieza de\b/',
+            $n)) return 'QUIMICO';
 
         if (preg_match(
             '/\bagua\b|agua mineral|agua alcalin|agua de mesa|' .
-                'bebida\b|rehidratante|energizante|electrolit|' .
-                'gaseosa\b|cerveza\b|\bvino\b|pisco\b|\blicor\b|\bron\b|whisky|' .
-                'aguardiente|vodka\b|cachina|macerado|' .
-                '\bjugo\b|\bzumo\b|refresco\b|\bnectar\b|chicha\b|' .
-                'kombucha|kefir de agua|bebida fermentada|' .
-                'shot\b|tonica\b|isotonica|limonada\b|naranjada\b|' .
-                'smoothie|batido\b/',
-            $n
-        )) return 'BEBIDA';
+            'bebida\b|rehidratante|energizante|electrolit|' .
+            'gaseosa\b|cerveza\b|\bvino\b|pisco\b|\blicor\b|\bron\b|whisky|' .
+            'aguardiente|vodka\b|\bjugo\b|\bzumo\b|refresco\b|\bnectar\b|' .
+            'chicha\b|kombucha|kefir de agua|shot\b|tonica\b|' .
+            'limonada\b|naranjada\b|smoothie|batido\b/',
+            $n)) return 'BEBIDA';
 
         if (preg_match(
             '/\bfresa|\barandano|\baguaymanto|\bmora\b|\bframbuesa|\bsauco|\bcereza|' .
-                '\bberry\b|berries|\bgranadilla|\bmaracuya|\bgranada\b|\bpitahaya|\btuna\b|' .
-                '\bguanabana|\bchirimoya|\bguayaba|\bpacae|\balgarrobo|\blucuma|' .
-                '\bmanzana|\bpera\b|\bmembrillo|\bmelocoton|\bdurazno|\bmango|\babridor\b|' .
-                '\bnaranja|\bmandarina|\blima\b|\blimon|\btoronja|' .
-                '\bpalta|\bpapaya|\bpina\b|' .
-                '\bplatano|\buva\b|\bsandia|\bmelon\b|\btamarindo|\bcarambola|\bciruela|' .
-                '\bcoco fresco|\bfrutas frescas|\bfruta fresca|\bfruta organica/',
-            $n
-        )) return 'FRESCO';
+            '\bberry\b|berries|\bgranadilla|\bmaracuya|\bgranada\b|\bpitahaya|\btuna\b|' .
+            '\bguanabana|\bchirimoya|\bguayaba|\blucuma|' .
+            '\bmanzana|\bpera\b|\bmembrillo|\bmelocoton|\bdurazno|\bmango|' .
+            '\bnaranja|\bmandarina|\blima\b|\blimon|\btoronja|' .
+            '\bpalta|\bpapaya|\bpina\b|' .
+            '\bplatano|\buva\b|\bsandia|\bmelon\b|\btamarindo|\bcarambola|\bciruela|' .
+            '\bcoco fresco|\bfrutas frescas|\bfruta fresca|\bfruta organica/',
+            $n)) return 'FRESCO';
 
         if (preg_match(
             '/\bberenjena|\bbeterraga|\bbrocoli|\bcoliflor|\balcachofa|\bcaigua|' .
-                '\bcebolla|\bajo\b|\brocoto|\baji\b|\bcurcuma|\bkion\b|\bjengibre\b|' .
-                '\bchoclo|\bmaiz tierno|\bmaiz morado|' .
-                '\bcol\b|\besparrago|\bespinaca|\bacelga|\balbahaca|\bculantro\b|\bapio\b|' .
-                '\bporo\b|\bperejil|\bhongo|\bseta\b|\blechuga|' .
-                '\bverdura|\bpapa\b|\bcamote|\byuca\b|\btomate|\bpimiento|' .
-                '\bvainita|\barveja|\bfrejolito|\bolluquito|\bzanahoria|\bzapallo|' .
-                '\bgerminado|\bbrote\b|\bmicroverdes|\bhierbas frescas/',
-            $n
-        )) return 'FRESCO';
+            '\bcebolla|\bajo\b|\brocoto|\baji\b|\bcurcuma|\bkion\b|\bjengibre\b|' .
+            '\bchoclo|\bmaiz tierno|\bmaiz morado|' .
+            '\bcol\b|\besparrago|\bespinaca|\bacelga|\balbahaca|\bculantro\b|\bapio\b|' .
+            '\bporo\b|\bperejil|\bhongo|\bseta\b|\blechuga|' .
+            '\bverdura|\bpapa\b|\bcamote|\byuca\b|\btomate|\bpimiento|' .
+            '\bvainita|\barveja|\bfrejolito|\bolluquito|\bzanahoria|\bzapallo|' .
+            '\bgerminado|\bbrote\b|\bmicroverdes|\bhierbas frescas/',
+            $n)) return 'FRESCO';
 
         if (preg_match(
             '/\bleche\b|leche fresca|leche entera|leche descremada|' .
-                'yogur\b|yogurt\b|\bqueso\b|mantequilla\b|crema de leche|' .
-                'kefir\b|crema agria|queso fresco|queso crema|' .
-                'embutido|chorizo\b|hotdog\b|\bjamon\b|salame\b|salchichon|salchicha\b|' .
-                'cecina\b|mortadela|\bhuevo/',
-            $n
-        )) return 'REFRIGERADO';
+            'yogur\b|yogurt\b|\bqueso\b|mantequilla\b|crema de leche|' .
+            'kefir\b|crema agria|' .
+            'embutido|chorizo\b|hotdog\b|\bjamon\b|salame\b|salchichon|salchicha\b|' .
+            'cecina\b|mortadela|\bhuevo/',
+            $n)) return 'REFRIGERADO';
 
         if (preg_match(
             '/vitamina\b|suplemento|proteina\b|\bwhey\b|capsula\b|tableta\b|' .
-                'pastilla\b|medicamento|farmaco|' .
-                'termometro|glucosimetro|tensimetro|tensiómetro|esfigmo|' .
-                'nebulizador|estetoscopio|otoscopio|oximetro|pulsioximetro|' .
-                'colageno|omega.?3|omega.?6|omega.?9|probiotico|prebiotico|' .
-                'magnesio\b|zinc\b|\bhierro\b|calcio\b|biotina\b|melatonina|' .
-                'curcumina|resveratrol|coenzima|glutationa|' .
-                'aceite esencial|tintura madre|esencia floral|' .
-                'homeopatia|fitoterapia|fitomedicin|extracto de|' .
-                'espirulina|clorela|chlorella|moringa\b|ashwagandha|maca andina|' .
-                'sistema inmun|sistema nervios|sistema muscular|sistema oseo|' .
-                'sistema digest|sistema circulat|sistema respirat|' .
-                'bienestar emocional|medicina natural/',
-            $n
-        )) return 'MEDICO';
+            'pastilla\b|medicamento|farmaco|' .
+            'termometro|glucosimetro|tensimetro|tensiómetro|' .
+            'nebulizador|estetoscopio|oximetro|pulsioximetro|' .
+            'colageno|omega.?3|omega.?6|omega.?9|probiotico|prebiotico|' .
+            'magnesio\b|zinc\b|\bhierro\b|calcio\b|biotina\b|melatonina|' .
+            'curcumina|resveratrol|coenzima|glutationa|' .
+            'aceite esencial|tintura madre|esencia floral|homeopatia|' .
+            'fitoterapia|fitomedicin|extracto de|' .
+            'espirulina|clorela|chlorella|moringa\b|ashwagandha|maca andina|' .
+            'sistema inmun|sistema nervios|sistema muscular|sistema oseo|' .
+            'sistema digest|sistema circulat|sistema respirat|' .
+            'bienestar emocional|medicina natural/',
+            $n)) return 'MEDICO';
 
         if (preg_match(
             '/zapato|zapatilla|bota\b|botas\b|sandalia|chinela|mocasin|' .
-                'calzado\b|\btenis\b|sneaker|stiletto|ballerina|chimpun|hiking\b|' .
-                'trekking.*calzado|calzado.*trekking/',
-            $n
-        )) return 'CALZADO';
+            'calzado\b|\btenis\b|sneaker|stiletto|ballerina|chimpun|hiking\b/',
+            $n)) return 'CALZADO';
 
         if (preg_match(
             '/\bropa\b|camiseta\b|\bpolo\b|pantalon\b|\bshort\b|\bbuzo\b|' .
-                'pijama\b|boxer\b|calzon\b|calcetin\b|\bmedias\b|' .
-                'bufanda|gorro\b|\bguante\b|chalina|pashmina|panuelo\b|' .
-                'camisa\b|\bblusa\b|vestido\b|\bfalda\b|\bterno\b|' .
-                'chompa|casaca\b|polera\b|\bbra\b|licra\b|' .
-                'camiseta de futbol|uniforme\b|sudadera|jersey\b|' .
-                'chaleco\b|anorak|impermeable\b|cortaviento|' .
-                'ropa.*bebe|ropa.*deportiv|ropa.*interior/',
-            $n
-        )) return 'TEXTIL';
+            'pijama\b|boxer\b|calzon\b|calcetin\b|\bmedias\b|' .
+            'bufanda|gorro\b|\bguante\b|chalina|pashmina|panuelo\b|' .
+            'camisa\b|\bblusa\b|vestido\b|\bfalda\b|\bterno\b|' .
+            'chompa|casaca\b|polera\b|\bbra\b|licra\b|' .
+            'uniforme\b|sudadera|jersey\b|chaleco\b/',
+            $n)) return 'TEXTIL';
 
         if (preg_match(
             '/mascota\b|perro\b|gato\b|felino|canino|' .
-                '\bave\b|pajaro|canario|loro\b|periquito|' .
-                'peces\b|\bpez\b|acuario|conejo\b|hamster|cobaya|' .
-                'tortuga\b|rana\b|reptil|terrario|' .
-                'croqueta\b|pienso\b|pellet\b|' .
-                'alimento.*para\b.*(perro|gato|ave|pez|conejo|hamster)|' .
-                'comida.*para\b.*(perro|gato)|premio.*perro|snack.*gato|' .
-                'arena.*gato|arena sanitaria|' .
-                'collar\b.*(perro|gato|mascota)|correa\b.*(perro|mascota)|' .
-                'antipulgas|desparasitante|antiparasit|pipeta.*perro|' .
-                'comedero.*mascota|bebedero.*mascota|cama.*mascota|' .
-                'juguete.*perro|juguete.*gato/',
-            $n
-        )) return 'MASCOTA';
+            '\bave\b|pajaro|canario|loro\b|periquito|' .
+            'peces\b|\bpez\b|acuario|conejo\b|hamster|cobaya|' .
+            'tortuga\b|\brana\b|reptil|terrario|' .
+            'croqueta\b|pienso\b|pellet\b|' .
+            'alimento.*para\b.*(perro|gato|ave|pez|conejo|hamster)|' .
+            'comida.*para\b.*(perro|gato)|arena.*gato|arena sanitaria|' .
+            'antipulgas|desparasitante|antiparasit|' .
+            'comedero.*mascota|bebedero.*mascota|cama.*mascota/',
+            $n)) return 'MASCOTA';
 
         if (preg_match(
-            '/\barroz\b|azucar\b|\baceite\b|harina\b|fideos\b|\bpasta\b|' .
-                'cereal\b|granola\b|quinua|quinoa|kiwicha|avena\b|\bmaca\b|' .
-                'cafe\b|cafeto|infusion\b|manzanilla\b|hierba.*luisa|' .
-                '\bte\b|te verde|te negro|te blanco|te herbal|matcha\b|' .
-                'chocolate\b|cacao\b|cocoa\b|' .
-                'galleta\b|\bsnack\b|lenteja\b|garbanzo|frijol\b|' .
-                'menestra|atun\b|conserva\b|mermelada|miel\b|\bsal\b|' .
-                'condimento|especia\b|soja\b|tofu\b|tempeh\b|' .
-                'spirulina\b|moringa\b|coco rallado|' .
-                'muesli|tostada\b|\bpan\b|bizcocho|paneton|pastel\b|\btorta\b|' .
-                'reposteria|kekes|caramelo|fruto seco|' .
-                'mani\b|almendra\b|nuez\b|pecana\b|pepita\b|semilla\b|' .
-                'chia\b|linaza\b|ajonjoli\b|canela\b|oregano\b|' .
-                'achiote\b|comino\b|pimienta\b|cumin\b|' .
-                'vinagre\b|salsa\b|mayonesa|mostaza\b|ketchup\b|sillao\b|' .
-                'crema de mani|mantequilla de mani|mantequilla de almendra|' .
-                'algarrobina|lucuma en polvo|' .
-                'endulzante\b|stevia\b|eritritol|xilitol|azucar de coco|' .
-                'superfood|superalimento|aceitunas\b|aceituna\b|' .
-                'arroz integral|arroz rojo|arroz negro|' .
-                '\bhuevo\b.*codorniz|huevo de codorniz/',
-            $n
-        )) return 'ALIMENTO';
+            '/\barroz|\bazucar|\baceite\b|\bharina|\bfideos|\bpasta\b|' .
+            '\bcereal|\bgranola|\bquinua|\bquinoa|\bkiwicha|\bavena\b|\bmaca\b|' .
+            '\bcafe\b|\bcafeto|\binfusion|\bmanzanilla|\bhierba luisa|' .
+            '\bte\b|\bte verde|\bte negro|\bte blanco|\bte herbal|\bmatcha\b|' .
+            '\bchocolate|\bcacao\b|\bcocoa\b|' .
+            '\bgalleta|\bsnack|\blenteja|\bgarbanzo|\bfrijol\b|' .
+            '\bmenestra|\batun\b|\bconserva|\bmermelada|\bmiel\b|\bsal\b|' .
+            '\bcondimento|\bespecia\b|\bsoja\b|\btofu\b|\btempeh\b|' .
+            '\bspirulina\b|\bmoringa\b|\bcoco rallado|' .
+            '\bmuesli|\btostada|\bpan\b|\bbizcocho|\bpaneton|\bpastel\b|\btorta\b|' .
+            '\breposteria|\bkekes|\bcaramelo|\bfruto seco|' .
+            '\bmani\b|\balmendra|\bnuez\b|\bpecana|\bpepita\b|\bsemilla\b|' .
+            '\bchia\b|\blinaza\b|\bajonjoli\b|\bcanela\b|\boregano\b|' .
+            '\bachiote\b|\bcomino\b|\bpimienta\b|' .
+            '\bvinagre\b|\bsalsa\b|\bmayonesa|\bmostaza\b|\bketchup\b|\bsillao\b|' .
+            '\bcrema de mani|\bmantequilla de mani|\bmantequilla de almendra|' .
+            '\balgarrobina|\blucuma en polvo|' .
+            '\bendulzante\b|\bstevia\b|\beritritol|\bxilitol|\bazucar de coco|' .
+            '\baceitunas\b|\baceituna\b|' .
+            '\bsuperfood|\bsuperalimento|\barroz integral|\barroz rojo|\barroz negro/',
+            $n)) return 'ALIMENTO';
 
         return 'GENERAL';
+    }
+
+
+        private function detectarMaterial(string $descripcion): array
+    {
+        $d = $this->norm(strip_tags($descripcion));
+
+        return [
+            'vidrio' => (bool) preg_match(
+                '/vidrio|cristal|glass|' .
+                'frasco de vidrio|botella de vidrio|ampolla|vial|' .
+                'envase de vidrio|tarro de vidrio|' .
+                'pote de vidrio|copa de vidrio/',
+                $d
+            ),
+            'ceramica' => (bool) preg_match(
+                '/ceramica|ceramico|porcelana|barro|' .
+                'arcilla|terracota|loza|gres/',
+                $d
+            ),
+            'electronico' => (bool) preg_match(
+                '/electronico|electronica|digital|tablet|' .
+                'celular|smartphone|laptop|computadora|' .
+                'cargador|bateria|batería|pantalla|' .
+                'dispositivo|sensor|circuito|led|usb|' .
+                'bluetooth|wifi|inalambrico|recargable/',
+                $d
+            ),
+            'liquido' => (bool) preg_match(
+                '/liquido|líquido|en gel|gel|suero|' .
+                'serum|jarabe|tonico|tónico|' .
+                'ml|mililitros|litros?|' .
+                'spray|atomizador|dosificador|gotero/' ,
+                $d
+            ),
+            'fragil' => (bool) preg_match(
+                '/fragil|frágil|delicado|delicada|' .
+                'manejese con cuidado|handle with care|breakable|' .
+                'no golpear|no comprimir|mantener vertical|' .
+                'este lado arriba/',
+                $d
+            ),
+        ];
+    }
+
+        private function aplicarAjusteMaterial(array &$p, array $mat): void
+    {
+        if (!array_filter($mat)) return;
+
+        $factor = $p['factor_emp'];
+        $peso   = $p['peso_mat'];
+
+        if ($mat['vidrio']) {
+            $factor = min($factor, 0.45);
+            $peso   = max($peso,   0.15);
+        }
+
+        if ($mat['ceramica']) {
+            $factor = min($factor, 0.50);
+            $peso   = max($peso,   0.12);
+        }
+
+        if ($mat['electronico']) {
+            $factor = min($factor, 0.55);
+            $peso   = max($peso,   0.12);
+        }
+
+        if ($mat['liquido'] && !$mat['vidrio']) {
+            $factor = min($factor, 0.55);
+            $peso   = max($peso,   0.10);
+        }
+
+        if ($mat['fragil'] && $factor > 0.55) {
+            $factor = min($factor, 0.55);
+            $peso   = max($peso,   0.10);
+        }
+
+        $p['factor_emp'] = $factor;
+        $p['peso_mat']   = $peso;
     }
 
     private function norm(string $s): string
     {
         $s = mb_strtolower($s);
         $s = str_replace(
-            ['á', 'é', 'í', 'ó', 'ú', 'ü', 'ñ', 'Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'],
-            ['a', 'e', 'i', 'o', 'u', 'u', 'n', 'a', 'e', 'i', 'o', 'u', 'n'],
+            ['á','é','í','ó','ú','ü','ñ','Á','É','Í','Ó','Ú','Ñ'],
+            ['a','e','i','o','u','u','n','a','e','i','o','u','n'],
             $s
         );
         return preg_replace('/[^a-z0-9\s]/', ' ', $s);
     }
+
+
     private function segregarPorIncompatibilidades(array $productos): array
     {
         $grupos = [];
@@ -280,11 +488,7 @@ class BoxCalculatorService
                         break;
                     }
                 }
-                if ($compatible) {
-                    $grupo[] = $prod;
-                    $asignado = true;
-                    break;
-                }
+                if ($compatible) { $grupo[] = $prod; $asignado = true; break; }
             }
             unset($grupo);
             if (!$asignado) $grupos[] = [$prod];
@@ -301,6 +505,8 @@ class BoxCalculatorService
         }
         return false;
     }
+
+
     private function calcularCajasParaGrupo(array $grupo): array
     {
         $items = [];
@@ -325,14 +531,16 @@ class BoxCalculatorService
     /** @return array{0: array, 1: bool} [$cajas, $esFallback] */
     private function intentarCajaUnica(array $items): array
     {
-        $pesoTotal = $this->pesoEfectivo($items);
-        $volTotal  = $this->volEfectivo($items);
+        $pesoTotal     = $this->pesoEfectivo($items);
+        $volTotal      = $this->volEfectivo($items);
+        $itemMasGrande = $this->itemConMayorDimension($items);
 
         foreach ($this->cajas as $caja) {
             $volCaja = $caja['largo'] * $caja['ancho'] * $caja['alto'];
-            if ($pesoTotal <= (float) $caja['peso_max_kg'] && $volTotal <= $volCaja) {
-                return [[$this->buildCajaResult($caja, $pesoTotal)], false];
-            }
+            if ($pesoTotal > (float) $caja['peso_max_kg']) continue;
+            if ($volTotal  > $volCaja) continue;
+            if (!$this->cabeEnCaja($itemMasGrande, $caja)) continue;
+            return [[$this->buildCajaResult($caja, $pesoTotal)], false];
         }
 
         $xl = end($this->cajas);
@@ -374,30 +582,64 @@ class BoxCalculatorService
 
     private function encontrarMejorCaja(array $items): ?array
     {
-        $pesoTotal = $this->pesoEfectivo($items);
-        $volTotal  = $this->volEfectivo($items);
+        $pesoTotal    = $this->pesoEfectivo($items);
+        $volTotal     = $this->volEfectivo($items);
+        $itemMasGrande = $this->itemConMayorDimension($items);
 
         foreach ($this->cajas as $caja) {
             $volCaja = $caja['largo'] * $caja['ancho'] * $caja['alto'];
-            if ($pesoTotal <= (float) $caja['peso_max_kg'] && $volTotal <= $volCaja) {
-                return $caja;
-            }
+            if ($pesoTotal > (float) $caja['peso_max_kg']) continue;
+            if ($volTotal  > $volCaja) continue;
+            if (!$this->cabeEnCaja($itemMasGrande, $caja)) continue;
+            return $caja;
         }
         return null;
     }
 
-    private function volEfectivo(array $items): float
+        private function cabeEnCaja(array $item, array $caja): bool
     {
-        if (empty($items)) return 0.0;
-        $factor   = min(array_map(fn($p) => $p['factor_emp'] ?? 0.65, $items));
-        $volBruto = array_sum(array_map(fn($p) => $p['largo'] * $p['ancho'] * $p['alto'], $items));
-        return $volBruto / $factor;
+        $dims = [$item['largo'], $item['ancho'], $item['alto']];
+        $box  = [$caja['largo'], $caja['ancho'], $caja['alto']];
+        sort($dims);
+        sort($box);
+        return $dims[0] <= $box[0]
+            && $dims[1] <= $box[1]
+            && $dims[2] <= $box[2];
     }
 
-    private function pesoEfectivo(array $items): float
+        private function itemConMayorDimension(array $items): array
+    {
+        $mayor = $items[0];
+        $maxDim = max($mayor['largo'], $mayor['ancho'], $mayor['alto']);
+        foreach ($items as $item) {
+            $d = max($item['largo'], $item['ancho'], $item['alto']);
+            if ($d > $maxDim) { $mayor = $item; $maxDim = $d; }
+        }
+        return $mayor;
+    }
+
+
+        private function volEfectivo(array $items): float
+    {
+        if (empty($items)) return 0.0;
+        $factorBase   = min(array_map(fn($p) => $p['factor_emp'] ?? 0.65, $items));
+        $factorEscalado = $this->factorConCantidad($factorBase, count($items));
+        $volBruto     = array_sum(array_map(fn($p) => $p['largo'] * $p['ancho'] * $p['alto'], $items));
+        return $volBruto / $factorEscalado;
+    }
+
+        private function factorConCantidad(float $factorBase, int $n): float
+    {
+        if ($n <= 1) return $factorBase;
+        $mejora = (1.0 - $factorBase) * (1.0 - 1.0 / sqrt((float) $n)) * 0.40;
+        return min(0.85, $factorBase + $mejora);
+    }
+
+        private function pesoEfectivo(array $items): float
     {
         return array_sum(array_map(fn($p) => $p['peso'] + ($p['peso_mat'] ?? 0.07), $items));
     }
+
 
     private function buildCajaResult(array $caja, float $pesoReal): array
     {
@@ -415,7 +657,8 @@ class BoxCalculatorService
         ];
     }
 
-    private function calcularEficiencia(array $productos, array $cajas): float
+
+        private function calcularEficiencia(array $productos, array $cajas): float
     {
         $volProductos = array_sum(array_map(
             fn($p) => $p['largo'] * $p['ancho'] * $p['alto'] * $p['cantidad'],
