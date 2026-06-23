@@ -23,16 +23,16 @@ class BoxCalculatorService
     ];
 
         private const EFICIENCIA = [
-        'TEXTIL'      => 0.85,  // bolsa plástica, comprimible
-        'CALZADO'     => 0.70,  // caja propia + tissue + silica
-        'ALIMENTO'    => 0.65,  // chips o papel kraft alrededor
+        'TEXTIL'      => 0.85,  
+        'CALZADO'     => 0.70,  
+        'ALIMENTO'    => 0.65,  
         'GENERAL'     => 0.65,
         'MASCOTA'     => 0.65,
-        'FRESCO'      => 0.60,  // clamshell + ventilación, sin compresión
-        'MEDICO'      => 0.55,  // burbuja 2 vueltas + chips
-        'REFRIGERADO' => 0.50,  // burbuja + gel pack
-        'QUIMICO'     => 0.50,  // burbuja + Ziploc + almohadilla absorbente
-        'BEBIDA'      => 0.45,  // colmena de cartón por botella + burbuja
+        'FRESCO'      => 0.60,  
+        'MEDICO'      => 0.55,  
+        'REFRIGERADO' => 0.50,  
+        'QUIMICO'     => 0.50,  
+        'BEBIDA'      => 0.45,  
     ];
 
         private const PESO_MAT = [
@@ -43,9 +43,9 @@ class BoxCalculatorService
         'MASCOTA'     => 0.07,
         'FRESCO'      => 0.05,
         'MEDICO'      => 0.10,
-        'REFRIGERADO' => 0.20,  // incluye gel pack
+        'REFRIGERADO' => 0.20,  
         'QUIMICO'     => 0.15,
-        'BEBIDA'      => 0.12,  // colmena cartón + burbuja
+        'BEBIDA'      => 0.12,  
     ];
 
     private array $cajas;
@@ -175,7 +175,7 @@ class BoxCalculatorService
     {
         $c    = $this->norm($cat);
         $p    = $parent ? $this->norm($parent) : '';
-        $full = trim("$p $c");   // contexto completo para búsquedas
+        $full = trim("$p $c");   
 
         if (preg_match(
             '/limpieza|desinfect|quimico|lejia|cloro\b|detergente|insecticida|' .
