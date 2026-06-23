@@ -136,22 +136,54 @@ final class NubefactController extends Controller
             $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
         }
 
-        $kpis = (clone $query)
+        $now = now();
+        $currentMonthStart  = $now->copy()->startOfMonth();
+        $previousMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $previousMonthEnd   = $now->copy()->subMonth()->endOfMonth();
+
+        $currentMonth = (clone $query)
+            ->whereBetween('created_at', [$currentMonthStart, $now])
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->sum('total');
+
+        $previousMonth = (clone $query)
+            ->whereBetween('created_at', [$previousMonthStart, $previousMonthEnd])
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->sum('total');
+
+        $avgAmount = (clone $query)
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->avg('total');
+
+        $topSellers = (clone $query)
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->join('orders', 'invoices.order_id', '=', 'orders.id')
+            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+            ->join('stores', 'order_items.store_id', '=', 'stores.id')
             ->selectRaw('
-                COALESCE(SUM(CASE WHEN status IN ("ACCEPTED","SENT_WAIT_CDR") THEN total ELSE 0 END), 0) as total_facturado,
-                COUNT(*) as total_comprobantes,
-                COALESCE(SUM(CASE WHEN status = "SENT_WAIT_CDR" THEN 1 ELSE 0 END), 0) as pendientes_cdr,
-                COALESCE(SUM(CASE WHEN status IN ("REJECTED","OBSERVED") THEN 1 ELSE 0 END), 0) as rechazados_observados,
-                COALESCE(SUM(CASE WHEN status = "ACCEPTED" THEN 1 ELSE 0 END), 0) as aceptados
+                stores.id,
+                COALESCE(stores.store_name, stores.trade_name) as store_name,
+                stores.slug,
+                SUM(order_items.line_total) as total_vendido
             ')
-            ->first();
+            ->groupBy('stores.id', 'stores.store_name', 'stores.slug', 'stores.trade_name')
+            ->orderByDesc('total_vendido')
+            ->limit(5)
+            ->get();
 
         return $this->success([
-            'totalFacturado' => (float) ($kpis->total_facturado ?? 0),
-            'totalComprobantes' => (int) ($kpis->total_comprobantes ?? 0),
-            'pendientesCdr' => (int) ($kpis->pendientes_cdr ?? 0),
-            'rechazadosObservados' => (int) ($kpis->rechazados_observados ?? 0),
-            'aceptados' => (int) ($kpis->aceptados ?? 0),
+            'totalFacturadoMesActual'   => (float) $currentMonth,
+            'totalFacturadoMesAnterior' => (float) $previousMonth,
+            'porcentajeCrecimiento'     => $previousMonth > 0
+                ? round((($currentMonth - $previousMonth) / $previousMonth) * 100, 1)
+                : ($currentMonth > 0 ? 100.0 : 0.0),
+            'montoPromedio'             => (float) ($avgAmount ?? 0),
+            'topSellers'                => $topSellers->map(fn ($s) => [
+                'id'           => (string) $s->id,
+                'name'         => $s->store_name,
+                'slug'         => $s->slug,
+                'totalVendido' => (float) $s->total_vendido,
+            ]),
         ]);
     }
 }
