@@ -34,7 +34,7 @@ final class LoyaltyTier extends Model
 
     public function program(): BelongsTo
     {
-        return $this->belongsTo(LoyaltyProgram::class);
+        return $this->belongsTo(LoyaltyProgram::class, 'program_id');
     }
 
     public function accounts(): HasMany

@@ -18,6 +18,7 @@ final class NotificationResource extends JsonResource
             'type' => $this->type,
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
+            'order_id' => $data['order_id'] ?? null,
             'ticket_id' => $data['ticket_id'] ?? null,
             'ticket_number' => $data['ticket_number'] ?? null,
             'subject' => $data['subject'] ?? null,
@@ -28,6 +29,11 @@ final class NotificationResource extends JsonResource
             'priority' => $data['priority'] ?? null,
             'category' => $data['category'] ?? null,
             'vendor_name' => $data['vendor_name'] ?? null,
+            'conversation_id' => $data['conversation_id'] ?? null,
+            'store_id' => $data['store_id'] ?? null,
+            'store_name' => $data['store_name'] ?? null,
+            'seller_name' => $data['seller_name'] ?? null,
+            'order_number' => $data['order_number'] ?? null,
             'is_read' => $this->read_at !== null,
         ];
     }

@@ -15,20 +15,18 @@ final class EventsController extends Controller
         $channel = $request->query('channel', 'global');
         $userId = $request->query('user_id');
 
-        $request->headers->set('Content-Type', 'text/event-stream');
-        $request->headers->set('Cache-Control', 'no-cache');
-        $request->headers->set('Connection', 'keep-alive');
+        $origin = $request->headers->get('Origin', 'http://localhost:3000');
 
         $response = new Response(null, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
             'Connection' => 'keep-alive',
             'X-Accel-Buffering' => 'no',
+            'Access-Control-Allow-Origin' => $origin,  // ← NUEVO
+            'Access-Control-Allow-Credentials' => 'true',   // ← NUEVO
         ]);
 
         $response->send();
-
-        $sentEvents = [];
 
         echo "event: conectado\n";
         echo 'data: '.json_encode([
@@ -37,7 +35,6 @@ final class EventsController extends Controller
             'timestamp' => now()->toIso8601String(),
         ])."\n\n";
         flush();
-
         if (ob_get_level()) {
             ob_flush();
         }
@@ -56,7 +53,6 @@ final class EventsController extends Controller
                 $lastHeartbeat = time();
                 flush();
             }
-
             usleep(100000);
         }
 

@@ -25,14 +25,14 @@ final class PendingStoreOverdueNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'type'          => 'pending_stores_overdue',
-            'title'         => "⚠ {$this->overdueCount} tienda(s) pendientes de aprobación por más de 72 horas",
-            'message'       => "Hay {$this->overdueCount} tienda(s) pendientes que superaron el SLA de 72 horas. La más antigua es \"{$this->oldestStore->trade_name}\" (registrada el {$this->oldestStore->created_at->format('d/m/Y H:i')}).",
+            'type' => 'pending_stores_overdue',
+            'title' => "⚠ {$this->overdueCount} tienda(s) pendientes de aprobación por más de 72 horas",
+            'message' => "Hay {$this->overdueCount} tienda(s) pendientes que superaron el SLA de 72 horas. La más antigua es \"{$this->oldestStore->trade_name}\" (registrada el {$this->oldestStore->created_at->format('d/m/Y H:i')}).",
             'overdue_count' => $this->overdueCount,
-            'oldest_store'  => [
-                'id'         => $this->oldestStore->id,
+            'oldest_store' => [
+                'id' => $this->oldestStore->id,
                 'trade_name' => $this->oldestStore->trade_name,
-                'ruc'        => $this->oldestStore->ruc,
+                'ruc' => $this->oldestStore->ruc,
                 'created_at' => $this->oldestStore->created_at->toIso8601String(),
             ],
             'action_url' => '/admin/stores?status=pending',

@@ -23,6 +23,8 @@ final class Product extends Model implements HasMedia
         'name',
         'slug',
         'description',
+        'short_description',
+        'serving_note',
         'price',
         'stock',
         'weight',
@@ -47,6 +49,8 @@ final class Product extends Model implements HasMedia
     {
         return [
             'price' => 'decimal:2',
+            'regular_price' => 'decimal:2',
+            'sale_price' => 'decimal:2',
             'stock' => 'integer',
             'weight' => 'decimal:2',
             'discount_percentage' => 'decimal:2',
@@ -99,7 +103,24 @@ final class Product extends Model implements HasMedia
 
     public function decrementStock(int $quantity): void
     {
+        $stockBefore = $this->stock;
         $this->decrement('stock', $quantity);
+        $this->refresh();
+        $stockAfter = $this->stock;
+
+        $seller = $this->store?->user;
+        if (! $seller) {
+            return;
+        }
+
+        // Notificar solo cuando el stock cruza un umbral hacia abajo por primera vez.
+        // 'out'     : pasa de > 0  a  ≤ 0
+        // 'critical': pasa de > 5  a  1-5  (sin haber llegado a 'out')
+        if ($stockAfter <= 0 && $stockBefore > 0) {
+            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'out'));
+        } elseif ($stockAfter <= 5 && $stockBefore > 5) {
+            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'critical'));
+        }
     }
 
     public function reviews(): HasMany
@@ -138,11 +159,17 @@ final class Product extends Model implements HasMedia
 
     public function getAverageRatingAttribute(): float
     {
-        return round($this->reviews()->avg('rating') ?? 0, 1);
+        // Añadido (float) para evitar el TypeError en round()
+        return round((float) ($this->reviews()->avg('rating') ?? 0), 1);
     }
 
     public function getReviewCountAttribute(): int
     {
         return $this->reviews()->count();
+    }
+
+    public function nutritionalAttributes(): HasMany
+    {
+        return $this->hasMany(ProductAttribute::class)->where('type', 'nutritional');
     }
 }

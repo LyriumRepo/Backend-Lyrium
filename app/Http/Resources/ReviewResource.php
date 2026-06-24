@@ -13,10 +13,11 @@ final class ReviewResource extends JsonResource
     {
         return [
             'id' => (string) $this->id,
-            'rating' => $this->rating,
+            'rating' => (int) $this->rating,
             'title' => $this->title,
             'comment' => $this->comment,
-            'isVerifiedPurchase' => $this->is_verified_purchase,
+            'isVerifiedPurchase' => (bool) $this->is_verified_purchase,
+            'orderId' => $this->order_id ? (string) $this->order_id : null,
             'user' => $this->whenLoaded('user', fn () => [
                 'id' => (string) $this->user->id,
                 'name' => $this->user->name,

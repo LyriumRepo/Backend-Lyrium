@@ -13,7 +13,7 @@ trait WithRoles
 {
     protected function seedRoles(): void
     {
-        foreach (['administrator', 'seller', 'customer', 'logistics_operator'] as $role) {
+        foreach (['administrator', 'seller', 'customer', 'logistics_operator', 'security_admin'] as $role) {
             Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
         }
     }
@@ -53,13 +53,13 @@ trait WithRoles
 
         Contract::create([
             'contract_number' => 'CTR-TEST-001',
-            'store_id'        => $ownedStore->id,
-            'company'         => $ownedStore->trade_name,
-            'ruc'             => $ownedStore->ruc,
-            'type'            => 'Convenio Digital',
-            'modality'        => 'Digital',
-            'status'          => 'ACTIVE',
-            'start_date'      => now()->toDateString(),
+            'store_id' => $ownedStore->id,
+            'company' => $ownedStore->trade_name,
+            'ruc' => $ownedStore->ruc,
+            'type' => 'Convenio Digital',
+            'modality' => 'Digital',
+            'status' => 'ACTIVE',
+            'start_date' => now()->toDateString(),
         ]);
 
         return $user;
@@ -71,6 +71,16 @@ trait WithRoles
             'email_verified_at' => now(),
         ]);
         $user->assignRole('customer');
+
+        return $user;
+    }
+
+    protected function createSecurityAdmin(): User
+    {
+        $user = User::factory()->create([
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('security_admin');
 
         return $user;
     }

@@ -20,6 +20,7 @@ final class StoreResource extends JsonResource
             'banner' => $this->getMediaUrl('banner'),
             'banner2' => $this->getMediaUrl('banner2'),
             'gallery' => $this->getGalleryUrls(),
+            'layout' => $this->layout ?? '1',
             'description' => $this->description,
             'activity' => $this->activity,
             'email' => $this->corporate_email,
@@ -75,6 +76,7 @@ final class StoreResource extends JsonResource
             'rating' => (float) $this->rating,
             'contractStatus' => $this->whenLoaded('contracts', function () {
                 $contract = $this->contracts->first();
+
                 return $contract ? $contract->status : null;
             }),
             'registeredAt' => $this->created_at?->toIso8601String(),
@@ -85,7 +87,9 @@ final class StoreResource extends JsonResource
                 'id' => $branch->id,
                 'name' => $branch->name,
                 'address' => $branch->address,
-                'city' => $branch->city,
+                'department' => $branch->department,
+                'province' => $branch->province,
+                'district' => $branch->district,
                 'phone' => $branch->phone,
                 'hours' => $branch->hours,
                 'is_principal' => $branch->is_principal,

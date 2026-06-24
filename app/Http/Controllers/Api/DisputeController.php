@@ -63,7 +63,7 @@ final class DisputeController extends Controller
 
     public function storeDisputes(Request $request): AnonymousResourceCollection
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $request->user()->ownedStores()->firstOrFail();
 
         $disputes = $this->disputeService->getStoreDisputes(
             storeId: $store->id,

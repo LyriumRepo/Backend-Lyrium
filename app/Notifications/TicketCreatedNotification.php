@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Ticket;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class TicketCreatedNotification extends Notification
+final class TicketCreatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -19,11 +21,19 @@ final class TicketCreatedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        if (app()->environment('local')) {
-            return ['database'];
+        $channels = ['database'];
+
+        $settings = $notifiable->notificationSetting;
+
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
         }
 
-        return ['mail', 'database'];
+        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -37,6 +47,19 @@ final class TicketCreatedNotification extends Notification
             ->line("**Vendedor:** {$this->ticket->user->name}")
             ->line("**Tienda:** {$this->ticket->store->trade_name}")
             ->action('Ver ticket', config('app.frontend_url', 'http://localhost:3000').'/admin/helpdesk');
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        return [
+            'title' => 'Nuevo ticket de soporte',
+            'body' => "{$this->ticket->subject} — Prioridad: {$this->ticket->priority}",
+            'data' => [
+                'type' => 'ticket_created',
+                'ticket_id' => $this->ticket->id,
+                'ticket_number' => $this->ticket->ticket_number,
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array

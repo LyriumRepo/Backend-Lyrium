@@ -20,6 +20,15 @@ final class PaymentController extends Controller
         private readonly PaymentSchedulerService $paymentService
     ) {}
 
+    private function getStore($user): \App\Models\Store
+    {
+        return $user->stores()->first()
+            ?? $user->ownedStores()->first()
+            ?? throw new \RuntimeException(
+                'El usuario no tiene una tienda asociada.'
+            );
+    }
+
     public function schedules(): AnonymousResourceCollection
     {
         $schedules = PaymentSchedule::all();
@@ -55,11 +64,13 @@ final class PaymentController extends Controller
 
     public function sellerPayments(Request $request): AnonymousResourceCollection
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $this->getStore($request->user());
 
         $payments = $this->paymentService->getStorePayments(
             storeId: $store->id,
-            perPage: (int) $request->query('per_page', 15)
+            perPage: (int) $request->query('per_page', 15),
+            startDate: $request->query('start_date'),
+            endDate: $request->query('end_date')
         );
 
         return SellerPaymentResource::collection($payments);
@@ -67,34 +78,49 @@ final class PaymentController extends Controller
 
     public function sellerPendingPayments(Request $request): AnonymousResourceCollection
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $this->getStore($request->user());
 
-        $payments = $this->paymentService->getStorePendingPayments($store->id);
+        $payments = $this->paymentService->getStorePendingPayments(
+            storeId: $store->id,
+            startDate: $request->query('start_date'),
+            endDate: $request->query('end_date')
+        );
 
         return SellerPaymentResource::collection($payments);
     }
 
     public function sellerCompletedPayments(Request $request): AnonymousResourceCollection
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $this->getStore($request->user());
 
-        $payments = $this->paymentService->getStoreCompletedPayments($store->id);
+        $payments = $this->paymentService->getStoreCompletedPayments(
+            storeId: $store->id,
+            startDate: $request->query('start_date'),
+            endDate: $request->query('end_date')
+        );
 
         return SellerPaymentResource::collection($payments);
     }
 
     public function sellerPendingTotal(Request $request): JsonResponse
     {
-        $store = $request->user()->stores()->firstOrFail();
+        $store = $this->getStore($request->user());
 
-        $total = $this->paymentService->getTotalPendingAmountByStore($store->id);
+        $total = $this->paymentService->getTotalPendingAmountByStore(
+            storeId: $store->id,
+            startDate: $request->query('start_date'),
+            endDate: $request->query('end_date')
+        );
         $nextDate = $this->paymentService->getNextPaymentDate();
 
         return response()->json([
-            'total_pending' => $total,
-            'next_payment_date' => $nextDate->toIso8601String(),
-            'next_payment_date_formatted' => $nextDate->format('l, d M Y'),
-            'is_payment_day' => PaymentSchedule::isPaymentDayToday(),
+            'success' => true,
+            'data' => [
+                'total_pending' => $total,
+                'next_payment_date' => $nextDate->toIso8601String(),
+                'next_payment_date_formatted' => $nextDate->format('l, d M Y'),
+                'is_payment_day' => PaymentSchedule::isPaymentDayToday(),
+            ],
         ]);
     }
 

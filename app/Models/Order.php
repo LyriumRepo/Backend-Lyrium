@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class Order extends Model
@@ -17,6 +18,8 @@ final class Order extends Model
     public const STATUS_PENDING_SELLER = 'pending_seller';
 
     public const STATUS_CONFIRMED = 'confirmed';
+
+    public const STATUS_ON_THE_WAY = 'on_the_way';
 
     public const STATUS_PROCESSING = 'processing';
 
@@ -29,11 +32,18 @@ final class Order extends Model
     public const STATUSES = [
         self::STATUS_PENDING_SELLER,
         self::STATUS_CONFIRMED,
+        self::STATUS_ON_THE_WAY,
         self::STATUS_PROCESSING,
         self::STATUS_SHIPPED,
         self::STATUS_DELIVERED,
         self::STATUS_CANCELLED,
     ];
+
+    public const ORDER_TYPE_PRODUCT = 'product';
+
+    public const ORDER_TYPE_SERVICE = 'service';
+
+    public const ORDER_TYPE_MIXED = 'mixed';
 
     public const PAYMENT_STATUS_PENDING = 'pending';
 
@@ -47,6 +57,7 @@ final class Order extends Model
 
     protected $fillable = [
         'order_number',
+        'order_type',
         'user_id',
         'status',
         'payment_method',
@@ -58,6 +69,7 @@ final class Order extends Model
         'shipping_city',
         'shipping_postal_code',
         'shipping_notes',
+        'shipping_type',
         'subtotal',
         'shipping_cost',
         'tax_amount',
@@ -89,9 +101,30 @@ final class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class);
+    }
+
+    public function serviceItems(): HasMany
+    {
+        return $this->hasMany(OrderServiceItem::class);
+    }
+
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        return match ($this->payment_status) {
+            self::PAYMENT_STATUS_PENDING => 'Pendiente',
+            self::PAYMENT_STATUS_PAID => 'Pagado',
+            self::PAYMENT_STATUS_FAILED => 'Fallido',
+            self::PAYMENT_STATUS_REFUNDED => 'Reembolsado',
+            default => $this->payment_status,
+        };
     }
 
     public static function generateOrderNumber(): string
@@ -103,28 +136,47 @@ final class Order extends Model
         return "{$prefix}-{$timestamp}-{$random}";
     }
 
+    private function mapServiceStatus(string $serviceStatus): string
+    {
+        return match ($serviceStatus) {
+            'pending' => self::STATUS_PENDING_SELLER,
+            'confirmed' => self::STATUS_CONFIRMED,
+            'on_the_way' => self::STATUS_ON_THE_WAY,
+            'completed' => self::STATUS_DELIVERED,
+            'cancelled', 'no_show' => self::STATUS_CANCELLED,
+            default => $serviceStatus,
+        };
+    }
+
     public function computeGlobalStatus(): string
     {
-        $items = $this->items;
+        $allStatuses = [];
 
-        if ($items->isEmpty()) {
+        foreach ($this->items as $item) {
+            $allStatuses[] = $item->status;
+        }
+        foreach ($this->serviceItems as $si) {
+            $allStatuses[] = $this->mapServiceStatus($si->status);
+        }
+
+        if (empty($allStatuses)) {
             return $this->status;
         }
 
-        $statuses = $items->pluck('status')->unique()->toArray();
+        $statuses = array_unique($allStatuses);
 
         if (count($statuses) === 1) {
             return $statuses[0];
         }
 
         if (in_array(self::STATUS_CANCELLED, $statuses)) {
-            $nonCancelled = $items->where('status', '!=', self::STATUS_CANCELLED);
-            if ($nonCancelled->isEmpty()) {
+            $nonCancelled = array_filter($allStatuses, fn($s) => $s !== self::STATUS_CANCELLED);
+            if (empty($nonCancelled)) {
                 return self::STATUS_CANCELLED;
             }
-            $nonCancelledStatuses = $nonCancelled->pluck('status')->unique()->toArray();
-            if (count($nonCancelledStatuses) === 1) {
-                return $nonCancelledStatuses[0];
+            $nonCancelledUnique = array_unique($nonCancelled);
+            if (count($nonCancelledUnique) === 1) {
+                return $nonCancelledUnique[0];
             }
         }
 
@@ -138,6 +190,10 @@ final class Order extends Model
 
         if (in_array(self::STATUS_SHIPPED, $statuses)) {
             return self::STATUS_SHIPPED;
+        }
+
+        if (in_array(self::STATUS_ON_THE_WAY, $statuses)) {
+            return self::STATUS_ON_THE_WAY;
         }
 
         if (in_array(self::STATUS_DELIVERED, $statuses) && count($statuses) === 1) {
@@ -256,11 +312,37 @@ final class Order extends Model
         return match ($this->status) {
             self::STATUS_PENDING_SELLER => 'Esperando confirmación del vendedor',
             self::STATUS_CONFIRMED => 'Confirmado',
+            self::STATUS_ON_THE_WAY => 'En camino',
             self::STATUS_PROCESSING => 'Preparando pedido',
             self::STATUS_SHIPPED => 'Enviado',
             self::STATUS_DELIVERED => 'Entregado',
             self::STATUS_CANCELLED => 'Cancelado',
             default => $this->status,
         };
+    }
+
+    public function culqiTransactions(): HasMany
+    {
+        return $this->hasMany(CulqiTransaction::class);
+    }
+
+    public function latestCulqiTransaction()
+    {
+        return $this->hasOne(CulqiTransaction::class)->latestOfMany();
+    }
+
+    public function izipayTransactions(): HasMany
+    {
+        return $this->hasMany(IzipayOrderTransaction::class);
+    }
+
+    public function latestIzipayTransaction(): HasOne
+    {
+        return $this->hasOne(IzipayOrderTransaction::class)->latestOfMany();
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

@@ -32,6 +32,8 @@ final class OrderItem extends Model
         'unit_price',
         'quantity',
         'line_total',
+        'commission_rate',
+        'commission_amount',
         'status',
     ];
 
@@ -40,6 +42,8 @@ final class OrderItem extends Model
         return [
             'unit_price' => 'decimal:2',
             'line_total' => 'decimal:2',
+            'commission_rate' => 'decimal:2',
+            'commission_amount' => 'decimal:2',
             'quantity' => 'integer',
         ];
     }

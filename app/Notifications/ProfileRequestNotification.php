@@ -6,9 +6,10 @@ namespace App\Notifications;
 
 use App\Models\StoreProfileRequest;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-final class ProfileRequestNotification extends Notification
+final class ProfileRequestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -33,6 +34,7 @@ final class ProfileRequestNotification extends Notification
             'seller_name' => $store?->owner?->name ?? 'Vendedor',
             'seller_email' => $store?->owner?->email,
             'fields_requested' => array_keys($this->profileRequest->data ?? []),
+            'subject'    => ($store?->owner?->name ?? 'Un vendedor') . ' solicitó actualizar el perfil de "' . ($store?->trade_name ?? $store?->store_name ?? 'su tienda') . '"',
         ];
     }
 }

@@ -22,6 +22,12 @@ final class ShippingController extends Controller
         private readonly ShippingService $shippingService,
     ) {}
 
+    private function getStore($user): ?\App\Models\Store
+    {
+        return $user->stores()->first()
+            ?? $user->ownedStores()->first();
+    }
+
     public function methods(): JsonResponse
     {
         $methods = $this->shippingService->getAvailableMethods();
@@ -155,7 +161,7 @@ final class ShippingController extends Controller
     public function sellerShipments(Request $request): JsonResponse
     {
         $user = $request->user();
-        $store = $user->stores()->first();
+        $store = $this->getStore($user);
 
         if (! $store) {
             return response()->json([
@@ -183,7 +189,7 @@ final class ShippingController extends Controller
     public function configureStore(ConfigureStoreShippingRequest $request): JsonResponse
     {
         $user = $request->user();
-        $store = $user->stores()->first();
+        $store = $this->getStore($user);
 
         if (! $store) {
             return response()->json([
@@ -215,7 +221,7 @@ final class ShippingController extends Controller
     public function storeMethods(Request $request): JsonResponse
     {
         $user = $request->user();
-        $store = $user->stores()->first();
+        $store = $this->getStore($user);
 
         if (! $store) {
             return response()->json([

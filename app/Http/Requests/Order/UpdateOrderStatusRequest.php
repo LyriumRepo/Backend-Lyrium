@@ -18,6 +18,8 @@ final class UpdateOrderStatusRequest extends FormRequest
         return [
             'status' => ['sometimes', 'string', 'max:50'],
             'payment_status' => ['nullable', 'string', 'in:pending,paid,failed,refunded'],
+            'carrier_code' => ['nullable', 'string', 'in:' . implode(',', config('logistics.carrier_codes', []))],
+            'carrier_data' => ['nullable', 'array'],
         ];
     }
 }

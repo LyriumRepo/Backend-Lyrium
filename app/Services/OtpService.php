@@ -22,7 +22,7 @@ final class OtpService
 
     public function generate(User $user): void
     {
-        // Invalidar códigos anteriores
+        // Invalidar códigos anteriores del usuario
         EmailVerificationCode::where('user_id', $user->id)->delete();
 
         $plainCode = str_pad((string) random_int(0, 999999), self::CODE_LENGTH, '0', STR_PAD_LEFT);
@@ -39,6 +39,10 @@ final class OtpService
         );
     }
 
+    /**
+     * Verifica el código OTP y actualiza el estado de verificación de correo del usuario.
+     * (Usado principalmente para el registro o logins bloqueados)
+     */
     public function verify(User $user, string $code): array
     {
         $record = EmailVerificationCode::where('user_id', $user->id)
@@ -68,9 +72,74 @@ final class OtpService
             return ['success' => false, 'error' => "Código incorrecto. Te quedan {$remaining} intentos."];
         }
 
-        // Código correcto
+        // Código correcto - Marcar correo como verificado
         $user->update(['email_verified_at' => now()]);
         $record->delete();
+
+        return ['success' => true];
+    }
+
+    /**
+     * Verifica de forma única el código OTP sin modificar 'email_verified_at'.
+     * Permite reintentos asincrónicos (hasta 3 fallos) antes de borrar el registro.
+     * (Especialmente diseñado para el modal de 2FA operativo)
+     */
+    public function verifyOnly(User $user, string $code): array
+    {
+        // Traemos todos los códigos pendientes de este usuario (del más nuevo al más viejo)
+        $records = EmailVerificationCode::where('user_id', $user->id)
+            ->latest()
+            ->get();
+
+        if ($records->isEmpty()) {
+            return ['success' => false, 'error' => 'No hay código de verificación pendiente.'];
+        }
+
+        // Usamos el registro más reciente para verificar límites de intentos y expiración global
+        $latestRecord = $records->first();
+
+        if ($latestRecord->isExpired()) {
+            EmailVerificationCode::where('user_id', $user->id)->delete();
+
+            return ['success' => false, 'error' => 'El código de seguridad ha expirado.'];
+        }
+
+        if ($latestRecord->attempts >= 3) {
+            EmailVerificationCode::where('user_id', $user->id)->delete();
+
+            return ['success' => false, 'error' => 'Muchos intentos fallidos. Solicita un nuevo código de seguridad.'];
+        }
+
+        // Buscamos si el código ingresado coincide con alguno de los hashes válidos generados
+        $validRecord = null;
+        foreach ($records as $record) {
+            if (Hash::check($code, $record->code)) {
+                $validRecord = $record;
+                break;
+            }
+        }
+
+        // Si no coincide con ningún registro, incrementamos los intentos fallidos
+        if (! $validRecord) {
+            $latestRecord->increment('attempts');
+            $attemptsMade = $latestRecord->fresh()->attempts;
+
+            if ($attemptsMade >= 3) {
+                EmailVerificationCode::where('user_id', $user->id)->delete();
+
+                return ['success' => false, 'error' => 'Muchos intentos fallidos. Se ha bloqueado el código de seguridad.'];
+            }
+
+            $remaining = 3 - $attemptsMade;
+
+            return [
+                'success' => false,
+                'error' => "Código incorrecto. Te quedan {$remaining} ".($remaining === 1 ? 'intento' : 'intentos').'.',
+            ];
+        }
+
+        // Si coincide, limpiamos de inmediato de la base de datos todos los códigos acumulados del usuario
+        EmailVerificationCode::where('user_id', $user->id)->delete();
 
         return ['success' => true];
     }

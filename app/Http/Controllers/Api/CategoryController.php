@@ -36,6 +36,13 @@ final class CategoryController extends Controller
 
         if ($type = $request->query('type')) {
             $query->where('type', $type);
+            if ($request->boolean('children_only')) {
+                $rootIds = Category::where('type', $type)
+                    ->whereNull('parent_id')   // ← null, no 0
+                    ->pluck('id');
+
+                $query->whereIn('parent_id', $rootIds);  // solo nivel 2
+            }
         }
 
         if (! $request->query('type') && ! $request->query('tree') && ! $request->query('search')) {
@@ -44,7 +51,7 @@ final class CategoryController extends Controller
             });
         }
 
-        $perPage = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 400);
         $categories = $query->orderBy('sort_order')->paginate($perPage);
 
         return response()->json([
@@ -68,9 +75,9 @@ final class CategoryController extends Controller
         $categories = Category::whereNull('parent_id')
             ->with(['children' => function ($q) {
                 $q->orderBy('sort_order')
-                  ->with(['children' => function ($q2) {
-                      $q2->orderBy('sort_order');
-                  }]);
+                    ->with(['children' => function ($q2) {
+                        $q2->orderBy('sort_order');
+                    }]);
             }])
             ->orderBy('type')->orderBy('sort_order')
             ->get();
@@ -79,6 +86,7 @@ final class CategoryController extends Controller
             'success' => true,
             'data' => $categories->map(function ($cat) {
                 $prefix = $cat->type === 'service' ? '/servicios' : '/productos';
+
                 return [
                     'id' => $cat->id,
                     'name' => $cat->name,
@@ -91,19 +99,39 @@ final class CategoryController extends Controller
                             'name' => $sub->name,
                             'slug' => $sub->slug,
                             'image' => $sub->image ? asset($sub->image) : null,
-                            'href' => $prefix . '/' . $cat->slug . '/' . $sub->slug,
+                            'href' => $prefix . '/' . $cat->slug . '?sub=' . $sub->slug,
                             'children' => $sub->children->map(function ($subsub) use ($cat, $prefix) {
                                 return [
                                     'id' => $subsub->id,
                                     'name' => $subsub->name,
                                     'slug' => $subsub->slug,
-                                    'href' => $prefix . '/' . $cat->slug . '/' . $subsub->slug,
+                                    'href' => $prefix . '/' . $cat->slug . '?sub=' . $subsub->slug,
                                 ];
                             }),
                         ];
                     }),
                 ];
             }),
+        ]);
+    }
+
+     /**
+     * GET /api/categories/{slug}
+     */
+    public function getBySlug(string $slug): JsonResponse
+    {
+        $category = Category::where('slug', $slug)->first();
+
+        if (! $category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Category not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => new CategoryResource($category)
         ]);
     }
 
@@ -147,9 +175,11 @@ final class CategoryController extends Controller
             }
         }
 
+        
+
         $category = Category::create([
             'name' => $data['name'],
-            'slug' => Str::slug($data['name']),
+            'slug' => $this->generateSlug($data['name'], $data['parent'] ?? null),
             'description' => $data['description'] ?? null,
             'parent_id' => $data['parent'] ?? null,
             'image' => $data['image'] ?? null,
@@ -177,11 +207,20 @@ final class CategoryController extends Controller
             'type' => 'nullable|string|in:product,service',
             'sort_order' => 'nullable|integer|min:0',
         ]);
+        $name = $data['name'] ?? $category->name;
+
+        $parentId = array_key_exists('parent', $data)
+            ? $data['parent']
+            : $category->parent_id;
 
         $updateData = [];
         if (isset($data['name'])) {
             $updateData['name'] = $data['name'];
-            $updateData['slug'] = Str::slug($data['name']);
+            $updateData['slug'] = $this->generateSlug(
+                $name,
+                $parentId,
+                $category->id
+            );
         }
         if (array_key_exists('description', $data)) {
             $updateData['description'] = $data['description'];
@@ -218,7 +257,7 @@ final class CategoryController extends Controller
         ]);
 
         $path = $request->file('image')->store('img/categorias', 'public');
-        $relativePath = '/storage/' . $path;
+        $relativePath = '/storage/'.$path;
 
         $category->update(['image' => $relativePath]);
 
@@ -241,4 +280,121 @@ final class CategoryController extends Controller
 
         return response()->json(new CategoryResource($category));
     }
+
+    private function generateSlug(string $name, ?int $parentId = null, ?int $ignoreId = null): string
+    {
+        $slug = Str::slug($name);
+
+        if ($parentId) {
+            $parent = Category::find($parentId);
+            if ($parent) {
+                // Nivel 3
+                if ($parent->parent_id) {
+                    $grandparent = Category::find($parent->parent_id);
+                    if ($grandparent) {
+                        $slug = Str::slug(
+                            $grandparent->name . '-' .
+                            $parent->name . '-' .
+                            $name
+                        );
+                    }
+                } else {
+                    // Nivel 2
+                    $slug = Str::slug(
+                        $parent->name . '-' . $name
+                    );
+                }
+            }
+        }
+        $originalSlug = $slug;
+        $counter = 1;
+        while (
+            Category::where('slug', $slug)
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Devuelve todas las categorías de nivel 1 de tipo 'service'.
+     * GET /api/categories/service-roots
+     */
+    public function serviceRoots(): JsonResponse
+    {
+        $roots = Category::query()
+            ->where('type', 'service')
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'image', 'description', 'sort_order']);
+
+        return response()->json(['data' => $roots]);
+    }
+
+    /**
+     * Devuelve los hijos directos (nivel 2) de una categoría dada.
+     * GET /api/categories/{id}/children
+     */
+    public function children(int $id): JsonResponse
+    {
+        $parent = Category::findOrFail($id);
+
+        $children = Category::query()
+            ->where('parent_id', $parent->id)
+            ->where('type', 'service')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'image', 'sort_order']);
+
+        return response()->json([
+            'parent' => [
+                'id' => $parent->id,
+                'name' => $parent->name,
+                'slug' => $parent->slug,
+            ],
+            'data' => $children,
+        ]);
+    }
+
+    /**
+     * Árbol completo de categorías de servicios (nivel 1 + nivel 2).
+     * GET /api/categories/service-tree
+     */
+    public function serviceTree(): JsonResponse
+    {
+        $roots = Category::query()
+            ->where('type', 'service')
+            ->whereNull('parent_id')
+            ->orderBy('sort_order')
+            ->with([
+                'children' => fn ($q) => $q
+                    ->where('type', 'service')
+                    ->orderBy('sort_order')
+                    ->orderBy('name'),
+            ])
+            ->get();
+
+        $tree = $roots->map(fn ($root) => [
+            'id' => $root->id,
+            'name' => $root->name,
+            'slug' => $root->slug,
+            'image' => $root->image,
+            'sort_order' => $root->sort_order,
+            'children' => $root->children->map(fn ($child) => [
+                'id' => $child->id,
+                'name' => $child->name,
+                'slug' => $child->slug,
+                'image' => $child->image,
+                'sort_order' => $child->sort_order,
+            ])->values(),
+        ]);
+
+        return response()->json(['data' => $tree]);
+    }
+
 }

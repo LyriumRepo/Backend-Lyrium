@@ -27,11 +27,14 @@ final class ShippingService
 
         return $storeMethods->map(function ($storeMethod) {
             $method = $storeMethod->method;
-            $method->pivot_total_cost = $storeMethod->getTotalCost($method->base_cost);
+            if ($method === null) {
+                return null;
+            }
+            $method->pivot_total_cost = $storeMethod->getTotalCost((float) ($method->base_cost ?? 0));
             $method->pivot_handling_time = $storeMethod->handling_time_days;
 
             return $method;
-        })->filter(fn ($m) => $m !== null);
+        })->filter(fn ($m) => $m !== null)->values();
     }
 
     public function calculateShipping(int $storeId, float $weight, float $orderTotal, string $department, ?int $zoneId = null): array
@@ -177,16 +180,28 @@ final class ShippingService
         return $shipment->fresh();
     }
 
-    private function generateTrackingUrl(string $carrier, string $trackingNumber): ?string
+    public function generateTrackingUrl(string $carrier, string $trackingNumber): ?string
     {
-        return match (strtolower($carrier)) {
+        $normalized = strtolower($carrier);
+
+        $legacyMap = [
             'dhl' => "https://www.dhl.com/pe-es/tracking?AWB={$trackingNumber}",
             'fedex' => "https://www.fedex.com/fedextrack/?trknbr={$trackingNumber}",
             'ups' => "https://www.ups.com/track?tracknum={$trackingNumber}",
             'peru_post' => "https://www.perupost.com.pe/track?tracking={$trackingNumber}",
             'olva' => "https://www.olvacourier.com/track?codigo={$trackingNumber}",
-            default => null,
-        };
+        ];
+
+        if (isset($legacyMap[$normalized])) {
+            return $legacyMap[$normalized];
+        }
+
+        $template = config("logistics.carriers.{$normalized}.tracking_url");
+        if ($template) {
+            return str_replace('{tracking}', $trackingNumber, $template);
+        }
+
+        return null;
     }
 
     public function storeMethodForStore(int $storeId, int $methodId, bool $enabled = true, float $additionalCost = 0, int $handlingDays = 0): StoreShippingMethod

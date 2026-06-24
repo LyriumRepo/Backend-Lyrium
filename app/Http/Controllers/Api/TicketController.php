@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\TicketInboxUpdated;
 use App\Events\TicketMessageReceived;
 use App\Events\TicketMessagesRead;
-use App\Events\TicketInboxUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendTicketMessageRequest;
 use App\Http\Requests\StoreTicketRequest;
@@ -82,7 +82,7 @@ final class TicketController extends Controller
 
     public function store(StoreTicketRequest $request): JsonResponse
     {
-        $user  = $request->user();
+        $user = $request->user();
         $store = null;
 
         if ($user->hasRole('seller')) {
@@ -97,9 +97,9 @@ final class TicketController extends Controller
         }
 
         $priorityMap = [
-            'baja'   => 'low',
-            'media'  => 'medium',
-            'alta'   => 'high',
+            'baja' => 'low',
+            'media' => 'medium',
+            'alta' => 'high',
             'critica' => 'critical',
         ];
 
@@ -107,13 +107,13 @@ final class TicketController extends Controller
 
         $ticket = Ticket::create([
             'ticket_number' => Ticket::generateTicketNumber(),
-            'user_id'       => $user->id,
-            'store_id'      => $store?->id,
-            'subject'       => $request->input('asunto'),
-            'description'   => $request->input('mensaje'),
-            'category'      => $request->input('tipo_ticket'),
-            'priority'      => $priorityMap[$criticidad] ?? 'medium',
-            'is_critical'   => in_array($criticidad, ['alta', 'critica']),
+            'user_id' => $user->id,
+            'store_id' => $store?->id,
+            'subject' => $request->input('asunto'),
+            'description' => $request->input('mensaje'),
+            'category' => $request->input('tipo_ticket'),
+            'priority' => $priorityMap[$criticidad] ?? 'medium',
+            'is_critical' => in_array($criticidad, ['alta', 'critica']),
         ]);
 
         $initialMessage = $ticket->messages()->create([
@@ -136,7 +136,7 @@ final class TicketController extends Controller
         $previewText = $request->filled('mensaje')
             ? Str::limit($request->input('mensaje'), 100)
             : $this->buildImagePreview($request->file('adjuntos') ?? []);
-        $updatedAt   = now()->toIso8601String();
+        $updatedAt = now()->toIso8601String();
         foreach ($admins as $admin) {
             broadcast(new TicketInboxUpdated(
                 $admin->id,
@@ -239,9 +239,9 @@ final class TicketController extends Controller
             'type' => 'system',
         ]);
 
-        $previewText   = 'El usuario cerró este ticket.';
+        $previewText = 'El usuario cerró este ticket.';
         $totalMessages = $ticket->messages()->count();
-        $updatedAt     = now()->toIso8601String();
+        $updatedAt = now()->toIso8601String();
 
         User::role('administrator')->each(function (User $admin) use ($ticket, $previewText, $totalMessages, $updatedAt): void {
             broadcast(new TicketInboxUpdated(
@@ -273,11 +273,11 @@ final class TicketController extends Controller
         }
 
         $messages = $query->limit(30)->get();
-        $hasMore  = $messages->count() === 30;
+        $hasMore = $messages->count() === 30;
 
         return response()->json([
-            'success'  => true,
-            'data'     => \App\Http\Resources\TicketMessageResource::collection($messages->reverse()->values()),
+            'success' => true,
+            'data' => \App\Http\Resources\TicketMessageResource::collection($messages->reverse()->values()),
             'has_more' => $hasMore,
         ]);
     }
@@ -289,7 +289,7 @@ final class TicketController extends Controller
         return match (true) {
             $count === 0 => '',
             $count === 1 => '[Imagen]',
-            default      => "[{$count} imágenes]",
+            default => "[{$count} imágenes]",
         };
     }
 

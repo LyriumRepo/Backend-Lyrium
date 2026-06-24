@@ -4,28 +4,28 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
         // Admin principal
-        $admin = User::updateOrCreate(
+        $admin = User::withTrashed()->updateOrCreate(
             ['email' => 'luis@admin.com'],
             [
                 'name' => 'Luis Admin',
                 'username' => 'luis_admin',
                 'nicename' => 'luis-admin',
                 'phone' => '999000000',
-                'password' => bcrypt('password'), 
+                'password' => bcrypt('password'),
                 'email_verified_at' => now(),
+                'deleted_at' => null,
             ]
         );
         $admin->assignRole('administrator');
 
         // Admin secundario (legacy)
-        $admin2 = User::updateOrCreate(
+        $admin2 = User::withTrashed()->updateOrCreate(
             ['email' => 'torres.enginner08@gmail.com'],
             [
                 'name' => 'torres Engineer',
@@ -34,12 +34,13 @@ class AdminUserSeeder extends Seeder
                 'phone' => '999000111',
                 'password' => bcrypt('password'),
                 'email_verified_at' => now(),
+                'deleted_at' => null,
             ]
         );
         $admin2->assignRole('administrator');
 
         // Seller legacy
-        $seller2 = User::updateOrCreate(
+        $seller2 = User::withTrashed()->updateOrCreate(
             ['email' => 'luis.torres@gmail.com'],
             [
                 'name' => 'Luis Torres',
@@ -50,12 +51,13 @@ class AdminUserSeeder extends Seeder
                 'document_number' => '20123456789',
                 'password' => bcrypt('password'),
                 'email_verified_at' => now(),
+                'deleted_at' => null,
             ]
         );
         $seller2->assignRole('seller');
 
         // Cliente legacy
-        $customer = User::updateOrCreate(
+        $customer = User::withTrashed()->updateOrCreate(
             ['email' => 'cliente@lyrium.com'],
             [
                 'name' => 'Cliente',
@@ -66,12 +68,13 @@ class AdminUserSeeder extends Seeder
                 'document_number' => '12345678',
                 'password' => bcrypt('12345678'),
                 'email_verified_at' => now(),
+                'deleted_at' => null,
             ]
         );
         $customer->assignRole('customer');
 
         // Operador Logístico legacy
-        $logistics = User::updateOrCreate(
+        $logistics = User::withTrashed()->updateOrCreate(
             ['email' => 'logistica@lyrium.com'],
             [
                 'name' => 'Operador Logístico',
@@ -82,12 +85,28 @@ class AdminUserSeeder extends Seeder
                 'document_number' => '87654321',
                 'password' => bcrypt('logistica2024'),
                 'email_verified_at' => now(),
+                'deleted_at' => null,
             ]
         );
         $logistics->assignRole('logistics_operator');
 
+        // Security Admin
+        $security = User::withTrashed()->updateOrCreate(
+            ['email' => 'seguridad@lyrium.com'],
+            [
+                'name' => 'Security Admin',
+                'username' => 'security_admin',
+                'nicename' => 'security-admin',
+                'phone' => '955113344',
+                'password' => bcrypt('seguridad2024'),
+                'email_verified_at' => now(),
+                'deleted_at' => null,
+            ]
+        );
+        $security->assignRole('security_admin');
+
         $store = \App\Models\Store::updateOrCreate(
-            ['ruc' => '20123456789'],
+            ['ruc' => '20123456786'],
             [
                 'owner_id' => $seller2->id,
                 'trade_name' => 'BioTienda Demo',
@@ -105,14 +124,14 @@ class AdminUserSeeder extends Seeder
                 'direccion_fiscal' => 'Av. Arequipa 1234, Lima, Lima, Peru',
                 'cuenta_bcp' => '123-456-789-012',
                 'cci' => '002-123-456789012-34',
-                'bank_secondary' => ['bank' => 'BBVA', 'account' => '001-234-567890123-45', 'cci' => '002-001-234567890123-45'], 
+                'bank_secondary' => ['bank' => 'BBVA', 'account' => '001-234-567890123-45', 'cci' => '002-001-234567890123-45'],
                 'store_name' => 'BioTienda Demo',
                 'address' => 'Av. Arequipa 1234, Lima, Peru',
                 'instagram' => 'biotiendademo',
                 'facebook' => 'biotiendademo',
                 'tiktok' => '@biotiendademo',
                 'policies' => 'Política de devolución: Puede devolver productos en un plazo de 7 días desde la recepción.',
-                'gallery' => ['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg'], 
+                'gallery' => ['gallery/img1.jpg', 'gallery/img2.jpg', 'gallery/img3.jpg'],
             ]
         );
     }

@@ -8,7 +8,10 @@
     "require": {
         "php": "^8.2",
         "ext-exif": "*",
+        "barryvdh/laravel-dompdf": "^3.1",
+        "chillerlan/php-qrcode": "*",
         "doctrine/dbal": "^4.4",
+        "google/apiclient": "^2.19",
         "laravel/framework": "^12.0",
         "laravel/reverb": "^1.9",
         "laravel/sanctum": "^4.3",
@@ -18,7 +21,8 @@
         "resend/resend-laravel": "^1.3",
         "spatie/laravel-medialibrary": "^11.21",
         "spatie/laravel-permission": "^6.24",
-        "spatie/laravel-query-builder": "^6.4"
+        "spatie/laravel-query-builder": "^6.4",
+        "spatie/pdf-to-text": "^1.54"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -53,7 +57,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" --names=server,queue --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

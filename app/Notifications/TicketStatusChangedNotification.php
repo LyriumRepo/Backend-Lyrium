@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Ticket;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class TicketStatusChangedNotification extends Notification
+final class TicketStatusChangedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -21,11 +23,19 @@ final class TicketStatusChangedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        if (app()->environment('local')) {
-            return ['database'];
+        $channels = ['database'];
+
+        $settings = $notifiable->notificationSetting;
+
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
         }
 
-        return ['mail', 'database'];
+        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -46,6 +56,29 @@ final class TicketStatusChangedNotification extends Notification
             ->line('**Estado anterior:** '.($statusLabels[$this->oldStatus] ?? $this->oldStatus))
             ->line('**Nuevo estado:** '.($statusLabels[$this->newStatus] ?? $this->newStatus))
             ->action('Ver ticket', config('app.frontend_url', 'http://localhost:3000').'/seller/help');
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $statusLabels = [
+            'open' => 'Abierto',
+            'in_progress' => 'En Proceso',
+            'resolved' => 'Resuelto',
+            'closed' => 'Cerrado',
+            'reopened' => 'Reabierto',
+        ];
+
+        $statusText = $statusLabels[$this->newStatus] ?? $this->newStatus;
+
+        return [
+            'title' => 'Estado de ticket actualizado',
+            'body' => "Ticket {$this->ticket->ticket_number}: {$statusText}",
+            'data' => [
+                'type' => 'ticket_status_changed',
+                'ticket_id' => $this->ticket->id,
+                'ticket_number' => $this->ticket->ticket_number,
+            ],
+        ];
     }
 
     public function toArray(object $notifiable): array

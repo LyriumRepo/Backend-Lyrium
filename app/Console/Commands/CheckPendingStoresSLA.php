@@ -11,7 +11,8 @@ use Illuminate\Console\Command;
 
 final class CheckPendingStoresSLA extends Command
 {
-    protected $signature   = 'stores:check-sla';
+    protected $signature = 'stores:check-sla';
+
     protected $description = 'Notifica a los administradores sobre tiendas pendientes de aprobación que superaron el SLA de 72 horas';
 
     public function handle(): int
@@ -37,7 +38,7 @@ final class CheckPendingStoresSLA extends Command
         }
 
         $oldest = $overdueStores->first();
-        $count  = $overdueStores->count();
+        $count = $overdueStores->count();
 
         foreach ($admins as $admin) {
             $admin->notify(new PendingStoreOverdueNotification($count, $oldest));

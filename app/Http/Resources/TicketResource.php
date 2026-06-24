@@ -25,11 +25,15 @@ final class TicketResource extends JsonResource
         return [
             'id' => $this->id,
             'id_display' => str_replace('TKT-', '', $this->ticket_number),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'titulo' => $this->subject,
             'descripcion' => $this->description,
             'ultimo_mensaje' => $lastMessage?->content ?? $this->description,
             'status' => $this->mapStatus($this->status),
             'type' => $this->category,
+            'categoria' => $this->category,
+            'prioridad' => $this->mapPriority($this->priority),
             'critical' => $this->is_critical,
             'tiempo' => $activityAt->diffForHumans(),
             'mensajes_count' => $this->messages_count ?? $this->messages->count(),
@@ -49,15 +53,15 @@ final class TicketResource extends JsonResource
                 'numeros' => $admin?->phone ?? '',
                 'correo' => $admin?->email ?? '',
             ],
-            'mensajes'            => $this->when(
+            'mensajes' => $this->when(
                 $orderedMessages !== null,
                 fn () => TicketMessageResource::collection($orderedMessages)
             ),
-            'has_more_messages'   => $this->when(
+            'has_more_messages' => $this->when(
                 $orderedMessages !== null,
                 fn () => $this->messages_count > $orderedMessages->count()
             ),
-            'oldest_message_id'   => $this->when(
+            'oldest_message_id' => $this->when(
                 $orderedMessages !== null && $orderedMessages->isNotEmpty(),
                 fn () => $orderedMessages->first()?->id
             ),
@@ -73,6 +77,17 @@ final class TicketResource extends JsonResource
             'closed' => 'cerrado',
             'reopened' => 'abierto',
             default => $status,
+        };
+    }
+
+    private function mapPriority(string $priority): string
+    {
+        return match ($priority) {
+            'low' => 'baja',
+            'medium' => 'media',
+            'high' => 'alta',
+            'critical' => 'critica',
+            default => 'media',
         };
     }
 }

@@ -17,9 +17,15 @@ final class BookServiceRequest extends FormRequest
     {
         return [
             'schedule_id' => ['required', 'integer', 'exists:service_schedules,id'],
-            'appointment_date' => ['required', 'date', 'after:now'],
+            'appointment_date' => ['required', 'date', 'after:yesterday'],
             'payment_method' => ['required', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'customer_notes' => ['nullable', 'string', 'max:1000'],
+
+            // ── NUEVOS CAMPOS SOPORTADOS ────────────────────────────────────
+            'specialist_id' => ['nullable', 'integer', 'exists:specialists,id'],
+            'start_time' => ['required', 'string', 'date_format:H:i'],
+            'end_time' => ['nullable', 'string', 'date_format:H:i'],
         ];
     }
 
@@ -27,6 +33,8 @@ final class BookServiceRequest extends FormRequest
     {
         return [
             'appointment_date.after' => 'La fecha de la cita debe ser en el futuro',
+            'start_time.required' => 'La hora de inicio de la cita es obligatoria.',
+            'specialist_id.exists' => 'El especialista seleccionado no es válido.',
         ];
     }
 }
