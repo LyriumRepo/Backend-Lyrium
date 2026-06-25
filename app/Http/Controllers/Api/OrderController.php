@@ -146,7 +146,7 @@ final class OrderController extends Controller
         if ($cartToken) {
             $serviceHolds = ServiceSlotHold::where('cart_token', $cartToken)
                 ->active()
-                ->with('service')
+                ->with(['service.store', 'specialist'])
                 ->get();
         }
 
@@ -191,9 +191,18 @@ final class OrderController extends Controller
                 }
             }
 
+            $serviceOrderItems = [];
             if ($hasServices) {
                 foreach ($serviceHolds as $hold) {
-                    $subtotal += (float) ($hold->service?->price ?? 0);
+                    $service = $hold->service;
+                    $servicePrice = (float) ($service?->price ?? 0);
+                    $subtotal += $servicePrice;
+
+                    $serviceOrderItems[] = [
+                        'hold'         => $hold,
+                        'service'      => $service,
+                        'servicePrice' => $servicePrice,
+                    ];
                 }
             }
 
@@ -281,6 +290,44 @@ final class OrderController extends Controller
 
             foreach ($orderItems as $item) {
                 $order->items()->create($item);
+            }
+
+            foreach ($serviceOrderItems as $entry) {
+                $hold    = $entry['hold'];
+                $service = $entry['service'];
+                $price   = $entry['servicePrice'];
+
+                $booking = ServiceBooking::create([
+                    'service_id'      => $hold->service_id,
+                    'user_id'         => $user->id,
+                    'schedule_id'     => $hold->schedule_id,
+                    'appointment_date'=> $hold->appointment_date,
+                    'status'          => ServiceBooking::STATUS_CONFIRMED,
+                    'total_price'     => $price,
+                    'payment_method'  => $data['payment_method'] ?? null,
+                    'payment_status'  => 'pending',
+                    'customer_notes'  => $hold->customer_notes,
+                    'service_address' => $hold->service_address,
+                    'specialist_id'   => $hold->specialist_id,
+                ]);
+
+                $order->serviceItems()->create([
+                    'service_id'                => $hold->service_id,
+                    'store_id'                  => $service?->store_id,
+                    'service_booking_id'        => $booking->id,
+                    'specialist_id'             => $hold->specialist_id,
+                    'appointment_date'          => $hold->appointment_date,
+                    'service_name'              => $service?->name ?? 'Servicio',
+                    'quantity'                  => 1,
+                    'unit_price'                => $price,
+                    'line_total'                => $price,
+                    'status'                    => 'pending',
+                    'service_snapshot'          => $service ? $service->only(['id', 'name', 'price', 'description']) : null,
+                    'store_name_snapshot'       => $service?->store?->name,
+                    'specialist_name_snapshot'  => $hold->specialist?->name,
+                ]);
+
+                $hold->delete();
             }
 
             $order->load('items');
