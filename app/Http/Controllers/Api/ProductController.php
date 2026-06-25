@@ -12,6 +12,7 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\ProductPendingReviewNotification;
 use App\Notifications\ProductStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -198,7 +199,7 @@ final class ProductController extends Controller
 
         // Notificar a administradores: producto pendiente de revisión
         $admins = User::role('administrator')->get();
-        $notification = new ProductStatusNotification($product, 'pending_review');
+        $notification = new ProductPendingReviewNotification($product);
         foreach ($admins as $admin) {
             $admin->notify($notification);
         }

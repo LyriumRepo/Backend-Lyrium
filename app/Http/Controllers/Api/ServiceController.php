@@ -14,6 +14,7 @@ use App\Http\Resources\ServiceBookingResource;
 use App\Http\Resources\ServiceResource;
 use App\Models\Service;
 use App\Models\User;
+use App\Notifications\ServicePendingReviewNotification;
 use App\Notifications\ServiceStatusNotification;
 use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
@@ -126,7 +127,7 @@ final class ServiceController extends Controller
 
         // Notificar a administradores: servicio pendiente de revisión
         $admins = User::role('administrator')->get();
-        $notification = new ServiceStatusNotification($service, Service::STATUS_PENDING_REVIEW);
+        $notification = new ServicePendingReviewNotification($service);
         foreach ($admins as $admin) {
             $admin->notify($notification);
         }
