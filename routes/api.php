@@ -354,6 +354,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lirios/balance', [LiriosController::class, 'balance']);
     Route::get('/lirios/checkout-eligibility', [LiriosController::class, 'checkoutEligibility']);
     Route::get('/lirios/transactions', [LiriosController::class, 'transactions']);
+    Route::post('/lirios/accrue', [LiriosController::class, 'accrue']);
 
     // Devices (FCM push notification tokens)
     Route::post('/devices', [DeviceController::class, 'register'])->middleware('throttle:10,1');

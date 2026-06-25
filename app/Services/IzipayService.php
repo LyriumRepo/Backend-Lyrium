@@ -694,21 +694,6 @@ final class IzipayService
                 'amount' => $txData['amount'] ?? null,
             ]);
 
-            // ── Accrue Lirios points ──────────────────────────────────────────
-            try {
-                $liriosService = app(\App\Services\LiriosService::class);
-                $liriosService->accrue($order->user_id, (float) $order->total, $order);
-                Log::info('IzipayService: Lirios acumulados', [
-                    'order_id' => $order->id,
-                    'total' => $order->total,
-                ]);
-            } catch (\Throwable $liriosEx) {
-                Log::error('IzipayService: error acumulando Lirios', [
-                    'order_id' => $order->id,
-                    'error' => $liriosEx->getMessage(),
-                ]);
-            }
-
             // ── Create ServiceBookings from holds ──────────────────────────
             $holdIds = $this->extractHoldIdsFromMetadata($answer);
             if (! empty($holdIds)) {
