@@ -65,6 +65,7 @@ use App\Http\Controllers\Api\IzipayController;
 use App\Http\Controllers\Api\IzipayPlanController;
 use App\Http\Controllers\Api\AdminMedalController;
 use App\Http\Controllers\Api\SellerMedalController;
+use App\Http\Controllers\Api\LogisticsController;
 
 
 /*
@@ -861,6 +862,19 @@ Route::middleware('auth:sanctum')->group(function () {
 // ── Security Admin Panel ────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'role:security_admin'])->prefix('security')->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
+});
+
+// ── Logística (público) ─────────────────────────────────────────────────
+Route::prefix('logistics')->group(function () {
+    Route::get('/departamentos',              [LogisticsController::class, 'departamentos']);
+    Route::get('/provincias/{departamento}',  [LogisticsController::class, 'provincias']);
+    Route::get('/distritos',                  [LogisticsController::class, 'distritos']);
+    Route::get('/operadores',                 [LogisticsController::class, 'operadores']);
+    Route::get('/shalom/terminal',            [LogisticsController::class, 'shalomTerminal']);
+    Route::get('/shalom/reparto',             [LogisticsController::class, 'shalomReparto']);
+    Route::post('/calcular-caja',             [LogisticsController::class, 'calcularCaja']);
+    Route::post('/calcular',                  [LogisticsController::class, 'calcular']);
+    Route::post('/confirmar-envio',           [LogisticsController::class, 'confirmarEnvio']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

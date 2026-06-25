@@ -173,14 +173,15 @@ final class OrderController extends Controller
                         throw new \Exception("Stock insuficiente para '{$product->name}'.");
                     }
 
-                    $lineTotal = $item->quantity * $item->product->price;
+                    $effectivePrice = $item->product->sale_price ?? $item->product->price;
+                    $lineTotal = $item->quantity * $effectivePrice;
                     $subtotal += $lineTotal;
 
                     $orderItems[] = [
                         'product_id' => $product->id,
                         'store_id' => $product->store_id,
                         'product_name' => $product->name,
-                        'unit_price' => $item->product->price,
+                        'unit_price' => $effectivePrice,
                         'quantity' => $item->quantity,
                         'line_total' => $lineTotal,
                         'status' => 'pending_seller',
@@ -264,6 +265,8 @@ final class OrderController extends Controller
                 'shipping_postal_code' => $data['shipping_postal_code'] ?? null,
                 'shipping_notes' => $data['shipping_notes'] ?? null,
                 'shipping_type' => $data['shipping_type'] ?? null,
+                'carrier' => $data['carrier'] ?? null,
+                'store_shipping' => $data['store_shipping'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,

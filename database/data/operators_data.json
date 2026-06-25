@@ -1,0 +1,5276 @@
+[
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "ALTO SELVA ALEGRE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "AREQUIPA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "CAYMA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "CERRO COLORADO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "CHARACATO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "CHIGUATA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "JACOBO HUNTER",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "JOSE LUIS BUSTAMANTE Y RIVERO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "LA JOYA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "MARIANO MELGAR",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "MIRAFLORES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "MOLLEBAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "PAUCARPATA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "POCSI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "POLOBAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "QUEQUENA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SABANDIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SACHACA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SAN JUAN DE SIGUAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SAN JUAN DE TARUCANI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SANTA ISABEL DE SIGUAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SANTA RITA DE SIGUAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "SOCABAYA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "TIABAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "UCHUMAYO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "VITOR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "YANAHUARA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "YARABAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "AREQUIPA",
+    "distrito": "YURA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "CAMANA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "JOSE MARIA QUIMPER",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "MARIANO NICOLAS VALCARCEL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "MARISCAL CACERES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "NICOLAS DE PIEROLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "OCONA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "QUILCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAMANA",
+    "distrito": "SAMUEL PASTOR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "ACARI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "ATICO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "ATIQUIPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "BELLA UNION",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "CAHUACHO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "CARAVELI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "CHALA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "CHAPARRA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "HUANUHUANU",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "JAQUI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "LOMAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "QUICACHA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CARAVELI",
+    "distrito": "YAUCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "ANDAGUA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "APLAO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "AYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "CHACHAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "CHILCAYMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "CHOCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "HUANCARQUI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "MACHAGUAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "ORCOPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "PAMPACOLCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "TIPAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "UNON",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "URACA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CASTILLA",
+    "distrito": "VIRACO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "ACHOMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "CABANACONDE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "CALLALLI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "CAYLLOMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "CHIVAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "COPORAQUE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "HUAMBO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "HUANCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "ICHUPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "LARI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "LLUTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "MACA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "MADRIGAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "MAJES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "SAN ANTONIO DE CHUCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "SIBAYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "TAPAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "TISCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "TUTI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CAYLLOMA",
+    "distrito": "YANQUE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "ANDARAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "CAYARANI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "CHICHAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "CHUQUIBAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "IRAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "RIO GRANDE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "SALAMANCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "CONDESUYOS",
+    "distrito": "YANAQUIHUA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "COCACHACRA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "DEAN VALDIVIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "ISLAY",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "MEJIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "MOLLENDO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "ISLAY",
+    "distrito": "PUNTA DE BOMBON",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "ALCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "CHARCANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "COTAHUASI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "HUAYNACOTAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "PAMPAMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "PUYCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "QUECHUALLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "SAYLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "TAURIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "TOMEPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AREQUIPA",
+    "provincia": "LA UNION",
+    "distrito": "TORO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "AYACUCHO",
+    "provincia": "HUAMANGA",
+    "distrito": "AYACUCHO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "ASUNCION",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "CAJAMARCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "CHETILLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "COSPAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "ENCANADA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "JESUS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "LLACANORA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "LOS BANOS DEL INCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "MAGDALENA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "MATARA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "NAMORA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CAJAMARCA",
+    "provincia": "CAJAMARCA",
+    "distrito": "SAN JUAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "CCORCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "CUSCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "POROY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SAN JERONIMO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SAN SEBASTIAN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SANTIAGO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "SAYLLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "CUSCO",
+    "provincia": "CUSCO",
+    "distrito": "WANCHAQ",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANCAVELICA",
+    "provincia": "HUAYTARA",
+    "distrito": "SAN ISIDRO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUAMALIES",
+    "distrito": "MIRAFLORES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "AMARILIS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "CHINCHAO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "CHURUBAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "HUANUCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "MARGOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "PILLCO MARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "QUISQUI (KICHKI)",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "SAN FRANCISCO DE CAYRAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "SAN PABLO DE PILLAO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "SAN PEDRO DE CHAULAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "SANTA MARIA DEL VALLE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "YACUS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "HUANUCO",
+    "provincia": "HUANUCO",
+    "distrito": "YARUMAYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "ALTO LARAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "CHAVIN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "CHINCHA ALTA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "CHINCHA BAJA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "EL CARMEN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "GROCIO PRADO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "PUEBLO NUEVO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "SAN JUAN DE YANAC",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "SAN PEDRO DE HUACARPANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "SUNAMPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "CHINCHA",
+    "distrito": "TAMBO DE MORA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "ICA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "LA TINGUINA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "LOS AQUIJES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "OCUCAJE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "PACHACUTEC",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "PARCONA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "PUEBLO NUEVO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SALAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SAN JOSE DE LOS MOLINOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SAN JUAN BAUTISTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SANTIAGO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "SUBTANJALLA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "TATE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "ICA",
+    "distrito": "YAUCA DEL ROSARIO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "HUANCANO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "HUMAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "INDEPENDENCIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "PARACAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "PISCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "SAN ANDRES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "SAN CLEMENTE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "ICA",
+    "provincia": "PISCO",
+    "distrito": "TUPAC AMARU INCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CARHUACALLANGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHACAPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHICCHE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHILCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHONGOS ALTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CHUPURO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "COLCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "CULLHUAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "EL TAMBO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUACRAPUQUIO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUALHUAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUANCAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUANCAYO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUASICANCHA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "HUAYUCACHI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "INGENIO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "PARIAHUANCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "PILCOMAYO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "PUCARA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "QUICHUAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "QUILCAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SAN AGUSTIN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SAN JERONIMO DE TUNAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SANO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SANTO DOMINGO DE ACOBAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SAPALLANGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "SICAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "JUNIN",
+    "provincia": "HUANCAYO",
+    "distrito": "VIQUES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "ASCOPE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "CASA GRANDE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "CHICAMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "CHOCOPE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "MAGDALENA DE CAO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "PAIJAN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "RAZURI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "ASCOPE",
+    "distrito": "SANTIAGO DE CAO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "BAMBAMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "BOLIVAR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "CONDORMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "LONGOTEA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "UCHUMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "BOLIVAR",
+    "distrito": "UCUNCHA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "CHEPEN",
+    "distrito": "CHEPEN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "CHEPEN",
+    "distrito": "PACANGA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "CHEPEN",
+    "distrito": "PUEBLO NUEVO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "GRAN CHIMU",
+    "distrito": "CASCAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "GRAN CHIMU",
+    "distrito": "LUCMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "GRAN CHIMU",
+    "distrito": "MARMOT",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "GRAN CHIMU",
+    "distrito": "SAYAPULLO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "JULCAN",
+    "distrito": "CALAMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "JULCAN",
+    "distrito": "CARABAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "JULCAN",
+    "distrito": "HUASO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "JULCAN",
+    "distrito": "JULCAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "AGALLPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "CHARAT",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "HUARANCHAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "LA CUESTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "MACHE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "OTUZCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "PARANDAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "SALPO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "SINSICAP",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "OTUZCO",
+    "distrito": "USQUIL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "GUADALUPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "JEQUETEPEQUE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "PACASMAYO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "SAN JOSE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PACASMAYO",
+    "distrito": "SAN PEDRO DE LLOC",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "BULDIBUYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "CHILLIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "HUANCASPATA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "HUAYLILLAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "HUAYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "ONGON",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "PARCOY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "PATAZ",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "PIAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "SANTIAGO DE CHALLAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "TAURIJA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "TAYABAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "PATAZ",
+    "distrito": "URPAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "CHUGAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "COCHORCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "CURGOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "HUAMACHUCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "MARCABAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "SANAGORAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "SARIN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANCHEZ CARRION",
+    "distrito": "SARTIMBAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "ANGASMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "CACHICADAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "MOLLEBAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "MOLLEPATA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "QUIRUVILCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "SANTA CRUZ DE CHUCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "SANTIAGO DE CHUCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "SANTIAGO DE CHUCO",
+    "distrito": "SITABAMBA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "EL PORVENIR",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "FLORENCIA DE MORA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "HUANCHACO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "LA ESPERANZA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "LAREDO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "MOCHE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "POROTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "SALAVERRY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "SIMBAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "TRUJILLO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "TRUJILLO",
+    "distrito": "VICTOR LARCO HERRERA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "VIRU",
+    "distrito": "CHAO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "VIRU",
+    "distrito": "GUADALUPITO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LA LIBERTAD",
+    "provincia": "VIRU",
+    "distrito": "VIRU",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "CAYALTI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "CHICLAYO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "CHONGOYAPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "ETEN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "ETEN PUERTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "JOSE LEONARDO ORTIZ",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "LA VICTORIA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "LAGUNAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "MONSEFU",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "NUEVA ARICA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "OYOTUN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "PATAPO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "PICSI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "PIMENTEL",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "POMALCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "PUCALA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "REQUE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "SANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "SANTA ROSA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "CHICLAYO",
+    "distrito": "TUMAN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "CANARIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "FERRENAFE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "INCAHUASI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "MANUEL ANTONIO MESONES MURO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "PITIPO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "FERRENAFE",
+    "distrito": "PUEBLO NUEVO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "CHOCHOPE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "ILLIMO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "JAYANCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "LAMBAYEQUE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "MOCHUMI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "MORROPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "MOTUPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "OLMOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "PACORA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "SALAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "SAN JOSE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LAMBAYEQUE",
+    "provincia": "LAMBAYEQUE",
+    "distrito": "TUCUME",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "BARRANCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "PARAMONGA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "PATIVILCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "SUPE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "BARRANCA",
+    "distrito": "SUPE PUERTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "CAJATAMBO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "COPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "GORGOR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "HUANCAPON",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CAJATAMBO",
+    "distrito": "MANAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "ASIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "CALANGO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "CERRO AZUL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "CHILCA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "COAYLLO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "IMPERIAL",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "LUNAHUANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "MALA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "NUEVO IMPERIAL",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "PACARAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "QUILMANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "SAN ANTONIO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "SAN LUIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "SAN VICENTE DE CANET",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "SAN VICENTE DE CANETE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "SANTA CRUZ DE FLORES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANETE",
+    "distrito": "ZUNIGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "ARAHUAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "CANTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "HUAMANTANGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "HUAROS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "LACHAQUI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "SAN BUENAVENTURA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "CANTA",
+    "distrito": "SANTA ROSA DE QUIVES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "ATAVILLOS ALTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "ATAVILLOS BAJO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "AUCALLAMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "CHANCAY",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "HUARAL",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "IHUARI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "LAMPIAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "PACARAOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "SAN MIGUEL DE ACOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "SANTA CRUZ DE ANDAMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "SUMBILCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUARAL",
+    "distrito": "VEINTISIETE DE NOVIEMBRE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "ANTIOQUIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "CALLAHUANCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "CARAMPOMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "CHICLA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "CUENCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "HUACHUPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "HUANZA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "HUAROCHIRI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "LAHUAYTAMBO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "LANGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "LARAOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "MARIATANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "MATUCANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "RICARDO PALMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN ANDRES DE TUPICOCHA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN ANTONIO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN BARTOLOME",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN DAMIAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN JUAN DE IRIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN JUAN DE TANTARANCHE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN LORENZO DE QUINTI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN MATEO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN MATEO DE OTAO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN PEDRO DE CASTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SAN PEDRO DE HUANCAYRE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANGALLAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANTA CRUZ DE COCACHACRA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANTA EULALIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANTIAGO DE ANCHUCAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANTIAGO DE TUNA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SANTO DOMINGO DE LOS OLLEROS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAROCHIRI",
+    "distrito": "SURCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "AMBAR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "CALETA DE CARQUIN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "CHECRAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "HUACHO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "HUALMAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "HUAURA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "LEONCIO PRADO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "PACCHO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "SANTA LEONOR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "SANTA MARIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "SAYAN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "HUAURA",
+    "distrito": "VEGUETA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "ANCON",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "ATE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "ATE-VITARTE",
+    "tiene_shalom": true,
+    "tiene_olva": false,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "BARRANCO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "BRENA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CARABAYLLO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CERCADO LIMA",
+    "tiene_shalom": true,
+    "tiene_olva": false,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CHACLACAYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CHORRILLOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "CIENEGUILLA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "COMAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "EL AGUSTINO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "INDEPENDENCIA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "JESUS MARIA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LA MOLINA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LA VICTORIA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LIMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LINCE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LOS OLIVOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LURIGANCHO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "LURIN",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "MAGDALENA DEL MAR",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "MIRAFLORES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PACHACAMAC",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUCUSANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUEBLO LIBRE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUENTE PIEDRA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUNTA HERMOSA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "PUNTA NEGRA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "RIMAC",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN BARTOLO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN BORJA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN ISIDRO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN JUAN DE LURIGANCHO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN JUAN DE MIRAFLORES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN LUIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN MARTIN DE PORRES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SAN MIGUEL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SANTA ANITA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SANTA MARIA DEL MAR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SANTA ROSA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SANTIAGO DE SURCO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "SURQUILLO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "VILLA EL SALVADOR",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "LIMA",
+    "distrito": "VILLA MARIA DEL TRIUNFO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "ANDAJES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "CAUJUL",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "COCHAMARCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "NAVAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "OYON",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "OYON",
+    "distrito": "PACHANGARA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "ALIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "ALLAUCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "AYAVIRI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "AZANGARO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "CACRA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "CARANIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "CATAHUASI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "CHOCOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "COCHAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "COLONIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HONGOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HUAMPARA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HUANCAYA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HUANEC",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HUANGASCAR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "HUANTAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "LARAOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "LINCHA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "MADEAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "MIRAFLORES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "OMAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "PUTINZA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "QUINCHES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "QUINOCAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "SAN JOAQUIN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "SAN PEDRO DE PILAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "TANTA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "TAURIPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "TOMAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "TUPE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "VINAC",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "VITIS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LIMA",
+    "provincia": "YAUYOS",
+    "distrito": "YAUYOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "LORETO",
+    "provincia": "MAYNAS",
+    "distrito": "IQUITOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "AYABACA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "FRIAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "JILILI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "LAGUNAS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "MONTERO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "PACAIPAMPA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "PAIMAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "SAPILLICA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "SICCHEZ",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "AYABACA",
+    "distrito": "SUYO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "CANCHAQUE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "EL CARMEN DE LA FRONTERA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "HUANCABAMBA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "HUARMACA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "LALAQUIZ",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "SAN MIGUEL DE EL FAIQUE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "SONDOR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "HUANCABAMBA",
+    "distrito": "SONDORILLO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "BUENOS AIRES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "CHALACO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "CHULUCANAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "LA MATANZA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "MORROPON",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "SALITRAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "SAN JUAN DE BIGOTE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "SANTA CATALINA DE MOSSA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "SANTO DOMINGO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "MORROPON",
+    "distrito": "YAMANGO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "AMOTAPE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "ARENAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "COLAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "LA HUACA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "PAITA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "TAMARINDO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PAITA",
+    "distrito": "VICHAYAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "26 DE OCTUBRE",
+    "tiene_shalom": true,
+    "tiene_olva": false,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "CASTILLA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "CATACAOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "CURA MORI",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "EL TALLAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "LA ARENA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "LA UNION",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "LAS LOMAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "PIURA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "TAMBO GRANDE",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "PIURA",
+    "distrito": "VEINTISEIS DE OCTUBRE",
+    "tiene_shalom": true,
+    "tiene_olva": false,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "BELLAVISTA DE LA UNION",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "BERNAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "CRISTO NOS VALGA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "RINCONADA LLICUAR",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "SECHURA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SECHURA",
+    "distrito": "VICE",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "BELLAVISTA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "IGNACIO ESCUDERO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "LANCONES",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "MARCAVELICA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "MIGUEL CHECA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "QUERECOTILLO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "SALITRAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "SULLANA",
+    "distrito": "SULLANA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "EL ALTO",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "LA BREA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "LOBITOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "LOS ORGANOS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "MANCORA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PIURA",
+    "provincia": "TALARA",
+    "distrito": "PARINAS",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "PUNO",
+    "provincia": "SAN ROMAN",
+    "distrito": "JULIACA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "ALTO DE LA ALIANZA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "CALANA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "CIUDAD NUEVA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "CORONEL GREGORIO ALBARRACIN LANCHIPA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "INCLAN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "LA YARADA LOS PALOS",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": false
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "PACHIA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "PALCA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "POCOLLAY",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "SAMA",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": false,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TACNA",
+    "provincia": "TACNA",
+    "distrito": "TACNA",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "CORRALES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "LA CRUZ",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "PAMPAS DE HOSPITAL",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "SAN JACINTO",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "SAN JUAN DE LA VIRGEN",
+    "tiene_shalom": false,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  },
+  {
+    "departamento": "TUMBES",
+    "provincia": "TUMBES",
+    "distrito": "TUMBES",
+    "tiene_shalom": true,
+    "tiene_olva": true,
+    "tiene_sharf": true,
+    "tiene_urbano": true
+  }
+]
