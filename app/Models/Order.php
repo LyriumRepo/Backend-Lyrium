@@ -70,6 +70,7 @@ final class Order extends Model
         'shipping_postal_code',
         'shipping_notes',
         'shipping_type',
+        'carrier',
         'subtotal',
         'shipping_cost',
         'tax_amount',
@@ -78,6 +79,7 @@ final class Order extends Model
         'notes',
         'coupon_code',
         'coupon_id',
+        'store_shipping',
     ];
 
     protected function casts(): array
@@ -88,6 +90,7 @@ final class Order extends Model
             'tax_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'store_shipping' => 'array',
         ];
     }
 
@@ -184,23 +187,28 @@ final class Order extends Model
             return self::STATUS_PENDING_SELLER;
         }
 
-        if (in_array(self::STATUS_PROCESSING, $statuses) || in_array(self::STATUS_SHIPPED, $statuses)) {
-            return self::STATUS_PROCESSING;
+        $orderMap = [
+            self::STATUS_CONFIRMED  => 0,
+            self::STATUS_PROCESSING => 1,
+            self::STATUS_SHIPPED    => 2,
+            self::STATUS_ON_THE_WAY => 3,
+            self::STATUS_DELIVERED  => 4,
+        ];
+
+        $minOrder = PHP_INT_MAX;
+        $result = self::STATUS_CONFIRMED;
+        foreach ($statuses as $s) {
+            if (!isset($orderMap[$s])) {
+                continue;
+            }
+            $o = $orderMap[$s];
+            if ($o < $minOrder) {
+                $minOrder = $o;
+                $result = $s;
+            }
         }
 
-        if (in_array(self::STATUS_SHIPPED, $statuses)) {
-            return self::STATUS_SHIPPED;
-        }
-
-        if (in_array(self::STATUS_ON_THE_WAY, $statuses)) {
-            return self::STATUS_ON_THE_WAY;
-        }
-
-        if (in_array(self::STATUS_DELIVERED, $statuses) && count($statuses) === 1) {
-            return self::STATUS_DELIVERED;
-        }
-
-        return self::STATUS_CONFIRMED;
+        return $result;
     }
 
     public function refreshGlobalStatus(): void

@@ -25,46 +25,34 @@ final class CartController extends Controller
         if (! $user && $request->bearerToken()) {
             $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->bearerToken());
             if ($token) {
-                $user = $token->tokenable; // Esto extrae el modelo del Usuario dueño del token
+                $user = $token->tokenable;
             }
         }
 
         $sessionId = $request->header('X-Session-ID') ?? '';
 
-        // CASO 1: Si realmente NO hay usuario logueado (Invitado real)
         if (! $user) {
             return Cart::firstOrCreate(
                 ['session_id' => $sessionId],
                 ['user_id' => null]
             );
         }
-
-        // CASO 2: SI HAY UN USUARIO LOGUEADO (Detectado por Plan A o Plan B)
-
-        // 1. Buscamos o creamos el carrito propio de su cuenta de usuario
         $userCart = Cart::firstOrCreate(
             ['user_id' => $user->id],
-            ['session_id' => null] // Forzamos null en sesión para el carrito del usuario
+            ['session_id' => null] 
         );
-
-        // 2. Buscamos si hay un carrito de invitado flotando con este session_id
         $guestCart = Cart::where('session_id', $sessionId)
             ->whereNull('user_id')
             ->first();
 
-        // 3. ¡FUSIÓN! Si existe el carrito de invitado, migramos sus productos
         if ($guestCart) {
             $guestItems = CartItem::where('cart_id', $guestCart->id)->get();
 
             if ($guestItems->isNotEmpty()) {
-                // Solo fusionar si el carrito invitado se creó en las últimas 24h
                 $isRecent = $guestCart->created_at && $guestCart->created_at->gt(now()->subHours(24));
-
-                // También permitir si el carrito del usuario está vacío (primera compra)
                 $userHasItems = CartItem::where('cart_id', $userCart->id)->exists();
 
                 if (! $isRecent && $userHasItems) {
-                    // Carrito antiguo con items — no fusionar, eliminar guest items
                     foreach ($guestItems as $gi) {
                         $gi->delete();
                     }
@@ -98,7 +86,7 @@ final class CartController extends Controller
     public function index(Request $request): JsonResponse
     {
         $cart = $this->getOrCreateCart($request);
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }
@@ -135,8 +123,7 @@ final class CartController extends Controller
                 'quantity' => $data['quantity'] ?? 1,
             ]);
         }
-
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }
@@ -164,8 +151,7 @@ final class CartController extends Controller
         }
 
         $cartItem->update(['quantity' => $data['quantity']]);
-
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }
@@ -177,8 +163,7 @@ final class CartController extends Controller
         CartItem::where('cart_id', $cart->id)
             ->where('product_id', $productId)
             ->delete();
-
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }
@@ -187,7 +172,7 @@ final class CartController extends Controller
     {
         $cart = $this->getOrCreateCart($request);
         $cart->items()->delete();
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }

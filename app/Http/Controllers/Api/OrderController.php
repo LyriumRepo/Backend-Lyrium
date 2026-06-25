@@ -167,14 +167,15 @@ final class OrderController extends Controller
                         throw new \Exception("Stock insuficiente para '{$product->name}'.");
                     }
 
-                    $lineTotal = $item->quantity * $item->product->price;
+                    $effectivePrice = $item->product->sale_price ?? $item->product->price;
+                    $lineTotal = $item->quantity * $effectivePrice;
                     $subtotal += $lineTotal;
 
                     $orderItems[] = [
                         'product_id' => $product->id,
                         'store_id' => $product->store_id,
                         'product_name' => $product->name,
-                        'unit_price' => $item->product->price,
+                        'unit_price' => $effectivePrice,
                         'quantity' => $item->quantity,
                         'line_total' => $lineTotal,
                         'status' => 'pending_seller',
@@ -258,6 +259,7 @@ final class OrderController extends Controller
                 'shipping_postal_code' => $data['shipping_postal_code'] ?? null,
                 'shipping_notes' => $data['shipping_notes'] ?? null,
                 'shipping_type' => $data['shipping_type'] ?? null,
+                'carrier' => $data['carrier'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
@@ -268,6 +270,7 @@ final class OrderController extends Controller
                 'notes' => $data['notes'] ?? null,
                 'coupon_code' => $couponCode,
                 'coupon_id' => $couponId,
+                'store_shipping' => $data['store_shipping'] ?? null,
             ]);
 
             foreach ($orderItems as $item) {
@@ -340,6 +343,7 @@ final class OrderController extends Controller
 
             if ($hasItems) {
                 $order->items()
+                    ->whereIn('store_id', $storeIds)
                     ->where('status', OrderItem::STATUS_PENDING_SELLER)
                     ->update(['status' => OrderItem::STATUS_CONFIRMED]);
             }
@@ -349,12 +353,14 @@ final class OrderController extends Controller
 
                 $bookingIds = DB::table('order_service_items')
                     ->where('order_id', $order->id)
+                    ->whereIn('store_id', $storeIds)
                     ->whereIn('status', $initialStatuses)
                     ->whereNotNull('service_booking_id')
                     ->pluck('service_booking_id');
 
                 DB::table('order_service_items')
                     ->where('order_id', $order->id)
+                    ->whereIn('store_id', $storeIds)
                     ->whereIn('status', $initialStatuses)
                     ->update(['status' => 'confirmed']);
 
@@ -364,6 +370,7 @@ final class OrderController extends Controller
             }
 
             $order->refresh();
+            $order->load(['items', 'serviceItems']);
             $order->refreshGlobalStatus();
         } else {
             $order->items()
@@ -392,7 +399,9 @@ final class OrderController extends Controller
 
         $order->load(self::WITH_RELATIONS);
 
-        event(new OrderStatusChanged($order));
+        if ($order->wasChanged('status')) {
+            event(new OrderStatusChanged($order));
+        }
 
         return $this->success(new OrderResource($order));
     }
@@ -438,6 +447,7 @@ final class OrderController extends Controller
 
             if ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
+                    ->whereIn('store_id', $storeIds)
                     ->whereIn('status', [OrderItem::STATUS_PENDING_SELLER, OrderItem::STATUS_CONFIRMED])
                     ->get();
 
@@ -448,11 +458,13 @@ final class OrderController extends Controller
 
                 if ($hasServices) {
                     $bookingIds = $order->serviceItems()
+                        ->whereIn('store_id', $storeIds)
                         ->whereIn('status', ['pending', 'confirmed'])
                         ->whereNotNull('service_booking_id')
                         ->pluck('service_booking_id');
 
                     $order->serviceItems()
+                        ->whereIn('store_id', $storeIds)
                         ->whereIn('status', ['pending', 'confirmed'])
                         ->update(['status' => 'cancelled']);
 
@@ -471,6 +483,7 @@ final class OrderController extends Controller
 
                 if ($currentItemStatus) {
                     $order->items()
+                        ->whereIn('store_id', $storeIds)
                         ->where('status', $currentItemStatus)
                         ->update(['status' => match ($newStatus) {
                             Order::STATUS_PROCESSING => OrderItem::STATUS_PROCESSING,
@@ -514,6 +527,7 @@ final class OrderController extends Controller
             }
 
             $order->refresh();
+            $order->load(['items', 'serviceItems']);
             $order->refreshGlobalStatus();
         } elseif ($user->hasRole('administrator')) {
             $order->update(['status' => $newStatus]);
@@ -541,6 +555,7 @@ final class OrderController extends Controller
                     ->where('status', OrderItem::STATUS_SHIPPED)
                     ->update(['status' => OrderItem::STATUS_DELIVERED]);
                 $order->refresh();
+                $order->load(['items', 'serviceItems']);
                 $order->refreshGlobalStatus();
 
                 $order->items->pluck('store_id')->unique()
@@ -565,6 +580,7 @@ final class OrderController extends Controller
                 }
 
                 $order->refresh();
+                $order->load(['items', 'serviceItems']);
                 $order->refreshGlobalStatus();
             } else {
                 return $this->forbidden('No tienes permiso para cambiar a este estado.');
@@ -609,7 +625,9 @@ final class OrderController extends Controller
 
         $order->load(self::WITH_RELATIONS);
 
-        event(new OrderStatusChanged($order));
+        if ($order->wasChanged('status')) {
+            event(new OrderStatusChanged($order));
+        }
 
         return $this->success(new OrderResource($order));
     }
