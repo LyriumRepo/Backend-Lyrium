@@ -19,6 +19,7 @@ use App\Notifications\TicketRepliedNotification;
 use App\Services\TicketAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class TicketController extends Controller
@@ -132,7 +133,13 @@ final class TicketController extends Controller
 
         $admins = User::role('administrator')->get();
         foreach ($admins as $admin) {
-            $admin->notify(new TicketCreatedNotification($ticket->load('user', 'store')));
+            try {
+                $admin->notify(new TicketCreatedNotification($ticket->load('user', 'store')));
+            } catch (\Throwable $e) {
+                Log::error('[Ticket] Error notificando TicketCreated al admin', [
+                    'ticket_id' => $ticket->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $ticket->refresh();
@@ -191,10 +198,18 @@ final class TicketController extends Controller
             $ticket->update(['status' => 'reopened']);
         }
 
-        if ($ticket->assignedAdmin) {
-            $ticket->assignedAdmin->notify(
-                new TicketRepliedNotification($ticket, $message->load('user'))
-            );
+        $adminsToNotify = $ticket->assignedAdmin
+            ? collect([$ticket->assignedAdmin])
+            : User::role('administrator')->get();
+
+        foreach ($adminsToNotify as $admin) {
+            try {
+                $admin->notify(new TicketRepliedNotification($ticket, $message->load('user')));
+            } catch (\Throwable $e) {
+                Log::error('[Ticket] Error notificando TicketReplied al admin', [
+                    'ticket_id' => $ticket->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $message->load(['user', 'attachments']);

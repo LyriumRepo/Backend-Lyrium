@@ -257,7 +257,13 @@ final class IzipayBookingService
 
             $storeUser = $booking->service?->store?->owner;
             if ($storeUser) {
-                $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                try {
+                    $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                } catch (\Throwable $e) {
+                    Log::error('[IzipayBooking] Error notificando BookingCreated', [
+                        'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return $booking;
@@ -388,7 +394,13 @@ final class IzipayBookingService
 
                 $storeUser = $booking->service?->store?->owner;
                 if ($storeUser) {
-                    $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                    try {
+                        $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                    } catch (\Throwable $e) {
+                        Log::error('[IzipayBooking] Error notificando BookingCreated', [
+                            'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
 

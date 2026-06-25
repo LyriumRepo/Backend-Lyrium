@@ -15,6 +15,7 @@ use App\Notifications\ContractStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 final class ContractController extends Controller
@@ -126,7 +127,13 @@ final class ContractController extends Controller
         );
 
         User::role('administrator')->each(function (User $admin) use ($contract): void {
-            $admin->notify(new ContractStatusNotification($contract, 'created'));
+            try {
+                $admin->notify(new ContractStatusNotification($contract, 'created'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando creación', [
+                    'contract_id' => $contract->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
         $contract->load(['auditTrails', 'store']);
@@ -235,11 +242,23 @@ final class ContractController extends Controller
         };
 
         if ($contract->store && $contract->store->owner) {
-            $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
+            try {
+                $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando al dueño', [
+                    'contract_id' => $contract->id, 'action' => $action, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         User::role('administrator')->each(function (User $admin) use ($contract, $action): void {
-            $admin->notify(new ContractStatusNotification($contract, $action));
+            try {
+                $admin->notify(new ContractStatusNotification($contract, $action));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando al admin', [
+                    'contract_id' => $contract->id, 'action' => $action, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
         $contract->load(['auditTrails', 'store']);
@@ -398,7 +417,13 @@ final class ContractController extends Controller
         );
 
         User::role('administrator')->each(function (User $admin) use ($contract): void {
-            $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+            try {
+                $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando eliminación', [
+                    'contract_id' => $contract->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
 
@@ -571,11 +596,23 @@ final class ContractController extends Controller
         $renewed->load(['auditTrails', 'store']);
 
         if ($renewed->store && $renewed->store->owner) {
-            $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+            try {
+                $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando renovación al dueño', [
+                    'contract_id' => $renewed->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         User::role('administrator')->each(function (User $admin) use ($renewed): void {
-            $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+            try {
+                $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando renovación al admin', [
+                    'contract_id' => $renewed->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
         return response()->json(['data' => new ContractResource($renewed)], 201);

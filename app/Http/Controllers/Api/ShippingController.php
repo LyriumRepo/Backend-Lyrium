@@ -17,6 +17,7 @@ use App\Notifications\ShipmentStatusNotification;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class ShippingController extends Controller
 {
@@ -156,7 +157,13 @@ final class ShippingController extends Controller
     {
         $customer = $shipment->loadMissing('order.user')->order?->user;
         if ($customer) {
-            $customer->notify(new ShipmentStatusNotification($shipment, $status));
+            try {
+                $customer->notify(new ShipmentStatusNotification($shipment, $status));
+            } catch (\Throwable $e) {
+                Log::error('[Shipping] Error notificando ShipmentStatus al cliente', [
+                    'shipment_id' => $shipment->id, 'status' => $status, 'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

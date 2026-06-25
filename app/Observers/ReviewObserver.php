@@ -44,7 +44,13 @@ class ReviewObserver
     {
         $owner = $review->product?->store?->owner;
         if ($owner) {
-            $owner->notify(new NewReviewNotification($review->load(['product.store', 'user'])));
+            try {
+                $owner->notify(new NewReviewNotification($review->load(['product.store', 'user'])));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('[Review] Error notificando NewReview', [
+                    'review_id' => $review->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

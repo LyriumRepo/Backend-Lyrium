@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\ForumController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\IzipayPaymentController;
+use App\Http\Controllers\Api\LiriosController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
@@ -62,6 +63,8 @@ use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IzipayController;
 use App\Http\Controllers\Api\IzipayPlanController;
+use App\Http\Controllers\Api\AdminMedalController;
+use App\Http\Controllers\Api\SellerMedalController;
 
 
 /*
@@ -105,6 +108,7 @@ Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/slug/{slug}', [ServiceController::class, 'showBySlug']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/slots', [ServiceController::class, 'availableSlots']);
 Route::get('/reviews', [ReviewController::class, 'index']);
@@ -129,10 +133,14 @@ Route::post('/webhooks/izipay/order', [IzipayController::class, 'webhook']);
 
 Route::post('/webhooks/culqi', [CulqiController::class, 'webhook']);
 
+// Medallas Top 100 — consulta pública (active approved)
+Route::get('/medals/active', [\App\Http\Controllers\Api\MedalController::class, 'active']);
+
 // ranking
 Route::prefix('rankings')->group(function () {
     Route::get('/products', [RankingController::class, 'products']);
     Route::get('/stores',   [RankingController::class, 'stores']);
+    Route::get('/services', [RankingController::class, 'services']);
 });
 
 // ChatBot — Asistente Virtual Lyrium (público)
@@ -341,6 +349,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/loyalty/validate-code', [LoyaltyController::class, 'validateCode']);
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
 
+    // Lirios (puntos de fidelidad internos)
+    Route::get('/lirios/balance', [LiriosController::class, 'balance']);
+    Route::get('/lirios/checkout-eligibility', [LiriosController::class, 'checkoutEligibility']);
+    Route::get('/lirios/transactions', [LiriosController::class, 'transactions']);
+
     // Devices (FCM push notification tokens)
     Route::post('/devices', [DeviceController::class, 'register'])->middleware('throttle:10,1');
     Route::delete('/devices', [DeviceController::class, 'unregister'])->middleware('throttle:10,1');
@@ -461,6 +474,10 @@ Route::middleware('auth:sanctum')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:administrator')->group(function () {
+        // Lirios Admin
+        Route::get('/lirios/admin/accounts', [LiriosController::class, 'adminAccounts']);
+        Route::put('/lirios/admin/accounts/{userId}', [LiriosController::class, 'adminUpdateBalance']);
+
         // Nubefact / Facturación Electrónica
         Route::prefix('nubefact')->group(function () {
             Route::get('/comprobantes', [NubefactController::class, 'listar']);
@@ -482,6 +499,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/reviews/reported',     [ReviewModerationController::class, 'reported']);
         Route::put('/admin/reviews/{id}/moderate', [ReviewModerationController::class, 'moderate']);
         Route::delete('/admin/reviews/{id}',      [ReviewModerationController::class, 'destroy']);
+
+        // Medallas Top 100
+        Route::prefix('admin/medals')->group(function () {
+            Route::get('/',                [AdminMedalController::class, 'index']);
+            Route::put('/{medal}/approve', [AdminMedalController::class, 'approve']);
+            Route::put('/{medal}/suspend', [AdminMedalController::class, 'suspend']);
+        });
 
         Route::prefix('admin/sellers')->group(function () {
 
@@ -718,6 +742,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
             Route::get('/bookings/seller', [ServiceController::class, 'sellerBookings']);
             Route::put('/bookings/{id}/confirm', [ServiceController::class, 'confirmBooking']);
+            Route::put('/bookings/{id}/on-the-way', [ServiceController::class, 'markOnTheWay']);
+            Route::put('/bookings/{id}/complete', [ServiceController::class, 'completeBooking']);
             Route::put('/bookings/{id}/no-show', [ServiceController::class, 'markNoShow']);
             Route::put('/bookings/{id}/notes', [ServiceController::class, 'addNotes']);
         });
@@ -768,6 +794,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/kpis', [InvoiceController::class, 'sellerKpis']);
             Route::get('/series', [InvoiceController::class, 'sellerSeries']);
             Route::get('/orders/{orderId}', [InvoiceController::class, 'sellerOrderData']);
+        });
+
+        // Medallas Top 100 — Vendedor
+        Route::prefix('seller/medals')->group(function () {
+            Route::get('/',                   [SellerMedalController::class, 'index']);
+            Route::put('/{medal}/visibility', [SellerMedalController::class, 'toggleVisibility']);
         });
 
         Route::post('/url-metadata', [\App\Http\Controllers\Api\UrlMetadataController::class, 'preview']);
@@ -824,6 +856,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/content-reports/{id}/dismiss', [\App\Http\Controllers\Api\ContentReportController::class, 'dismiss']);
         });
     });
+});
+
+// ── Security Admin Panel ────────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:security_admin'])->prefix('security')->group(function () {
+    Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

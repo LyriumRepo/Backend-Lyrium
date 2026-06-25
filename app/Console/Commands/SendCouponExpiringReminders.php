@@ -8,6 +8,7 @@ use App\Models\Coupon;
 use App\Notifications\CouponExpiringNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SendCouponExpiringReminders extends Command
 {
@@ -33,10 +34,16 @@ class SendCouponExpiringReminders extends Command
                         return;
                     }
 
-                    $owner->notify(new CouponExpiringNotification($coupon, $days));
-                    $sent++;
-
-                    $this->line("  ✓ {$owner->email} — cupón \"{$coupon->code}\" vence en {$days} día(s)");
+                    try {
+                        $owner->notify(new CouponExpiringNotification($coupon, $days));
+                        $sent++;
+                        $this->line("  ✓ {$owner->email} — cupón \"{$coupon->code}\" vence en {$days} día(s)");
+                    } catch (\Throwable $e) {
+                        Log::error('[CouponExpiring] Error notificando', [
+                            'coupon_id' => $coupon->id, 'owner_id' => $owner->id, 'error' => $e->getMessage(),
+                        ]);
+                        $this->error("  ✗ {$owner->email}: {$e->getMessage()}");
+                    }
                 });
         }
 

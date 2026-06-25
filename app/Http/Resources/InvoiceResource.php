@@ -42,6 +42,8 @@ final class InvoiceResource extends JsonResource
             'total'                => (float) $this->total,
             'subtotalSinIgv'       => (float) $this->subtotal_sin_igv,
             'igvAmount'            => (float) $this->igv_amount,
+            // Subtotal de productos del vendedor con IGV (sin envío) — para columna Monto en panel
+            'storeAmount'          => round((float) $this->subtotal_sin_igv * (1 + 0.18), 2),
 
             // Total del pedido (lo que pagó el cliente por Izipay, incluye envío)
             'orderTotal'           => $this->whenLoaded('order', fn () => (float) $this->order->total, (float) $this->total),
@@ -75,7 +77,12 @@ final class InvoiceResource extends JsonResource
                 'orderNumber' => $this->order->order_number,
                 'total'       => (float) $this->order->total,
                 'status'      => $this->order->status,
-                'items'       => $this->order->items->map(fn ($item) => [
+                // Filtrar por store_id de la factura para no exponer productos
+                // de otras tiendas en pedidos multi-vendor.
+                'items'       => ($this->store_id
+                    ? $this->order->items->where('store_id', $this->store_id)
+                    : $this->order->items
+                )->map(fn ($item) => [
                     'productName' => $item->product?->name ?? $item->product_name ?? '',
                     'quantity'    => (int) $item->quantity,
                     'unitPrice'   => (float) $item->unit_price,
@@ -83,7 +90,10 @@ final class InvoiceResource extends JsonResource
                     'storeName'   => $item->store?->store_name ?? $item->store?->nombre_comercial ?? null,
                     'storeSlug'   => $item->store?->slug ?? null,
                 ]),
-                'stores' => $this->order->items
+                'stores' => ($this->store_id
+                    ? $this->order->items->where('store_id', $this->store_id)
+                    : $this->order->items
+                )
                     ->pluck('store')
                     ->filter()
                     ->unique('id')
@@ -135,20 +145,21 @@ final class InvoiceResource extends JsonResource
                 return $stored;
             }
 
-            // Calcular desde line_total × rate (pedidos antiguos sin el campo poblado)
+            // Calcular desde line_total / 1.18 × (rate / 100) (pedidos antiguos sin el campo poblado)
             $rate = $this->resolveCommissionRate();
             if ($rate !== null) {
                 $lineTotal = (float) $items->sum('line_total');
                 if ($lineTotal > 0) {
-                    return round($lineTotal * $rate, 2);
+                    $baseSinIgv = $lineTotal / (1 + 0.18);
+                    return round($baseSinIgv * ($rate / 100), 2);
                 }
             }
         }
 
-        // 3. Último recurso: total del invoice × rate
+        // 3. Último recurso: subtotal_sin_igv del invoice × (rate / 100)
         $rate = $this->resolveCommissionRate();
         if ($rate !== null) {
-            return round((float) $this->total * $rate, 2);
+            return round((float) $this->subtotal_sin_igv * ($rate / 100), 2);
         }
 
         return null;

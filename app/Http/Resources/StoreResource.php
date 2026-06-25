@@ -20,6 +20,7 @@ final class StoreResource extends JsonResource
             'banner' => $this->getMediaUrl('banner'),
             'banner2' => $this->getMediaUrl('banner2'),
             'gallery' => $this->getGalleryUrls(),
+            'layout' => $this->layout ?? '1',
             'description' => $this->description,
             'activity' => $this->activity,
             'email' => $this->corporate_email,

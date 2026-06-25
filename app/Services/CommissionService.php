@@ -24,11 +24,11 @@ final class CommissionService
         return $tier ?? CommissionTier::orderBy('sort_order')->first();
     }
 
-    // $orderSubtotal: total del pedido CON IGV (sin envío); los tramos están en valores con IGV
-    public function calculateItemCommission(OrderItem $item, float $orderSubtotal): void
+    // $storeSubtotal: subtotal de la tienda CON IGV (sin envío); los tramos están en valores con IGV
+    public function calculateItemCommission(OrderItem $item, float $storeSubtotal): void
     {
-        // Los tramos (0-400, 401-800…) son en base venta CON IGV → comparar directo
-        $tier = $this->getTierForValue($orderSubtotal);
+        // Los tramos (0-400, 401-800…) se evalúan sobre la venta de cada tienda individualmente
+        $tier = $this->getTierForValue($storeSubtotal);
         $rate = $tier->rate;
 
         $itemLineVenta = $item->line_total / 1.18;
@@ -44,18 +44,29 @@ final class CommissionService
     public function calculateForOrder(Order $order): void
     {
         $order->loadMissing('items');
-        $orderSubtotal = (float) $order->subtotal;
 
-        foreach ($order->items as $item) {
-            $this->calculateItemCommission($item, $orderSubtotal);
+        // Agrupar por tienda para que cada una evalúe su propio tramo de comisión.
+        // Usar el subtotal global de la orden mezclaría ventas de distintos vendedores
+        // y podría llevar a un tramo distinto al que le corresponde a cada uno.
+        $itemsByStore = $order->items->groupBy('store_id');
+
+        foreach ($itemsByStore as $storeItems) {
+            $storeSubtotal = (float) $storeItems->sum('line_total');
+            foreach ($storeItems as $item) {
+                $this->calculateItemCommission($item, $storeSubtotal);
+            }
         }
     }
 
-    public function getCommissionSummary(Order $order): array
+    public function getCommissionSummary(Order $order, ?int $storeId = null): array
     {
         $order->loadMissing('items');
 
-        $items = $order->items->map(fn (OrderItem $item) => [
+        $source = $storeId
+            ? $order->items->where('store_id', $storeId)
+            : $order->items;
+
+        $items = $source->map(fn (OrderItem $item) => [
             'product_name' => $item->product_name,
             'line_total' => (float) $item->line_total,
             'valor_venta' => round($item->line_total / 1.18, 2),

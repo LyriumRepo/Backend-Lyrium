@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\PlanRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +22,30 @@ final class PlanRejectedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database', 'mail'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $planName  = $this->planRequest->plan?->name ?? 'Plan';
+        $storeName = $this->planRequest->store?->trade_name ?? 'tu tienda';
+
+        return [
+            'title' => 'Solicitud de plan rechazada',
+            'body'  => "Tu solicitud del plan {$planName} para {$storeName} fue rechazada.",
+            'data'  => [
+                'type'            => 'plan_rejected',
+                'plan_request_id' => $this->planRequest->id,
+                'url'             => '/seller/planes',
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

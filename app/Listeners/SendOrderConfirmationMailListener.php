@@ -39,6 +39,14 @@ final class SendOrderConfirmationMailListener implements ShouldQueue
             }
         }
 
-        $user->notify(new OrderPaymentConfirmedNotification($order));
+        try {
+            $user->notify(new OrderPaymentConfirmedNotification($order));
+        } catch (\Throwable $e) {
+            Log::error('SendOrderConfirmationMailListener: error al notificar', [
+                'order_id' => $order->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

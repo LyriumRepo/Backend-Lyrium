@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\Contract;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,7 +23,37 @@ final class ContractStatusNotification extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['mail', 'database'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $label = match ($this->action) {
+            'created'   => 'Nuevo contrato creado',
+            'activated' => 'Contrato activado',
+            'expired'   => 'Contrato expirado',
+            'renewed'   => 'Contrato renovado',
+            'deleted'   => 'Contrato eliminado',
+            default     => 'Contrato actualizado',
+        };
+
+        return [
+            'title' => $label,
+            'body'  => "Contrato #{$this->contract->contract_number} — {$this->contract->company}",
+            'data'  => [
+                'type'        => 'contract_status_changed',
+                'contract_id' => $this->contract->id,
+                'action'      => $this->action,
+                'url'         => '/admin/contratos/' . $this->contract->id,
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

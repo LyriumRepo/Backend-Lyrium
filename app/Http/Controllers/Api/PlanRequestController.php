@@ -640,8 +640,9 @@ final class PlanRequestController extends Controller
     public function approvePlanRequest(PlanRequest $planRequest, ?int $reviewedBy): void
     {
         $planRequest->update([
-            'status' => PlanRequest::STATUS_APPROVED,
-            'reviewed_by' => $reviewedBy,
+            'status'         => PlanRequest::STATUS_APPROVED,
+            'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
+            'reviewed_by'    => $reviewedBy,
         ]);
 
         $endsAt = now()->addMonths($planRequest->months);
@@ -687,7 +688,13 @@ final class PlanRequestController extends Controller
         $planRequest->loadMissing(['store.owner', 'plan']);
         $owner = $planRequest->store->owner;
         if ($owner) {
-            $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
+            try {
+                $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
+            } catch (\Throwable $e) {
+                Log::error('[PlanRequest] Error notificando PlanActivated', [
+                    'plan_request_id' => $planRequest->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 

@@ -8,6 +8,7 @@ use App\Models\Subscription;
 use App\Notifications\PlanExpiringNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SendPlanExpiringReminders extends Command
 {
@@ -33,10 +34,16 @@ class SendPlanExpiringReminders extends Command
                         return;
                     }
 
-                    $owner->notify(new PlanExpiringNotification($subscription, $days));
-                    $sent++;
-
-                    $this->line("  ✓ {$owner->email} — {$subscription->plan?->name} vence en {$days} día(s)");
+                    try {
+                        $owner->notify(new PlanExpiringNotification($subscription, $days));
+                        $sent++;
+                        $this->line("  ✓ {$owner->email} — {$subscription->plan?->name} vence en {$days} día(s)");
+                    } catch (\Throwable $e) {
+                        Log::error('[PlanExpiring] Error notificando', [
+                            'subscription_id' => $subscription->id, 'owner_id' => $owner->id, 'error' => $e->getMessage(),
+                        ]);
+                        $this->error("  ✗ {$owner->email}: {$e->getMessage()}");
+                    }
                 });
         }
 

@@ -230,12 +230,6 @@ final class IzipayService
             'currency' => 'PEN',
             'orderId'  => $izipayOrderId,
             'customer' => ['email' => $email],
-            'transactionOptions' => [
-                'cardOptions' => [
-                    'captureDelay'     => 0,
-                    'manualValidation' => false,
-                ],
-            ],
         ];
 
         Log::info('[IzipayService] Iniciando pago de plan', [
@@ -257,10 +251,24 @@ final class IzipayService
 
             $data = $response->json();
 
+            Log::info('[IzipayService] Respuesta plan payment', [
+                'status'    => $data['status'] ?? null,
+                'errorCode' => $data['answer']['errorCode'] ?? null,
+                'errorMsg'  => $data['answer']['errorMessage'] ?? null,
+                'hasToken'  => isset($data['answer']['formToken']),
+            ]);
+
+            if (($data['status'] ?? '') !== 'SUCCESS' || ! isset($data['answer']['formToken'])) {
+                $errorMsg = $data['answer']['errorMessage']
+                    ?? $data['answer']['detailedErrorMessage']
+                    ?? 'Error al crear la sesión de pago con Izipay.';
+                throw new \RuntimeException($errorMsg);
+            }
+
             return [
                 'mode'       => 'izipay',
                 'public_key' => $this->publicKey,
-                'form_token' => $data['answer']['formToken'] ?? '',
+                'form_token' => $data['answer']['formToken'],
                 'amount'     => $amountSoles,
             ];
         } catch (\Throwable $e) {
@@ -925,7 +933,13 @@ final class IzipayService
             // Database notification to store owner
             $storeUser = $booking->service?->store?->owner;
             if ($storeUser) {
-                $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                try {
+                    $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                } catch (\Throwable $e) {
+                    Log::error('[Izipay] Error notificando BookingCreated', [
+                        'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 

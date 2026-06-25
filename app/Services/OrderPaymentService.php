@@ -51,7 +51,29 @@ final class OrderPaymentService
 
             $order->load(['items.product.store', 'user']);
 
-            $storesInvolved = $order->items->pluck('store_id')->unique();
+            $storesInvolved = $order->items->pluck('store_id')->unique()->values();
+            $totalShipping = (float) ($order->shipping_cost ?? 0);
+            $totalProductsSubtotal = (float) $order->items->sum('line_total');
+
+            // Pre-calcular envío proporcional por tienda (último store absorbe el resto del redondeo)
+            $storeShippings = [];
+            $allocatedShipping = 0.0;
+            $storesArray = $storesInvolved->all();
+            $lastStoreId = end($storesArray);
+            foreach ($storesArray as $sid) {
+                if ($totalShipping <= 0 || $totalProductsSubtotal <= 0) {
+                    $storeShippings[$sid] = 0.0;
+                    continue;
+                }
+                $storeSubtotal = (float) $order->items->where('store_id', $sid)->sum('line_total');
+                if ($sid === $lastStoreId) {
+                    $storeShippings[$sid] = round($totalShipping - $allocatedShipping, 2);
+                } else {
+                    $portion = round($totalShipping * ($storeSubtotal / $totalProductsSubtotal), 2);
+                    $storeShippings[$sid] = $portion;
+                    $allocatedShipping += $portion;
+                }
+            }
 
             foreach ($storesInvolved as $storeId) {
                 $store = Store::find($storeId);
@@ -61,14 +83,16 @@ final class OrderPaymentService
                 }
 
                 $storeItems = $order->items->where('store_id', $storeId);
-                $subtotalSinIgv = (float) $storeItems->sum('line_total');
+                $subtotalConIgv = (float) $storeItems->sum('line_total');
 
-                if ($subtotalSinIgv <= 0) {
+                if ($subtotalConIgv <= 0) {
                     continue;
                 }
 
+                $storeShipping = $storeShippings[$storeId] ?? 0.0;
+
                 try {
-                    $this->emitInvoiceForStore($order, $store, $storeItems, $subtotalSinIgv);
+                    $this->emitInvoiceForStore($order, $store, $storeItems, $subtotalConIgv, $storeShipping);
                 } catch (\Throwable $e) {
                     Log::error('OrderPaymentService: error al emitir factura para tienda', [
                         'store_id' => $storeId,
@@ -78,7 +102,7 @@ final class OrderPaymentService
                 }
 
                 try {
-                    $this->scheduleCommissionForStore($order, $store, $subtotalSinIgv);
+                    $this->scheduleCommissionForStore($order, $store, $subtotalConIgv);
                 } catch (\Throwable $e) {
                     Log::error('OrderPaymentService: error al programar comisión para tienda', [
                         'store_id' => $storeId,
@@ -90,7 +114,7 @@ final class OrderPaymentService
         });
     }
 
-    private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, float $subtotalSinIgv): void
+    private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, float $subtotalConIgv, float $shippingCost = 0.0): void
     {
         // Nombre visible: nombre_comercial > store_name (accessor) > razon_social > trade_name
         $customerName = $store->nombre_comercial
@@ -103,10 +127,10 @@ final class OrderPaymentService
         $customerDoc = $store->ruc ?: config('services.nubefact.ruc', '20600695771');
         $docType = Invoice::TYPE_FACTURA;
 
-        // line_total viene CON IGV incluido → extraer base neta
-        $baseGravada = round($subtotalSinIgv / (1 + self::IGV_RATE), 2);
+        // line_total viene CON IGV incluido → extraer base neta (solo productos)
+        $baseGravada = round($subtotalConIgv / (1 + self::IGV_RATE), 2);
         $igvAmount   = round($baseGravada * self::IGV_RATE, 2);
-        $totalConIgv = round($baseGravada + $igvAmount, 2);
+        $totalConIgv = round($baseGravada + $igvAmount + $shippingCost, 2);
 
         $series = $this->resolveSeries($docType);
 
@@ -119,8 +143,8 @@ final class OrderPaymentService
             'type' => $docType,
             'customer_name' => $customerName,
             'customer_ruc' => $customerDoc,
-            'total' => $totalConIgv,
-            'subtotal_sin_igv' => $baseGravada,
+            'total' => $totalConIgv,            // incluye envío proporcional
+            'subtotal_sin_igv' => $baseGravada, // solo productos (base para comisión)
             'igv_amount' => $igvAmount,
             'provider' => 'nubefact',
             'status' => 'active',
@@ -172,35 +196,80 @@ final class OrderPaymentService
             ];
         }
 
-        try {
-            $nubefactResponse = $this->nubefact->emitInvoice($invoice, $customItems);
+        if ($shippingCost > 0) {
+            $shippingBase = round($shippingCost / (1 + self::IGV_RATE), 2);
+            $shippingIgv  = round($shippingBase * self::IGV_RATE, 2);
+            $customItems[] = [
+                'unidad_de_medida' => 'ZZ',
+                'descripcion'      => 'Servicio de envío',
+                'cantidad'         => '1',
+                'valor_unitario'   => $shippingBase,
+                'precio_unitario'  => $shippingCost,
+                'subtotal'         => $shippingBase,
+                'tipo_de_igv'      => '1',
+                'igv'              => $shippingIgv,
+                'total'            => $shippingCost,
+            ];
+        }
 
-            $invoice->addHistoryEntry(
-                Invoice::SUNAT_STATUS_SENT_WAIT_CDR,
-                'Enviado a NubeFact. Pendiente de CDR de SUNAT',
-                'Sistema',
-            );
+        $maxAttempts = 3;
+        $lastException = null;
 
-            $invoice->sunat_status = $nubefactResponse['sunat_status'] ?? Invoice::SUNAT_STATUS_SENT_WAIT_CDR;
-            $invoice->provider_invoice_id = $nubefactResponse['id'] ?? null;
-            $invoice->pdf_url = $nubefactResponse['pdf_url'] ?? $this->nubefact->getPdfUrl($invoice);
-            $invoice->authorization_code = $nubefactResponse['authorization_code'] ?? null;
-            $invoice->qr_data = $nubefactResponse['qr_data'] ?? null;
-            $invoice->xml_url = $nubefactResponse['xml_url'] ?? $this->nubefact->getXmlUrl($invoice);
-            $invoice->cdr_url = $nubefactResponse['cdr_url'] ?? $this->nubefact->getCdrUrl($invoice);
-            $invoice->save();
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                $nubefactResponse = $this->nubefact->emitInvoice($invoice, $customItems);
 
-            Log::info('OrderPaymentService: factura emitida exitosamente', [
-                'invoice_id' => $invoice->id,
-                'store_id' => $store->id,
-                'order_id' => $order->id,
-                'provider_invoice_id' => $invoice->provider_invoice_id,
-            ]);
-        } catch (NubefactException $e) {
+                $invoice->addHistoryEntry(
+                    Invoice::SUNAT_STATUS_SENT_WAIT_CDR,
+                    'Enviado a NubeFact. Pendiente de CDR de SUNAT',
+                    'Sistema',
+                );
+
+                $invoice->sunat_status = $nubefactResponse['sunat_status'] ?? Invoice::SUNAT_STATUS_SENT_WAIT_CDR;
+                $invoice->provider_invoice_id = $nubefactResponse['id'] ?? null;
+                $invoice->pdf_url = $nubefactResponse['pdf_url'] ?? $this->nubefact->getPdfUrl($invoice);
+                $invoice->authorization_code = $nubefactResponse['authorization_code'] ?? null;
+                $invoice->qr_data = $nubefactResponse['qr_data'] ?? null;
+                $invoice->xml_url = $nubefactResponse['xml_url'] ?? $this->nubefact->getXmlUrl($invoice);
+                $invoice->cdr_url = $nubefactResponse['cdr_url'] ?? $this->nubefact->getCdrUrl($invoice);
+                $invoice->save();
+
+                Log::info('OrderPaymentService: factura emitida exitosamente', [
+                    'invoice_id' => $invoice->id,
+                    'store_id' => $store->id,
+                    'order_id' => $order->id,
+                    'attempt' => $attempt,
+                    'provider_invoice_id' => $invoice->provider_invoice_id,
+                ]);
+
+                $lastException = null;
+                break;
+            } catch (NubefactException $e) {
+                // Número duplicado en Nubefact: incrementar y reintentar
+                if ($e->getNubefactCode() === NubefactException::DUPLICATE_DOCUMENT && $attempt < $maxAttempts) {
+                    $nextNum = (int) $invoice->number + 1;
+                    $invoice->number = str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+                    $invoice->save();
+
+                    Log::warning('OrderPaymentService: número duplicado en NubeFact, reintentando', [
+                        'invoice_id' => $invoice->id,
+                        'store_id'   => $store->id,
+                        'nuevo_numero' => $invoice->number,
+                        'attempt' => $attempt,
+                    ]);
+                    continue;
+                }
+
+                $lastException = $e;
+                break;
+            }
+        }
+
+        if ($lastException !== null) {
             // Errores de configuración/conectividad: la factura queda en DRAFT
             // para poder reintentarse una vez corregido el .env.
             // Errores de validación o rechazo SUNAT: se marca REJECTED.
-            $isInfraError = in_array($e->getNubefactCode(), [
+            $isInfraError = in_array($lastException->getNubefactCode(), [
                 NubefactException::CONFIG_ERROR,
                 NubefactException::CONNECTION_ERROR,
             ]);
@@ -211,7 +280,7 @@ final class OrderPaymentService
 
             $invoice->addHistoryEntry(
                 $failStatus,
-                'Error al enviar a NubeFact: ' . $e->getMessage(),
+                'Error al enviar a NubeFact: ' . $lastException->getMessage(),
                 'Sistema',
             );
             $invoice->sunat_status = $failStatus;
@@ -220,8 +289,8 @@ final class OrderPaymentService
             Log::error('OrderPaymentService: error NubeFact al emitir factura', [
                 'invoice_id' => $invoice->id,
                 'store_id'   => $store->id,
-                'nubefact_code' => $e->getNubefactCode(),
-                'error'      => $e->getMessage(),
+                'nubefact_code' => $lastException->getNubefactCode(),
+                'error'      => $lastException->getMessage(),
             ]);
         }
     }
@@ -268,7 +337,7 @@ final class OrderPaymentService
         return $errors;
     }
 
-    private function scheduleCommissionForStore(Order $order, Store $store, float $subtotalSinIgv): void
+    private function scheduleCommissionForStore(Order $order, Store $store, float $subtotalConIgv): void
     {
         // Usar la tasa y monto escalonados ya calculados por CommissionService en los order_items
         $storeItems = $order->items->where('store_id', $store->id);
@@ -277,30 +346,38 @@ final class OrderPaymentService
         // commission_rate viene como entero (ej: 15) desde CommissionTier
         $commissionRate   = (float) ($storeItems->first()?->commission_rate ?? 0);
 
+        $baseGravada = round($subtotalConIgv / (1 + self::IGV_RATE), 2);
+
         $this->paymentScheduler->schedulePayment(
             storeId: $store->id,
-            amount: $subtotalSinIgv,
+            amount: $baseGravada,
             orderId: $order->id,
             commissionRate: $commissionRate,
         );
 
-        $netAmount = round($subtotalSinIgv - $commissionAmount, 2);
+        $netAmount = round($subtotalConIgv - $commissionAmount, 2);
         $owner = $store->owner;
         if ($owner) {
-            $owner->notify(new CommissionGeneratedNotification(
-                order: $order,
-                store: $store,
-                grossAmount: $subtotalSinIgv,
-                commissionRate: $commissionRate,
-                commissionAmount: $commissionAmount,
-                netAmount: $netAmount,
-            ));
+            try {
+                $owner->notify(new CommissionGeneratedNotification(
+                    order: $order,
+                    store: $store,
+                    grossAmount: $subtotalConIgv,
+                    commissionRate: $commissionRate,
+                    commissionAmount: $commissionAmount,
+                    netAmount: $netAmount,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[OrderPayment] Error notificando CommissionGenerated', [
+                    'order_id' => $order->id, 'store_id' => $store->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         Log::info('OrderPaymentService: comisión programada (tasa escalonada)', [
             'store_id'         => $store->id,
             'order_id'         => $order->id,
-            'subtotal_sin_igv' => $subtotalSinIgv,
+            'subtotal_con_igv' => $subtotalConIgv,
             'commission_rate'  => $commissionRate,
             'commission_amount'=> $commissionAmount,
         ]);
@@ -315,17 +392,13 @@ final class OrderPaymentService
 
     private function resolveNextNumber(Store $store, string $series): string
     {
-        $lastInvoice = Invoice::where('store_id', $store->id)
+        $max = Invoice::where('store_id', $store->id)
             ->where('series', $series)
-            ->orderBy('created_at', 'desc')
-            ->first();
+            ->lockForUpdate()
+            ->max(DB::raw('CAST(number AS UNSIGNED)'));
 
-        if (! $lastInvoice || ! $lastInvoice->number) {
-            return '0001';
-        }
+        $next = $max ? (int) $max + 1 : 1;
 
-        $nextNumber = ((int) $lastInvoice->number) + 1;
-
-        return str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
+        return str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
 }

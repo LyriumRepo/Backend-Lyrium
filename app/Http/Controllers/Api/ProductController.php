@@ -17,6 +17,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class ProductController extends Controller
@@ -300,26 +301,21 @@ final class ProductController extends Controller
             // Real-time broadcast unavailable; data was saved successfully
         }
 
-        // Notificar al vendedor si el admin aprueba o rechaza
-        if (in_array($validated['status'], ['approved', 'rejected'])) {
-            $owner = $product->store?->owner;
-            if ($owner) {
+        // Notificar al vendedor sobre cambio de estado
+        $product->load('store.owner');
+        $owner = $product->store?->owner;
+        if ($owner) {
+            try {
                 $owner->notify(new ProductStatusNotification(
                     product: $product,
                     newStatus: $validated['status'],
                     reason: $validated['reason'] ?? null,
                 ));
+            } catch (\Throwable $e) {
+                Log::error('[Product] Error notificando ProductStatus al vendedor', [
+                    'product_id' => $product->id, 'owner_id' => $owner->id, 'error' => $e->getMessage(),
+                ]);
             }
-        }
-
-        // Notificar al vendedor sobre cambio de estado
-        $product->load('store.owner');
-        if ($product->store && $product->store->owner) {
-            $product->store->owner->notify(new ProductStatusNotification(
-                $product,
-                $validated['status'],
-                $validated['reason'] ?? null,
-            ));
         }
 
         return response()->json(new ProductResource($product));

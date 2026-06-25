@@ -108,7 +108,7 @@ final class Product extends Model implements HasMedia
         $this->refresh();
         $stockAfter = $this->stock;
 
-        $seller = $this->store?->user;
+        $seller = $this->store?->owner;
         if (! $seller) {
             return;
         }
@@ -116,10 +116,18 @@ final class Product extends Model implements HasMedia
         // Notificar solo cuando el stock cruza un umbral hacia abajo por primera vez.
         // 'out'     : pasa de > 0  a  ≤ 0
         // 'critical': pasa de > 5  a  1-5  (sin haber llegado a 'out')
-        if ($stockAfter <= 0 && $stockBefore > 0) {
-            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'out'));
-        } elseif ($stockAfter <= 5 && $stockBefore > 5) {
-            $seller->notify(new \App\Notifications\StockAlertNotification($this, 'critical'));
+        try {
+            if ($stockAfter <= 0 && $stockBefore > 0) {
+                $seller->notify(new \App\Notifications\StockAlertNotification($this, 'out'));
+            } elseif ($stockAfter <= 5 && $stockBefore > 5) {
+                $seller->notify(new \App\Notifications\StockAlertNotification($this, 'critical'));
+            } elseif ($stockAfter <= 10 && $stockBefore > 10) {
+                $seller->notify(new \App\Notifications\StockAlertNotification($this, 'low'));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('[Product] Error notificando StockAlert', [
+                'product_id' => $this->id, 'error' => $e->getMessage(),
+            ]);
         }
     }
 

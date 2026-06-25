@@ -18,6 +18,7 @@ use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class StoreController extends Controller
@@ -324,11 +325,19 @@ final class StoreController extends Controller
         }
 
         // Enviar notificación al propietario de la tienda
-        $store->owner->notify(new StoreStatusNotification(
-            $store,
-            $data['status'],
-            $data['reason'] ?? null,
-        ));
+        if ($store->owner) {
+            try {
+                $store->owner->notify(new StoreStatusNotification(
+                    $store,
+                    $data['status'],
+                    $data['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[Store] Error notificando StoreStatus al dueño', [
+                    'store_id' => $store->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         try {
             broadcast(new StoreStatusChanged($store->fresh()));
@@ -662,7 +671,13 @@ final class StoreController extends Controller
 
         $admins = User::role('administrator')->get();
         foreach ($admins as $admin) {
-            $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+            try {
+                $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+            } catch (\Throwable $e) {
+                Log::error('[Store] Error notificando StoreProfileUpdated al admin', [
+                    'store_id' => $store->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

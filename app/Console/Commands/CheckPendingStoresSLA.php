@@ -8,6 +8,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Notifications\PendingStoreOverdueNotification;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 final class CheckPendingStoresSLA extends Command
 {
@@ -41,7 +42,13 @@ final class CheckPendingStoresSLA extends Command
         $count = $overdueStores->count();
 
         foreach ($admins as $admin) {
-            $admin->notify(new PendingStoreOverdueNotification($count, $oldest));
+            try {
+                $admin->notify(new PendingStoreOverdueNotification($count, $oldest));
+            } catch (\Throwable $e) {
+                Log::error('[StoreSLA] Error notificando al admin', [
+                    'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // Marcar las tiendas como notificadas para no repetir la alerta

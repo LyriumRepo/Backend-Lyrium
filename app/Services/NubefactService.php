@@ -66,7 +66,7 @@ final class NubefactService
             'cliente_tipo_de_documento' => $this->getCustomerDocType($invoice->customer_ruc),
             'cliente_numero_de_documento' => $invoice->customer_ruc,
             'cliente_denominacion' => $invoice->customer_name,
-            'cliente_email' => '',
+            'cliente_email' => $invoice->customer_email ?: null,
             'fecha_de_emision' => now('America/Lima')->format('d-m-Y'),
             'moneda' => '1',
             'porcentaje_de_igv' => '18.00',
@@ -145,13 +145,14 @@ final class NubefactService
                 $unitBase = $qty > 0 ? round($itemBase / $qty, 2) : 0;
                 $igv = round($itemBase * self::IGV_RATE, 2);
                 $itemTotal = round($itemBase + $igv, 2);
+                $unitPrice = $qty > 0 ? round($itemTotal / $qty, 2) : $itemTotal;
 
                 $items[] = [
                     'unidad_de_medida' => 'NIU',
                     'descripcion' => $oi->product_name ?? $fallbackDesc,
                     'cantidad' => (string) $qty,
                     'valor_unitario' => $unitBase,
-                    'precio_unitario' => $itemTotal,
+                    'precio_unitario' => $unitPrice,
                     'subtotal' => $itemBase,
                     'tipo_de_igv' => '1',
                     'igv' => $igv,

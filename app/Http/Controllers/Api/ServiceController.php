@@ -19,6 +19,7 @@ use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 final class ServiceController extends Controller
 {
@@ -276,11 +277,17 @@ final class ServiceController extends Controller
         $service->load('store.owner');
 
         if ($service->store && $service->store->owner) {
-            $service->store->owner->notify(new ServiceStatusNotification(
-                $service,
-                $validated['status'],
-                $validated['reason'] ?? null,
-            ));
+            try {
+                $service->store->owner->notify(new ServiceStatusNotification(
+                    $service,
+                    $validated['status'],
+                    $validated['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[Service] Error notificando ServiceStatus al vendedor', [
+                    'service_id' => $service->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);

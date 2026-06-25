@@ -8,12 +8,15 @@ use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Models\User;
 use App\Notifications\InvoiceRequestedNotification;
+use App\Notifications\NewOrderAdminNotification;
 use App\Notifications\OrderCancelledCustomerNotification;
 use App\Notifications\OrderCancelledSellerNotification;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
 use App\Notifications\OrderDeliveredSellerNotification;
+use Illuminate\Support\Facades\Notification;
 use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
@@ -304,7 +307,17 @@ final class OrderController extends Controller
 
         $order->load(self::WITH_RELATIONS);
 
-        $user->notify(new OrderCreatedNotification($order));
+        try {
+            $user->notify(new OrderCreatedNotification($order));
+        } catch (\Throwable) {
+            // Notification failure must never block order creation
+        }
+
+        try {
+            Notification::send(User::role('administrator')->get(), new NewOrderAdminNotification($order));
+        } catch (\Throwable $e) {
+            Log::error('[Order] Error notificando NewOrderAdmin', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
 
         // Notificar a cada tienda involucrada (el listener SendNewOrderToSellerListener
         // se encarga de enviar NewOrderSellerNotification al vendedor)
@@ -565,7 +578,13 @@ final class OrderController extends Controller
                     ->each(function ($storeId) use ($order) {
                         $store = Store::with('owner')->find($storeId);
                         if ($store?->owner) {
-                            $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                            try {
+                                $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                            } catch (\Throwable $e) {
+                                Log::error('[Order] Error notificando OrderDelivered al vendedor', [
+                                    'order_id' => $order->id, 'store_id' => $storeId, 'error' => $e->getMessage(),
+                                ]);
+                            }
                         }
                     });
 
@@ -597,11 +616,23 @@ final class OrderController extends Controller
                 ->each(function ($storeId) use ($order) {
                     $store = Store::with('owner')->find($storeId);
                     if ($store?->owner) {
-                        $store->owner->notify(new OrderCancelledSellerNotification($order, $store));
+                        try {
+                            $store->owner->notify(new OrderCancelledSellerNotification($order, $store));
+                        } catch (\Throwable $e) {
+                            Log::error('[Order] Error notificando OrderCancelled al vendedor', [
+                                'order_id' => $order->id, 'store_id' => $storeId, 'error' => $e->getMessage(),
+                            ]);
+                        }
                     }
                 });
             if ($order->user) {
-                $order->user->notify(new OrderCancelledCustomerNotification($order));
+                try {
+                    $order->user->notify(new OrderCancelledCustomerNotification($order));
+                } catch (\Throwable $e) {
+                    Log::error('[Order] Error notificando OrderCancelled al cliente', [
+                        'order_id' => $order->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -919,7 +950,14 @@ final class OrderController extends Controller
             return $this->forbidden('No tienes una tienda asociada.');
         }
 
-        $user->notify(new NewOrderSellerNotification($order, $store));
+        try {
+            $user->notify(new NewOrderSellerNotification($order, $store));
+        } catch (\Throwable $e) {
+            Log::error('[Order] Error reenviando NewOrderSellerNotification', [
+                'order_id' => $order->id, 'user_id' => $user->id, 'error' => $e->getMessage(),
+            ]);
+            return $this->error('No se pudo reenviar la notificación.', 500);
+        }
 
         return $this->success(['message' => 'Notificación reenviada a tu correo.']);
     }

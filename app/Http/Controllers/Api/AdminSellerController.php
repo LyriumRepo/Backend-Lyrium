@@ -14,6 +14,7 @@ use App\Notifications\StoreStatusNotification;
 use App\Notifications\UserBannedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class AdminSellerController extends Controller
 {
@@ -250,7 +251,13 @@ final class AdminSellerController extends Controller
         $user->update(['is_banned' => ! $user->is_banned]);
 
         if ($user->is_banned) {
-            $user->notify(new UserBannedNotification($reason));
+            try {
+                $user->notify(new UserBannedNotification($reason));
+            } catch (\Throwable $e) {
+                Log::error('[AdminSeller] Error notificando UserBanned', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json([
@@ -389,11 +396,17 @@ final class AdminSellerController extends Controller
         ]);
 
         if ($store->owner) {
-            $store->owner->notify(new StoreStatusNotification(
-                $store,
-                $validated['status'],
-                $validated['reason'] ?? null,
-            ));
+            try {
+                $store->owner->notify(new StoreStatusNotification(
+                    $store,
+                    $validated['status'],
+                    $validated['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[AdminSeller] Error notificando StoreStatus', [
+                    'store_id' => $store->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         broadcast(new StoreStatusChanged($store->fresh()));

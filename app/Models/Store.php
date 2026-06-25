@@ -199,11 +199,17 @@ final class Store extends Model implements HasMedia
             ]);
 
             if ($this->relationLoaded('owner') && $this->owner) {
-                $this->owner->notify(new \App\Notifications\StoreStatusNotification(
-                    $this,
-                    'banned',
-                    'Auto-suspensión por acumular 3 strikes.',
-                ));
+                try {
+                    $this->owner->notify(new \App\Notifications\StoreStatusNotification(
+                        $this,
+                        'banned',
+                        'Auto-suspensión por acumular 3 strikes.',
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('[Store] Error notificando auto-ban', [
+                        'store_id' => $this->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
     }

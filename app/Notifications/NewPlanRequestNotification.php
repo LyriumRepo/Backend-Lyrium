@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Channels\PushChannel;
 use App\Models\PlanRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,7 +22,32 @@ final class NewPlanRequestNotification extends Notification implements ShouldQue
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database', 'mail'];
+
+        $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+
+        return $channels;
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        $storeName = $this->planRequest->store?->trade_name ?? 'Tienda';
+        $planName  = $this->planRequest->plan?->name ?? 'Plan';
+        $amount    = number_format((float) $this->planRequest->total_amount, 2);
+
+        return [
+            'title' => '💳 Nueva solicitud de plan',
+            'body'  => "{$storeName} solicita el plan {$planName} por S/ {$amount}",
+            'data'  => [
+                'type'            => 'new_plan_request',
+                'plan_request_id' => $this->planRequest->id,
+                'store_id'        => $this->planRequest->store_id,
+                'url'             => '/admin/planes',
+            ],
+        ];
     }
 
     public function toMail(object $notifiable): MailMessage

@@ -30,3 +30,6 @@ Schedule::command('app:send-plan-expiring-reminders')->dailyAt('09:00')->name('p
 
 // Recordatorios de cupones por vencer (3 y 1 día antes)
 Schedule::command('app:send-coupon-expiring-reminders')->dailyAt('09:00')->name('coupon-expiring-reminders');
+
+// Detectar cambios en Top 100 y actualizar medallas
+Schedule::command('top-medals:detect')->dailyAt('03:00')->name('top-medals-detection')->withoutOverlapping();

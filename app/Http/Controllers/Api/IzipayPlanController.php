@@ -82,17 +82,6 @@ final class IzipayPlanController extends Controller
             'status'          => PlanRequest::STATUS_PENDING,
         ]);
 
-        // Notificar a todos los administradores (campanita + email)
-        try {
-            $planRequest->load(['store.owner', 'plan']);
-            $admins = User::role('administrator')->get();
-            if ($admins->isNotEmpty()) {
-                Notification::send($admins, new NewPlanRequestNotification($planRequest));
-            }
-        } catch (\Throwable) {
-            // Notificación no crítica — el PlanRequest ya fue creado
-        }
-
         try {
             $session = $this->izipayService->initPlanPayment(
                 amountSoles:   $totalAmount,
@@ -106,6 +95,17 @@ final class IzipayPlanController extends Controller
                 'success' => false,
                 'message' => 'No se pudo conectar con el servicio de pago. Intenta más tarde.',
             ], 502);
+        }
+
+        // Notificar a los administradores solo si Izipay respondió correctamente
+        try {
+            $planRequest->load(['store.owner', 'plan']);
+            $admins = User::role('administrator')->get();
+            if ($admins->isNotEmpty()) {
+                Notification::send($admins, new NewPlanRequestNotification($planRequest));
+            }
+        } catch (\Throwable) {
+            // Notificación no crítica
         }
 
         // En modo simulación (sin credenciales Izipay reales), aprobar automáticamente

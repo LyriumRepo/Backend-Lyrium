@@ -30,7 +30,14 @@ final class InvoicePdfController extends Controller
         $order = $invoice->order;
         $items = $invoice->items;
         if (empty($items) && $order) {
-            $items = $order->items->map(fn ($oi) => [
+            // Filtrar por store_id de la factura para no incluir productos de otras tiendas
+            // en pedidos multi-vendor. Si la factura no tiene store_id (caso manual/legacy),
+            // se usan todos los ítems como fallback seguro.
+            $sourceItems = $invoice->store_id
+                ? $order->items->where('store_id', $invoice->store_id)
+                : $order->items;
+
+            $items = $sourceItems->map(fn ($oi) => [
                 'cantidad' => $oi->quantity,
                 'descripcion' => $oi->product_name,
                 'valor_unitario' => round($oi->unit_price / 1.18, 2),
@@ -85,7 +92,7 @@ final class InvoicePdfController extends Controller
         $commissionSummary = [];
         if ($order) {
             try {
-                $commissionSummary = app(CommissionService::class)->getCommissionSummary($order);
+                $commissionSummary = app(CommissionService::class)->getCommissionSummary($order, $invoice->store_id ? (int) $invoice->store_id : null);
             } catch (\Throwable $e) {
                 $commissionSummary = [];
             }
