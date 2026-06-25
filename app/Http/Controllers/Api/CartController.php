@@ -98,7 +98,7 @@ final class CartController extends Controller
     public function index(Request $request): JsonResponse
     {
         $cart = $this->getOrCreateCart($request);
-        $cart->load('items.product');
+        $cart->load('items.product.store');
 
         return $this->success(new CartResource($cart));
     }

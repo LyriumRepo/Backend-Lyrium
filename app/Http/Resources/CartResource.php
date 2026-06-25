@@ -17,25 +17,53 @@ final class CartResource extends JsonResource
                 $price = (float) ($product?->sale_price ?? $product?->price ?? 0);
                 $quantity = (int) $item->quantity;
 
+                $store = $product?->store;
+
+                // Parsear dimensiones "LARGOxANCHOxALTO" si existen
+                $largo = 30.0; $ancho = 20.0; $alto = 15.0;
+                if ($product?->dimensions) {
+                    $parts = preg_split('/[xX×\s]+/', trim($product->dimensions));
+                    if (count($parts) >= 3) {
+                        $largo = max(0.5, (float) $parts[0]);
+                        $ancho = max(0.5, (float) $parts[1]);
+                        $alto  = max(0.5, (float) $parts[2]);
+                    }
+                }
+
                 return [
-                    'id' => $item->id,
+                    'id'        => $item->id,
                     'productId' => $item->product_id,
-                    'quantity' => $quantity,
+                    'quantity'  => $quantity,
                     'unitPrice' => round($price, 2),
                     'lineTotal' => round($price * $quantity, 2),
-                    'product' => [
-                        'id' => $product?->id,
-                        'name' => $product?->name ?? '',
-                        'slug' => $product?->slug ?? '',
-                        'price' => round($price, 2),
+                    'product'   => [
+                        'id'            => $product?->id,
+                        'name'          => $product?->name ?? '',
+                        'slug'          => $product?->slug ?? '',
+                        'price'         => round($price, 2),
                         'regular_price' => $product?->regular_price
                                             ? round((float) $product->regular_price, 2)
                                             : ($product?->price ? round((float) $product->price, 2) : null),
                         'stock' => (int) ($product?->stock ?? 0),
                         'image' => $product?->getFirstMediaUrl('images')
-                                            ?? $product?->image
-                                            ?? null,
+                                    ?? $product?->image
+                                    ?? null,
                     ],
+                    // Campos de logística
+                    'store_id'   => $product?->store_id,
+                    'store_name' => $store?->trade_name ?? $store?->name ?? '',
+                    'store_slug' => $store?->slug ?? null,
+                    'peso'  => max(0.001, (float) ($product?->weight ?? 0.5)),
+                    'largo' => $largo,
+                    'ancho' => $ancho,
+                    'alto'  => $alto,
+                    'origen' => $store && $store->department && $store->province && $store->district
+                        ? [
+                            'departamento' => strtoupper($store->department),
+                            'provincia'    => strtoupper($store->province),
+                            'distrito'     => strtoupper($store->district),
+                        ]
+                        : null,
                 ];
             })->all();
         }, []);
