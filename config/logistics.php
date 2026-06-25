@@ -25,37 +25,36 @@ return [
     'carriers' => [
         'shalom' => [
             'name' => 'Shalom',
-            'tracking_url' => 'https://shalomcourier.com/track?code={tracking}',
+            'tracking_url' => 'https://rastrea.shalom.pe/',
             'fields' => [
                 ['key' => 'tracking_code', 'label' => 'Código de seguimiento', 'type' => 'text', 'required' => true],
-                ['key' => 'pickup_code', 'label' => 'Código de retiro', 'type' => 'text', 'required' => false],
+                ['key' => 'password', 'label' => 'Clave de seguridad', 'type' => 'password', 'required' => true],
                 ['key' => 'agency', 'label' => 'Agencia destino', 'type' => 'text', 'required' => false],
             ],
         ],
         'olva' => [
             'name' => 'Olva',
-            'tracking_url' => 'https://www.olvacourier.com/track?codigo={tracking}',
+            'tracking_url' => 'https://tracking.olvaexpress.pe/',
             'fields' => [
                 ['key' => 'tracking_code', 'label' => 'Código de seguimiento', 'type' => 'text', 'required' => true],
+                ['key' => 'password', 'label' => 'Clave de seguridad', 'type' => 'password', 'required' => true],
                 ['key' => 'agency', 'label' => 'Agencia destino', 'type' => 'text', 'required' => false],
             ],
         ],
         'urbano' => [
             'name' => 'Urbano',
-            'tracking_url' => 'https://urbanocourier.com/tracking?n={tracking}',
+            'tracking_url' => 'https://www.urbano.com.pe/tracking/',
             'fields' => [
                 ['key' => 'tracking_code', 'label' => 'Código de seguimiento', 'type' => 'text', 'required' => true],
-                ['key' => 'password', 'label' => 'Contraseña', 'type' => 'password', 'required' => false],
+                ['key' => 'agency', 'label' => 'Punto Urbano', 'type' => 'text', 'required' => false],
             ],
         ],
         'sharf' => [
             'name' => 'Sharf',
-            'tracking_url' => 'https://sharfexpress.com/tracking?cod={tracking}',
+            'tracking_url' => 'https://envia.holasharf.com/tracking',
             'fields' => [
                 ['key' => 'tracking_code', 'label' => 'Código de seguimiento', 'type' => 'text', 'required' => true],
-                ['key' => 'pickup_code', 'label' => 'Código de retiro', 'type' => 'text', 'required' => false],
-                ['key' => 'password', 'label' => 'Contraseña', 'type' => 'password', 'required' => false],
-                ['key' => 'agency', 'label' => 'Agencia destino', 'type' => 'text', 'required' => false],
+                ['key' => 'agency', 'label' => 'Punto Sharf', 'type' => 'text', 'required' => false],
             ],
         ],
     ],
