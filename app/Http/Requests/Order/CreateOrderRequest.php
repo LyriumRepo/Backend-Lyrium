@@ -25,10 +25,14 @@ final class CreateOrderRequest extends FormRequest
             'shipping_postal_code' => ['nullable', 'string', 'max:20'],
             'shipping_notes' => ['nullable', 'string', 'max:500'],
             'shipping_type' => ['nullable', 'string', 'max:50'],
+            'carrier' => ['nullable', 'string', 'max:50'],
             'shipping_cost' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
             'lirios_used' => ['nullable', 'integer', 'min:0'],
+            'store_shipping' => ['nullable', 'array'],
+            'store_shipping.*.store_id' => ['required', 'integer', 'exists:stores,id'],
+            'store_shipping.*.shipping_cost' => ['required', 'numeric', 'min:0'],
         ];
     }
 

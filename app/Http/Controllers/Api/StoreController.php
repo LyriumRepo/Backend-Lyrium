@@ -405,6 +405,16 @@ final class StoreController extends Controller
             );
         }
 
+        $principal = $store->branches()->where('is_principal', true)->first();
+        if ($principal) {
+            $store->branches()->where('id', '!=', $principal->id)->update(['is_principal' => false]);
+            $store->update([
+                'department' => $principal->department,
+                'province'   => $principal->province,
+                'district'   => $principal->district,
+            ]);
+        }
+
         $this->notifyAdminStoreChanged($store, 'branches');
 
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category', 'branches'])));
