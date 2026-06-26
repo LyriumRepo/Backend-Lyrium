@@ -26,6 +26,7 @@ final class Product extends Model implements HasMedia
         'short_description',
         'serving_note',
         'price',
+        'regular_price',
         'stock',
         'weight',
         'dimensions',

@@ -22,7 +22,12 @@ final class ProductResource extends JsonResource
             'sticker' => $this->sticker,
             'sku' => $this->sku,
             'price' => (float) ($this->sale_price ?? $this->price),
-            'regular_price' => (float) ($this->regular_price ?? $this->price),
+            'regular_price' => (float) (
+                $this->regular_price
+                ?? ($this->discount_percentage && $this->discount_percentage < 100
+                    ? round($this->price / (1 - $this->discount_percentage / 100), 2)
+                    : $this->price)
+            ),
             'discount_percentage' => $this->discount_percentage
                 ? (float) $this->discount_percentage
                 : null,
