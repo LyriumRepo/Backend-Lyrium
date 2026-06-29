@@ -15,6 +15,7 @@ use App\Models\AuditLog;
 use App\Models\Expense;
 use App\Models\Supplier;
 use App\Services\DocumentScanner\DocumentScannerService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +24,7 @@ use Illuminate\Support\Str;
 
 final class ExpenseController extends Controller
 {
-    /**
-     * GET /api/expenses
-     * Lista paginada de recibos con filtros de proveedor, estado y fechas.
-     */
-    public function index(Request $request): JsonResponse
+    private function buildFilteredQuery(Request $request)
     {
         $query = Expense::query()
             ->with(['supplier', 'registeredBy'])
@@ -61,8 +58,17 @@ final class ExpenseController extends Controller
             $query->whereDate('issued_at', '<=', $to);
         }
 
+        return $query;
+    }
+
+    /**
+     * GET /api/expenses
+     * Lista paginada de recibos con filtros de proveedor, estado y fechas.
+     */
+    public function index(Request $request): JsonResponse
+    {
         $perPage = min((int) $request->query('per_page', 15), 100);
-        $expenses = $query->paginate($perPage);
+        $expenses = $this->buildFilteredQuery($request)->paginate($perPage);
 
         return response()->json([
             'data' => ExpenseResource::collection($expenses),
@@ -74,6 +80,41 @@ final class ExpenseController extends Controller
                 'hasMore' => $expenses->hasMorePages(),
             ],
         ]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $expenses = $this->buildFilteredQuery($request)->get();
+
+        $callback = function () use ($expenses) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['#', 'Tipo', 'Nro Comprobante', 'Proveedor', 'Concepto', 'Fecha', 'Monto', 'Estado']);
+            foreach ($expenses as $i => $exp) {
+                fputcsv($file, [
+                    $i + 1,
+                    $exp->voucher_type ?? '—',
+                    $exp->receipt_number ?? '—',
+                    $exp->supplier?->name ?? '—',
+                    $exp->concept ?? '—',
+                    optional($exp->issued_at)->format('d/m/Y'),
+                    number_format($exp->amount ?? 0, 2),
+                    $exp->status ?? '—',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="reporte-gastos.csv"',
+        ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $expenses = $this->buildFilteredQuery($request)->get();
+        $pdf = Pdf::loadView('pdf.expenses', ['expenses' => $expenses]);
+        return $pdf->download('reporte-gastos.pdf');
     }
 
     /**

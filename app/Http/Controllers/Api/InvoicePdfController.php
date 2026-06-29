@@ -78,7 +78,7 @@ final class InvoicePdfController extends Controller
         $total = $invoiceTotal > 0 ? $invoiceTotal : ($totalGravada + $igv + $shippingCost);
 
         $showCommission = true;
-        $commissionBase = round($totalConEnvio / 1.18, 2);
+        $commissionBase = round($totalGravada / 1.18, 2);
 
         $commissionSummary = [];
         if ($order) {

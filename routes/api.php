@@ -80,6 +80,7 @@ Route::prefix('auth')->group(function () {
         Route::get('/validate', [AuthController::class, 'validateToken']);
         Route::post('/refresh', [AuthController::class, 'refreshToken']);
     });
+
 });
 
 // Endpoint interno usado por el servicio RPA para disparar el OTP
@@ -194,10 +195,18 @@ Route::get('/blog/posts/recent', [BlogController::class, 'recent']);
 Route::get('/blog/posts/featured', [BlogController::class, 'featured']);
 Route::get('/blog/posts/{slug}', [BlogController::class, 'show']);
 Route::get('/blog/comments', [BlogController::class, 'comments']);
-Route::post('/blog/comments', [BlogController::class, 'storeComment']);
-Route::get('/blog/podcasts', [BlogController::class, 'podcasts']);
-Route::get('/blog/videos', [BlogController::class, 'videos']);
-Route::get('/blog/shorts', [BlogController::class, 'shorts']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/blog/comments', [BlogController::class, 'storeComment']);
+    Route::put('/blog/comments/{id}', [BlogController::class, 'updateComment']);
+    Route::delete('/blog/comments/{id}', [BlogController::class, 'deleteComment']);
+});
+Route::get('/blog/published-podcasts', [BlogController::class, 'podcasts']);
+Route::get('/blog/published-podcasts/{id}', [BlogController::class, 'showPodcast']);
+Route::get('/blog/published-videos', [BlogController::class, 'videos']);
+Route::get('/blog/published-videos/{id}', [BlogController::class, 'showVideo']);
+Route::get('/blog/published-shorts', [BlogController::class, 'shorts']);
+Route::get('/blog/published-shorts/{id}', [BlogController::class, 'showShort']);
+Route::get('/blog/tiktok-video/{id}', [BlogController::class, 'tiktokVideo']);
 
 /*
 |--------------------------------------------------------------------------
@@ -210,6 +219,8 @@ Route::get('/foro/temas/{id}', [ForumController::class, 'topic']);
 Route::post('/foro/temas', [ForumController::class, 'createTopic']);
 Route::get('/foro/temas/{id}/respuestas', [ForumController::class, 'posts']);
 Route::post('/foro/respuestas', [ForumController::class, 'createPost']);
+Route::put('/foro/respuestas/{postId}', [ForumController::class, 'updatePost']);
+Route::delete('/foro/respuestas/{postId}', [ForumController::class, 'deletePost']);
 Route::post('/foro/votos', [ForumController::class, 'vote']);
 Route::get('/foro/estadisticas', [ForumController::class, 'stats']);
 
@@ -223,7 +234,7 @@ Route::get('/invoices/{id}/pdf', [\App\Http\Controllers\Api\InvoicePdfController
 | Autenticado (cualquier rol)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     Route::prefix('payments/culqi')->group(function () {
         Route::post('/charge', [CulqiController::class, 'charge']);
@@ -255,6 +266,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/expenses/scan', [ExpenseController::class, 'scan']);
     Route::post('/expenses/scan/batch-store', [ExpenseController::class, 'scanBatchStore']);
     Route::apiResource('expenses', ExpenseController::class);
+    Route::get('/expenses/export/csv', [ExpenseController::class, 'exportCsv']);
+    Route::get('/expenses/export/pdf', [ExpenseController::class, 'exportPdf']);
 
     // ── Roles Operativos ──────────────────────────────────────────────────
     // Sólo administrators pueden crear/modificar roles
@@ -381,6 +394,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/nubefact/comprobantes', [NubefactController::class, 'listar']);
     Route::get('/nubefact/comprobantes/{id}', [NubefactController::class, 'mostrar']);
     Route::get('/nubefact/kpis', [NubefactController::class, 'kpis']);
+    Route::get('/nubefact/export/csv', [NubefactController::class, 'exportCsv']);
+    Route::get('/nubefact/export/pdf', [NubefactController::class, 'exportPdf']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -593,6 +608,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('admin/transactions')->group(function () {
             Route::get('/', [TransactionController::class, 'index']);
             Route::get('/stats', [TransactionController::class, 'stats']);
+            Route::get('/export/csv', [TransactionController::class, 'exportCsv']);
+            Route::get('/export/pdf', [TransactionController::class, 'exportPdf']);
             Route::get('/{id}', [TransactionController::class, 'show']);
         });
 
@@ -619,6 +636,40 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/pending/{id}/dismiss', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissPending']);
             Route::post('/pending/dismiss-all', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissAllPending']);
         });
+
+        // Reportes — Admin
+        Route::prefix('admin/reportes')->group(function () {
+            Route::get('/ventas', [\App\Http\Controllers\Api\AdminReporteController::class, 'ventas']);
+            Route::get('/vendedores', [\App\Http\Controllers\Api\AdminReporteController::class, 'vendedores']);
+            Route::get('/financiero', [\App\Http\Controllers\Api\AdminReporteController::class, 'financiero']);
+            Route::get('/productos', [\App\Http\Controllers\Api\AdminReporteController::class, 'productos']);
+        });
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Admin BioBlog Approval
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('admin/bioblog')->group(function () {
+        Route::get('/pending', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'pending']);
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'stats']);
+        Route::post('/{type}/{id}/approve', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'approve']);
+        Route::post('/{type}/{id}/reject', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'reject']);
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Security Admin (administrator + security_admin)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware(['role:administrator,security_admin', 'track.session'])->prefix('admin/security')->group(function () {
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'stats']);
+        Route::get('/chart-data', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'chartData']);
+        Route::get('/sessions', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'sessions']);
+        Route::delete('/sessions/{id}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'revokeSession']);
+        Route::get('/activity', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'activity']);
+        Route::get('/login-attempts', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'loginAttempts']);
     });
 
     /*
@@ -728,18 +779,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'update']);
             Route::delete('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'destroy']);
 
+            Route::get('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'index']);
             Route::get('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'show']);
             Route::post('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'store']);
             Route::put('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'update']);
             Route::delete('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'destroy']);
 
+            Route::get('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'index']);
             Route::get('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'show']);
             Route::post('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'store']);
             Route::put('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'update']);
             Route::delete('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'destroy']);
 
-            Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
+            Route::get('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'index']);
             Route::get('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'show']);
+            Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
             Route::put('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'update']);
             Route::delete('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'destroy']);
 

@@ -13,6 +13,7 @@ final class BlogComment extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'blog_post_id',
         'commentable_id',
         'commentable_type',
@@ -21,6 +22,11 @@ final class BlogComment extends Model
         'content',
         'is_approved',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     protected function casts(): array
     {

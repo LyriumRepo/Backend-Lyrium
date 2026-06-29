@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
 use App\Models\BlogArticle;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 
 final class BlogArticleController extends Controller
 {
+    use BlogReviewNotifier;
     public function index(Request $request): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
@@ -53,7 +55,7 @@ final class BlogArticleController extends Controller
             'meta_description' => ['nullable', 'string', 'max:320'],
             'keywords' => ['nullable', 'array'],
             'keywords.*' => ['string', 'max:50'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
             'published_at' => ['nullable', 'date'],
         ]);
 
@@ -61,6 +63,8 @@ final class BlogArticleController extends Controller
         $data['slug'] = Str::slug($data['title']).'-'.Str::random(5);
 
         $article = BlogArticle::create($data);
+
+        $this->notifyAdminsOnPendingReview($article, 'artículo');
 
         return response()->json(['success' => true, 'data' => $article], 201);
     }
@@ -72,7 +76,7 @@ final class BlogArticleController extends Controller
 
         $data = $request->validate([
             'blog_category_id' => ['nullable', 'integer', 'exists:blog_categories,id'],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'summary' => ['nullable', 'string', 'max:500'],
             'content' => ['nullable', 'string'],
             'main_image' => ['nullable', 'string', 'max:500'],
@@ -80,15 +84,18 @@ final class BlogArticleController extends Controller
             'meta_description' => ['nullable', 'string', 'max:320'],
             'keywords' => ['nullable', 'array'],
             'keywords.*' => ['string', 'max:50'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
             'published_at' => ['nullable', 'date'],
         ]);
 
-        if ($data['title'] !== $article->title) {
+        if (isset($data['title']) && $data['title'] !== $article->title) {
             $data['slug'] = Str::slug($data['title']).'-'.Str::random(5);
         }
 
         $article->update($data);
+
+        $article->refresh();
+        $this->notifyAdminsOnPendingReview($article, 'artículo');
 
         return response()->json(['success' => true, 'data' => $article]);
     }

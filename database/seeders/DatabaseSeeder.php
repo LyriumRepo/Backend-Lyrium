@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             ShippingSeeder::class,
             CommissionTierSeeder::class,
             GlossaryEntrySeeder::class,
+            ForumCategorySeeder::class,
         ]);
     }
 }

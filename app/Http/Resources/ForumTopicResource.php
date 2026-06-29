@@ -17,6 +17,7 @@ final class ForumTopicResource extends JsonResource
             'content' => $this->content,
             'created' => $this->created_at?->toIso8601String(),
             'author_name' => $this->resolveAuthorName(),
+            'user_id' => $this->user_id,
             'forum_id' => $this->forum_category_id,
             'forum_name' => $this->whenLoaded('category', fn () => $this->category->name, 'General'),
             'reply_count' => $this->reply_count,

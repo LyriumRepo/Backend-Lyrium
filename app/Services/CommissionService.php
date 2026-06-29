@@ -60,32 +60,18 @@ final class CommissionService
             'commission_amount' => (float) $item->commission_amount,
         ]);
 
-        $totalCommissionItems = $items->sum('commission_amount');
+        $totalCommission = $items->sum('commission_amount');
 
-        $shippingValorVenta = $order->shipping_cost / 1.18;
-        $store = $this->getOrderStore($order);
-        $shippingRate = $store ? (float) $store->commission_rate * 100 : 15.0;
-        $shippingCommission = round($shippingValorVenta * ($shippingRate / 100), 2);
-
-        $totalCommission = $totalCommissionItems + $shippingCommission;
-        $commissionIgv = round($totalCommission * 0.18, 2);
+        // IGV = Comisión × 0.18 / 1.18
+        $commissionIgv = round($totalCommission * 0.18 / 1.18, 2);
+        $commissionBase = round($totalCommission - $commissionIgv, 2);
 
         return [
             'items' => $items,
-            'shipping_valor_venta' => round($shippingValorVenta, 2),
-            'shipping_commission_rate' => $shippingRate,
-            'shipping_commission' => $shippingCommission,
             'total_commission' => $totalCommission,
+            'commission_base' => $commissionBase,
             'commission_igv' => $commissionIgv,
-            'commission_total' => $totalCommission + $commissionIgv,
+            'commission_total' => $totalCommission,
         ];
-    }
-
-    private function getOrderStore(Order $order): ?Store
-    {
-        $order->loadMissing('items.store');
-        $firstItem = $order->items->first();
-
-        return $firstItem?->store;
     }
 }

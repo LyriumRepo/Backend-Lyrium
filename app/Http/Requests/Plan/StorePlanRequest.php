@@ -46,6 +46,10 @@ final class StorePlanRequest extends FormRequest
             'price_subtext' => ['nullable', 'string', 'max:50'],
             'use_price_mode' => ['boolean'],
             'compact_visible_count' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'bg_image' => ['nullable', 'string'],
+            'bg_image_fit' => ['nullable', 'string', 'max:20'],
+            'bg_image_position' => ['nullable', 'string', 'max:20'],
+            'show_bg_in_card' => ['boolean'],
         ];
     }
 

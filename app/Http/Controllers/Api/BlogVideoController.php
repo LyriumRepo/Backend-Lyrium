@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
 use App\Models\BlogVideo;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 
 final class BlogVideoController extends Controller
 {
+    use BlogReviewNotifier;
     public function index(Request $request): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
@@ -48,11 +50,13 @@ final class BlogVideoController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'thumbnail' => ['nullable', 'string', 'max:500'],
             'duration' => ['nullable', 'integer', 'min:1', 'max:1800'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
         ]);
 
         $data['store_id'] = $store->id;
         $video = BlogVideo::create($data);
+
+        $this->notifyAdminsOnPendingReview($video, 'video');
 
         return response()->json(['success' => true, 'data' => $video], 201);
     }
@@ -63,16 +67,19 @@ final class BlogVideoController extends Controller
         $video = BlogVideo::where('store_id', $store->id)->findOrFail($id);
 
         $data = $request->validate([
-            'platform' => ['required', 'string', 'max:30', 'in:youtube,vimeo,tiktok'],
-            'url' => ['required', 'url', 'max:500'],
-            'title' => ['required', 'string', 'max:255'],
+            'platform' => ['sometimes', 'required', 'string', 'max:30', 'in:youtube,vimeo,tiktok'],
+            'url' => ['sometimes', 'required', 'url', 'max:500'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'thumbnail' => ['nullable', 'string', 'max:500'],
             'duration' => ['nullable', 'integer', 'min:1', 'max:1800'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
         ]);
 
         $video->update($data);
+
+        $video->refresh();
+        $this->notifyAdminsOnPendingReview($video, 'video');
 
         return response()->json(['success' => true, 'data' => $video]);
     }
