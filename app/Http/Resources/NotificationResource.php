@@ -40,7 +40,7 @@ final class NotificationResource extends JsonResource
             'product_status' => $data['status'] ?? null,
             'service_id' => $data['service_id'] ?? null,
             'service_name' => $data['service_name'] ?? null,
-            'service_status' => $data['service_status'] ?? null,
+            'service_status' => $data['service_status'] ?? $data['status'] ?? null,
             'reason' => $data['reason'] ?? null,
             'contract_id' => $data['contract_id'] ?? null,
             'contract_number' => $data['contract_number'] ?? null,

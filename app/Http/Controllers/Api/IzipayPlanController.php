@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
+use App\Jobs\GeneratePlanInvoiceJob;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
@@ -16,6 +17,7 @@ use App\Notifications\PlanActivatedNotification;
 use App\Services\IzipayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 final class IzipayPlanController extends Controller
@@ -32,8 +34,9 @@ final class IzipayPlanController extends Controller
     public function createSession(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'plan_id' => ['required', 'integer', 'exists:plans,id'],
-            'months'  => ['required', 'integer', 'min:1', 'max:48'],
+            'plan_id'   => ['nullable', 'integer', 'exists:plans,id'],
+            'plan_slug' => ['nullable', 'string', 'exists:plans,slug'],
+            'months'    => ['required', 'integer', 'min:1', 'max:48'],
         ]);
 
         $user  = $request->user();
@@ -48,9 +51,11 @@ final class IzipayPlanController extends Controller
             ->first();
 
         if ($pending) {
-            // Si no tiene izipay_order_id, viene del flujo antiguo (sin pago real iniciado).
-            // Es seguro eliminarlo y proceder con la nueva sesión.
-            if (is_null($pending->izipay_order_id)) {
+            $isOurOrder   = str_starts_with((string) ($pending->izipay_order_id ?? ''), 'PLAN-');
+            $isStale      = $pending->created_at->diffInMinutes(now()) > 15;
+            $canReplace   = is_null($pending->izipay_order_id) || $isOurOrder || $isStale;
+
+            if ($canReplace) {
                 $pending->delete();
             } else {
                 return response()->json([
@@ -60,7 +65,9 @@ final class IzipayPlanController extends Controller
             }
         }
 
-        $plan         = Plan::findOrFail($data['plan_id']);
+        $plan = isset($data['plan_id'])
+            ? Plan::findOrFail($data['plan_id'])
+            : Plan::where('slug', $data['plan_slug'])->firstOrFail();
         $months       = (int) $data['months'];
         $discount     = $this->getDiscountPercent($months);
         $base         = (float) $plan->monthly_fee * $months;
@@ -170,9 +177,108 @@ final class IzipayPlanController extends Controller
             if ($user) {
                 $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
             }
+
+            GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
         } catch (\Throwable) {
             // No crítico — el PlanRequest fue creado; el admin puede aprobar manualmente
         }
+    }
+
+    /**
+     * POST /api/payments/izipay/plan-callback  (auth:sanctum)
+     *
+     * El SDK Krypton de Izipay entrega clientAnswer + hash al frontend.
+     * El frontend llama aquí para confirmar el pago sin depender del webhook externo
+     * (que no funciona en localhost). Validamos ownership en lugar de firma HMAC.
+     */
+    public function planCallback(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'client_answer'    => ['required'],  // objeto JS o JSON string
+            'order_id'         => ['required', 'string'],
+        ]);
+
+        $user  = $request->user();
+        $store = Store::where('owner_id', $user->id)->first();
+
+        if (! $store) {
+            return response()->json(['success' => false, 'message' => 'Tienda no encontrada'], 403);
+        }
+
+        $orderId = $data['order_id'];
+
+        $planRequest = PlanRequest::where('izipay_order_id', $orderId)
+            ->where('store_id', $store->id)
+            ->whereIn('status', [PlanRequest::STATUS_PENDING])
+            ->first();
+
+        if (! $planRequest) {
+            // Ya fue aprobado (doble llamada) — igualmente devolvemos éxito
+            $approved = PlanRequest::where('izipay_order_id', $orderId)
+                ->where('store_id', $store->id)
+                ->where('status', PlanRequest::STATUS_APPROVED)
+                ->first();
+            if ($approved) {
+                return response()->json(['success' => true, 'message' => 'Plan ya activo']);
+            }
+            return response()->json(['success' => false, 'message' => 'Solicitud no encontrada'], 404);
+        }
+
+        // Extraer orderStatus del clientAnswer (puede venir como objeto o string JSON)
+        $answer = is_array($data['client_answer'])
+            ? $data['client_answer']
+            : json_decode($data['client_answer'], true);
+
+        $orderStatus = $answer['orderStatus'] ?? '';
+
+        Log::info('[IzipayPlanController] planCallback recibido', [
+            'order_id'    => $orderId,
+            'orderStatus' => $orderStatus,
+            'store_id'    => $store->id,
+        ]);
+
+        if (! in_array($orderStatus, ['PAID', 'AUTHORISED', 'CAPTURED', 'ACCEPTED'], true)) {
+            return response()->json(['success' => false, 'message' => "Pago con estado: {$orderStatus}"], 422);
+        }
+
+        $planRequest->update(['payment_status' => PlanRequest::PAYMENT_STATUS_PAID]);
+        $this->approvePlanFromCallback($planRequest, $user);
+
+        return response()->json(['success' => true, 'message' => 'Plan activado correctamente']);
+    }
+
+    /**
+     * Aprueba un PlanRequest proveniente del callback del frontend (real Izipay).
+     */
+    private function approvePlanFromCallback(PlanRequest $planRequest, object $user): void
+    {
+        $planRequest->update([
+            'status'      => PlanRequest::STATUS_APPROVED,
+            'reviewed_by' => null,
+        ]);
+
+        $endsAt = now()->addMonths($planRequest->months);
+
+        $subscription = Subscription::updateOrCreate(
+            ['store_id' => $planRequest->store_id, 'status' => 'active'],
+            ['plan_id' => $planRequest->plan_id, 'starts_at' => now(), 'ends_at' => $endsAt, 'status' => 'active']
+        );
+
+        $planRequest->store->update(['commission_rate' => $planRequest->plan->commission_rate]);
+
+        $contract = $planRequest->store->contracts()
+            ->whereIn('status', ['ACTIVE', 'PENDING'])
+            ->latest()->first();
+        if ($contract) {
+            $contract->update(['end_date' => $endsAt->toDateString()]);
+        }
+
+        $subscription->load('plan');
+        try { broadcast(new PlanStatusChanged($subscription)); } catch (\Throwable) {}
+
+        try { $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription)); } catch (\Throwable) {}
+
+        GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
     }
 
     /**

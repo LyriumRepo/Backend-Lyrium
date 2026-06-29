@@ -18,8 +18,8 @@ class PlanSeeder extends Seeder
             'timeline_icon' => 'star',
             'badge' => null,
             'description' => 'Perfecto para empezar a vender en LYRIUM sin costo inicial.',
-            'css_color' => '#10b981',
-            'accent_color' => '#059669',
+            'css_color' => '#9cb04e',
+            'accent_color' => '#7d9940',
             'requires_payment' => false,
             'enable_claim_lock' => false,
             'claim_months' => 1,
@@ -38,10 +38,10 @@ class PlanSeeder extends Seeder
                 ['text' => 'Soporte técnico por email', 'active' => true],
             ],
             'detailed_benefits' => [
-                ['emoji' => '🔍', 'title' => 'Exposición de productos', 'description' => 'Tus productos aparecerán en los resultados de búsqueda de LYRIUM', 'color' => '#10b981'],
-                ['emoji' => '🎨', 'title' => 'Tienda personalizada', 'description' => 'Espacio propio para configurar tu tienda virtual con tu identidad de marca', 'color' => '#10b981'],
-                ['emoji' => '📦', 'title' => 'Gestión de pedidos', 'description' => 'Administra tus pedidos e inventario de manera eficiente', 'color' => '#10b981'],
-                ['emoji' => '📧', 'title' => 'Soporte técnico', 'description' => 'Atención técnica por email para resolver tus dudas', 'color' => '#10b981'],
+                ['emoji' => '🔍', 'title' => 'Exposición de productos', 'description' => 'Tus productos aparecerán en los resultados de búsqueda de LYRIUM', 'color' => '#9cb04e'],
+                ['emoji' => '🎨', 'title' => 'Tienda personalizada', 'description' => 'Espacio propio para configurar tu tienda virtual con tu identidad de marca', 'color' => '#9cb04e'],
+                ['emoji' => '📦', 'title' => 'Gestión de pedidos', 'description' => 'Administra tus pedidos e inventario de manera eficiente', 'color' => '#9cb04e'],
+                ['emoji' => '📧', 'title' => 'Soporte técnico', 'description' => 'Atención técnica por email para resolver tus dudas', 'color' => '#9cb04e'],
             ],
         ]);
 
@@ -54,8 +54,8 @@ class PlanSeeder extends Seeder
             'timeline_icon' => 'trending-up',
             'badge' => 'Popular',
             'description' => 'El plan ideal para hacer crecer tu negocio con herramientas avanzadas.',
-            'css_color' => '#3b82f6',
-            'accent_color' => '#2563eb',
+            'css_color' => '#64c695',
+            'accent_color' => '#4da978',
             'requires_payment' => true,
             'enable_claim_lock' => true,
             'claim_months' => 3,
@@ -75,10 +75,10 @@ class PlanSeeder extends Seeder
                 ['text' => 'Atención preferencial por LYRIUM', 'active' => true],
             ],
             'detailed_benefits' => [
-                ['emoji' => '🏆', 'title' => 'Logo en banners principales', 'description' => 'Tu logotipo se exhibirá en los banners principales de LYRIUM', 'color' => '#3b82f6'],
-                ['emoji' => '🎓', 'title' => 'Capacitaciones online', 'description' => 'Accede a sesiones de capacitación online en postventa', 'color' => '#3b82f6'],
-                ['emoji' => '⭐', 'title' => 'Producto recomendado', 'description' => 'Recibe una insignia de producto recomendado por LYRIUM', 'color' => '#3b82f6'],
-                ['emoji' => '💬', 'title' => 'Atención preferencial', 'description' => 'Soporte prioritario para resolver tus consultas más rápido', 'color' => '#3b82f6'],
+                ['emoji' => '🏆', 'title' => 'Logo en banners principales', 'description' => 'Tu logotipo se exhibirá en los banners principales de LYRIUM', 'color' => '#64c695'],
+                ['emoji' => '🎓', 'title' => 'Capacitaciones online', 'description' => 'Accede a sesiones de capacitación online en postventa', 'color' => '#64c695'],
+                ['emoji' => '⭐', 'title' => 'Producto recomendado', 'description' => 'Recibe una insignia de producto recomendado por LYRIUM', 'color' => '#64c695'],
+                ['emoji' => '💬', 'title' => 'Atención preferencial', 'description' => 'Soporte prioritario para resolver tus consultas más rápido', 'color' => '#64c695'],
             ],
         ]);
 
@@ -91,8 +91,8 @@ class PlanSeeder extends Seeder
             'timeline_icon' => 'crown',
             'badge' => 'Premium',
             'description' => 'Máxima visibilidad y herramientas exclusivas para los mejores vendedores.',
-            'css_color' => '#8b5cf6',
-            'accent_color' => '#7c3aed',
+            'css_color' => '#499bbf',
+            'accent_color' => '#357fa3',
             'requires_payment' => true,
             'enable_claim_lock' => true,
             'claim_months' => 6,
@@ -112,10 +112,10 @@ class PlanSeeder extends Seeder
                 ['text' => 'Prioridad en búsquedas y filtros', 'active' => true],
             ],
             'detailed_benefits' => [
-                ['emoji' => '🖼️', 'title' => 'Banner personalizado', 'description' => 'Tu banner personalizado aparecerá en el homepage de LYRIUM', 'color' => '#8b5cf6'],
-                ['emoji' => '👤', 'title' => 'Atención al cliente personalizada', 'description' => 'Servicio dedicado de atención al cliente para ti', 'color' => '#8b5cf6'],
-                ['emoji' => '📊', 'title' => 'Análisis de mercado', 'description' => 'Reports y análisis de mercado y competidores', 'color' => '#8b5cf6'],
-                ['emoji' => '🔝', 'title' => 'Prioridad en búsquedas', 'description' => 'Tus productos aparecerán primero en búsquedas y filtros', 'color' => '#8b5cf6'],
+                ['emoji' => '🖼️', 'title' => 'Banner personalizado', 'description' => 'Tu banner personalizado aparecerá en el homepage de LYRIUM', 'color' => '#499bbf'],
+                ['emoji' => '👤', 'title' => 'Atención al cliente personalizada', 'description' => 'Servicio dedicado de atención al cliente para ti', 'color' => '#499bbf'],
+                ['emoji' => '📊', 'title' => 'Análisis de mercado', 'description' => 'Reports y análisis de mercado y competidores', 'color' => '#499bbf'],
+                ['emoji' => '🔝', 'title' => 'Prioridad en búsquedas', 'description' => 'Tus productos aparecerán primero en búsquedas y filtros', 'color' => '#499bbf'],
             ],
         ]);
     }

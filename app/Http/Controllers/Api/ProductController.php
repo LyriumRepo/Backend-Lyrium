@@ -50,11 +50,14 @@ final class ProductController extends Controller
     {
         $query = Product::with(self::RELATIONS_LIST);
         $user  = $request->user() ?? $request->user('sanctum');
-        // If user has a store, show all products from that store (including pending)
 
-        if ($user?->store) {
+        if ($user?->hasRole('administrator')) {
+            // Admin ve todo
+        } elseif ($user?->store && $request->query('store_slug') === null && $request->query('store_id') === null) {
+            // Vendedor viendo SUS propios productos (panel /seller/products) — ve todos los estados
             $query->where('store_id', $user->store->id);
-        } elseif (! $user?->hasRole('administrator')) {
+        } else {
+            // Cualquier otra solicitud pública (incluso vendedor viendo otra tienda o la propia vía slug) — solo aprobados
             $query->where('status', 'approved');
         }
 
@@ -394,7 +397,10 @@ final class ProductController extends Controller
         }
 
         if ($status = $request->query('status')) {
-            $query->where('status', $status);
+            $user = $request->user() ?? $request->user('sanctum');
+            if ($user?->hasRole('administrator') || $user?->hasRole('seller') || $status === 'approved') {
+                $query->where('status', $status);
+            }
         }
 
         if ($type = $request->query('type')) {
@@ -412,6 +418,9 @@ final class ProductController extends Controller
         if ($storeId = $request->query('store_id')) {
             $query->where('store_id', (int) $storeId);
         }
+
+        // Protección: status filter en applyFilters solo acepta 'approved' para no-admins
+        // (el filtro de status en adminIndex es independiente y seguro)
     }
 
     private function syncCategory(Product $product, ?string $categorySlug): void

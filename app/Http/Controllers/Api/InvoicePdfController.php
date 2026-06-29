@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\CommissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Illuminate\Http\Request;
 
 final class InvoicePdfController extends Controller
@@ -139,6 +141,7 @@ final class InvoicePdfController extends Controller
             'commissionRate' => $commissionRate,
             'amountInWords' => $this->numberToWords($total),
             'authorizationCode' => $invoice->authorization_code ?? '—',
+            'qrImage' => $this->generateQrBase64($invoice->qr_data),
             'generatedAt' => now()->locale('es')->isoFormat('DD/MM/YYYY HH:mm:ss'),
         ];
 
@@ -146,6 +149,18 @@ final class InvoicePdfController extends Controller
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->stream("factura-{$invoice->series}-{$invoice->number}.pdf");
+    }
+
+    private function generateQrBase64(?string $qrData): ?string
+    {
+        if (! $qrData) return null;
+        try {
+            $options = new QROptions(['outputType' => 'png', 'eccLevel' => 'L', 'scale' => 4]);
+            $qr = new QRCode($options);
+            return 'data:image/png;base64,' . base64_encode($qr->render($qrData));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function numberToWords(float $number): string

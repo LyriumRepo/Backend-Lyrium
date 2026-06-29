@@ -355,10 +355,31 @@
         <small>(S/ {{ number_format($total, 2) }})</small>
     </div>
 
+    @if($qrImage)
+    <div style="border: 1px solid #c8ddd4; border-radius: 6px; padding: 14px; margin-bottom: 14px; background: #f4fbf7;">
+        <div style="display: table; width: 100%;">
+            <div style="display: table-cell; vertical-align: middle; width: 90px;">
+                <img src="{{ $qrImage }}" width="80" height="80" alt="QR SUNAT" />
+            </div>
+            <div style="display: table-cell; vertical-align: middle; padding-left: 14px;">
+                <span style="background: #15803D; color: #fff; font-size: 7px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; padding: 2px 8px; border-radius: 3px;">Verificación SUNAT</span>
+                <p style="font-size: 11px; font-weight: bold; color: #1a3a2e; margin: 4px 0 6px;">Código QR de Autenticidad</p>
+                <p style="font-size: 8px; color: #5a7266; line-height: 1.7;">
+                    Escanea este código para verificar la validez de este comprobante electrónico ante SUNAT.<br>
+                    Comprobante: <strong style="color: #1c2b24;">{{ $series }}-{{ $number }}</strong> &nbsp;·&nbsp; RUC Emisor: <strong style="color: #1c2b24;">20612731838</strong><br>
+                    @if($authorizationCode !== '—')
+                    Autorización: <strong style="color: #2e6b50;">{{ $authorizationCode }}</strong><br>
+                    @endif
+                    <span style="color: #2e6b50;">e-consulta.sunat.gob.pe</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="footer-meta">
-        Código de Autorización: <strong>{{ $authorizationCode }}</strong><br>
         Resolución Nro. 0340050010017 / SUNAT<br>
-        Representación impresa de la Factura Electrónica<br>
+        Representación impresa de la Factura Electrónica. Consulte su validez en: <strong>e-consulta.sunat.gob.pe</strong><br>
         Generado el {{ $generatedAt }}
     </div>
 

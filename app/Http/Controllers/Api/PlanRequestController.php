@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
+use App\Jobs\GeneratePlanInvoiceJob;
 use App\Models\IzipayPlanTransaction;
 use App\Models\Plan;
 use App\Models\PlanRequest;
@@ -695,6 +696,11 @@ final class PlanRequestController extends Controller
                     'plan_request_id' => $planRequest->id, 'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Generar factura electrónica solo para pagos reales (no trials)
+        if (! $planRequest->isTrial()) {
+            GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
         }
     }
 

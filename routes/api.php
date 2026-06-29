@@ -237,6 +237,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('payments/izipay')->group(function () {
         Route::post('/create-session',  [IzipayController::class,     'createSession']);
         Route::post('/plan-session',    [IzipayPlanController::class,  'createSession']);
+        Route::post('/plan-callback',   [IzipayPlanController::class,  'planCallback']);
         Route::get('/status/{orderId}', [IzipayController::class,     'status']);
     });
 
@@ -288,6 +289,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/me', [UserController::class, 'me']);
     Route::put('/users/profile', [UserController::class, 'updateProfile']);
     Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
+    Route::get('/users/profile/sessions', [UserController::class, 'getSessions']);
+    Route::delete('/users/profile/sessions/{tokenId}', [UserController::class, 'revokeSession']);
     Route::get('/users/settings', [UserController::class, 'getSettings']);
     Route::put('/users/settings', [UserController::class, 'updateSettings']);
     Route::post('/users/avatar', [UserController::class, 'uploadAvatar']);
@@ -591,6 +594,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Admin Historial de pagos de planes
         Route::get('/admin/plan-payments', [PlanRequestController::class, 'paymentHistory']);
+
+        // Admin Facturas de suscripciones de planes
+        Route::get('/admin/plan-invoices', [NubefactController::class, 'planInvoices']);
 
         // System Config - Admin
         Route::get('/admin/config', [SystemConfigController::class, 'index']);

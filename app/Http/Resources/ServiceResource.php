@@ -94,7 +94,7 @@ final class ServiceResource extends JsonResource
             'settings' => $settings,
 
             // ── Estado ───────────────────────────────────────────────────────
-            'status' => $this->status,
+            'status' => $this->status === \App\Models\Service::STATUS_ACTIVE ? 'approved' : $this->status,
             'cancellation_policy' => $this->cancellation_policy,
             'cancellation_hours' => (int) ($settings['cancellation_hours'] ?? 24),
 

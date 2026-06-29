@@ -16,9 +16,13 @@ final class OrderItemResource extends JsonResource
 
         $canConfirm = false;
         $canCancel = false;
+        $isOwner = null;
 
         if ($isSeller) {
-            $storeIds = $user->stores()->pluck('stores.id')->toArray();
+            $storeIds = $user->ownedStores()->pluck('id')
+                ->concat($user->stores()->pluck('stores.id'))
+                ->unique()
+                ->toArray();
             $isOwner = in_array($this->store_id, $storeIds);
 
             $canConfirm = $isOwner && $this->status === \App\Models\OrderItem::STATUS_PENDING_SELLER;
@@ -33,6 +37,7 @@ final class OrderItemResource extends JsonResource
         return [
             'id' => (string) $this->id,
             'sellerId' => $this->store_id,
+            'isOwn' => $isOwner,
             'productId' => $this->product_id,
             'productName' => $this->product_name,
             'unitPrice' => (float) $this->unit_price,

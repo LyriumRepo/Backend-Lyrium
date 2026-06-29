@@ -266,8 +266,10 @@ final class ServiceController extends Controller
             ], 422);
         }
 
+        $storedStatus = $validated['status'] === 'approved' ? Service::STATUS_ACTIVE : $validated['status'];
+
         $service->update([
-            'status' => $validated['status'],
+            'status' => $storedStatus,
             'rejection_reason' => $validated['status'] === 'rejected' ? $validated['reason'] : null,
             'reviewed_at' => now(),
             'reviewed_by' => Auth::id(),

@@ -244,23 +244,70 @@ final class UserController extends Controller
     }
 
     /**
+     * GET /api/users/profile/sessions
+     * List all active Sanctum tokens for the authenticated user.
+     */
+    public function getSessions(Request $request): JsonResponse
+    {
+        $currentToken = $request->user()->currentAccessToken();
+
+        $sessions = $request->user()->tokens()
+            ->orderByDesc('last_used_at')
+            ->get()
+            ->map(function ($token) use ($currentToken) {
+                return [
+                    'id'           => $token->id,
+                    'name'         => $token->name,
+                    'last_used_at' => $token->last_used_at?->toIso8601String(),
+                    'created_at'   => $token->created_at->toIso8601String(),
+                    'is_current'   => $token->id === $currentToken->id,
+                ];
+            });
+
+        return $this->success($sessions);
+    }
+
+    /**
+     * DELETE /api/users/profile/sessions/{tokenId}
+     * Revoke a specific token (cannot revoke the current one).
+     */
+    public function revokeSession(Request $request, int $tokenId): JsonResponse
+    {
+        $currentToken = $request->user()->currentAccessToken();
+
+        if ($tokenId === $currentToken->id) {
+            return $this->error('No puedes cerrar la sesión actual desde aquí.', 422);
+        }
+
+        $token = $request->user()->tokens()->find($tokenId);
+
+        if (! $token) {
+            return $this->error('Sesión no encontrada.', 404);
+        }
+
+        $token->delete();
+
+        return $this->success(null, 'Sesión cerrada correctamente.');
+    }
+
+    /**
      * PUT /api/users/profile/password
      * Update authenticated user's password
      */
     public function updatePassword(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'actual' => 'required|string|min:1',
-            'nueva' => 'required|string|min:8',
+            'current_password' => 'required|string|min:1',
+            'password' => ['required', 'string', 'confirmed', Password::min(8)],
         ]);
 
         $user = $request->user();
 
-        if (! Hash::check($data['actual'], $user->password)) {
+        if (! Hash::check($data['current_password'], $user->password)) {
             return $this->error('La contraseña actual no es correcta.', 422);
         }
 
-        $user->update(['password' => Hash::make($data['nueva'])]);
+        $user->update(['password' => Hash::make($data['password'])]);
 
         return $this->success(null, 'Contraseña actualizada correctamente.');
     }

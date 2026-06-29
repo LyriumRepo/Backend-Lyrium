@@ -42,9 +42,15 @@ final class Invoice extends Model
         self::SUNAT_STATUS_REJECTED,
     ];
 
+    public const SOURCE_ORDER = 'order';
+
+    public const SOURCE_PLAN_SUBSCRIPTION = 'plan_subscription';
+
     protected $fillable = [
         'store_id',
         'order_id',
+        'plan_request_id',
+        'source',
         'invoice_number',
         'series',
         'number',
@@ -98,6 +104,11 @@ final class Invoice extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function planRequest(): BelongsTo
+    {
+        return $this->belongsTo(PlanRequest::class);
     }
 
     public static function generateInvoiceNumber(): string

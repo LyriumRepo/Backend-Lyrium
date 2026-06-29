@@ -42,16 +42,20 @@ final class NubefactService
             ];
         }
 
-        $totalConIgv = (float) $invoice->total;
-        // Usar el subtotal pre-calculado si existe para evitar imprecisión de coma flotante
-        // al dividir totalConIgv / 1.18 (p.ej. 117.53 / 1.18 puede dar 99.599... en lugar de 99.6).
-        $storedBase  = (float) ($invoice->subtotal_sin_igv ?? 0);
-        $baseGravada = $storedBase > 0 ? $storedBase : $totalConIgv / (1 + self::IGV_RATE);
-        $totalIgv    = round($totalConIgv - $baseGravada, 2);
-
         if ($customItems !== null) {
-            $items = $customItems;
+            // Derivar totales del encabezado desde los ítems para que coincidan exactamente.
+            // Si se calculan desde invoice->total e invoice->subtotal_sin_igv, el costo de
+            // envío queda fuera de total_gravada y el total_igv queda inflado (bug confirmado).
+            $items       = $customItems;
+            $baseGravada = round(array_sum(array_column($items, 'subtotal')), 2);
+            $totalIgv    = round(array_sum(array_column($items, 'igv')), 2);
+            $totalConIgv = round($baseGravada + $totalIgv, 2);
         } else {
+            $totalConIgv = (float) $invoice->total;
+            $storedBase  = (float) ($invoice->subtotal_sin_igv ?? 0);
+            $baseGravada = $storedBase > 0 ? $storedBase : $totalConIgv / (1 + self::IGV_RATE);
+            $totalIgv    = round($totalConIgv - $baseGravada, 2);
+
             $order = $invoice->order()->with('items')->first();
             $shippingCost = $order ? (float) ($order->shipping_cost ?? 0) : 0.0;
             $items = $this->buildItems($order?->items, $baseGravada, $invoice->customer_name, $shippingCost);

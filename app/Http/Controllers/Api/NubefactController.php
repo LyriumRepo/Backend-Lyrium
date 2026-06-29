@@ -20,6 +20,52 @@ final class NubefactController extends Controller
         private readonly NubefactService $nubefact,
     ) {}
 
+    public function planInvoices(Request $request): JsonResponse
+    {
+        $perPage = (int) $request->input('per_page', 50);
+
+        $invoices = Invoice::where('source', 'plan_subscription')
+            ->with(['store', 'planRequest.plan'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(min($perPage, 200));
+
+        $data = $invoices->map(function (Invoice $inv) {
+            return [
+                'id'              => $inv->id,
+                'invoice_number'  => $inv->invoice_number,
+                'series'          => $inv->series,
+                'number'          => $inv->number,
+                'type'            => $inv->type,
+                'customer_name'   => $inv->customer_name,
+                'customer_ruc'    => $inv->customer_ruc,
+                'customer_email'  => $inv->customer_email,
+                'total'           => (float) $inv->total,
+                'subtotal_sin_igv'=> (float) ($inv->subtotal_sin_igv ?? 0),
+                'igv_amount'      => (float) ($inv->igv_amount ?? 0),
+                'sunat_status'    => $inv->sunat_status,
+                'pdf_url'         => $inv->pdf_url,
+                'xml_url'         => $inv->xml_url,
+                'emission_date'   => $inv->emission_date?->toIso8601String() ?? $inv->created_at->toIso8601String(),
+                'created_at'      => $inv->created_at->toIso8601String(),
+                'plan_name'       => $inv->planRequest?->plan?->name,
+                'months'          => $inv->planRequest?->months,
+                'store_name'      => $inv->store?->store_name ?? $inv->store?->trade_name,
+                'store_id'        => $inv->store_id,
+                'plan_request_id' => $inv->plan_request_id,
+            ];
+        });
+
+        return $this->success([
+            'data' => $data,
+            'pagination' => [
+                'page'       => $invoices->currentPage(),
+                'perPage'    => $invoices->perPage(),
+                'total'      => $invoices->total(),
+                'totalPages' => $invoices->lastPage(),
+            ],
+        ]);
+    }
+
     public function emitir(EmitInvoiceRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -93,7 +139,9 @@ final class NubefactController extends Controller
     {
         $user = $request->user();
 
-        $query = Invoice::where('provider', 'nubefact')->with(['order.items.store', 'store.owner']);
+        $query = Invoice::where('provider', 'nubefact')
+            ->where(fn ($q) => $q->whereNull('source')->orWhere('source', 'order'))
+            ->with(['order.items.store', 'store.owner']);
 
         if (! $user->hasRole('administrator')) {
             $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
