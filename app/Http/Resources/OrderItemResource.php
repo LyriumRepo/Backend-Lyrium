@@ -16,7 +16,7 @@ final class OrderItemResource extends JsonResource
 
         $canConfirm = false;
         $canCancel = false;
-        $isOwner = null;
+        $isOwner = false;
 
         if ($isSeller) {
             $storeIds = $user->ownedStores()->pluck('id')
@@ -43,6 +43,11 @@ final class OrderItemResource extends JsonResource
             'unitPrice' => (float) $this->unit_price,
             'quantity' => (int) $this->quantity,
             'lineTotal' => (float) $this->line_total,
+            'shippingCost' => (float) (
+                $this->order?->store_shipping
+                ? collect($this->order->store_shipping)->firstWhere('store_id', $this->store_id)['shipping_cost'] ?? 0
+                : 0
+            ),
             'commissionRate' => (float) $this->commission_rate,
             'commissionAmount' => (float) $this->commission_amount,
             'status' => $this->status,

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\ProductReturn;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use App\Services\AuditService;
 
 final class ReturnService
 {
@@ -36,6 +37,19 @@ final class ReturnService
             ]);
         }
 
+        app(AuditService::class)->record(
+            event: 'returns.created',
+            module: 'returns',
+            description: "Devolución #{$return->return_number} creada para la orden #{$return->order_id}",
+            auditable: $return,
+            newValues: ['status' => ProductReturn::STATUS_PENDING],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'return_id' => $return->id,
+                'order_id' => $return->order_id,
+            ],
+        );
+
         return $return->fresh(['items', 'order', 'store']);
     }
 
@@ -54,12 +68,28 @@ final class ReturnService
             throw new \InvalidArgumentException('Esta devolución no puede ser aprobada');
         }
 
+        $oldStatus = $return->status;
+
         $return->update([
             'status' => ProductReturn::STATUS_APPROVED,
             'resolution_notes' => $notes,
             'refund_amount' => $refundAmount,
             'reviewed_at' => now(),
         ]);
+
+        app(AuditService::class)->record(
+            event: 'returns.approved',
+            module: 'returns',
+            description: "Devolución #{$return->return_number} aprobada",
+            auditable: $return,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => ProductReturn::STATUS_APPROVED],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'return_id' => $return->id,
+                'order_id' => $return->order_id,
+            ],
+        );
 
         return $return->fresh();
     }
@@ -72,11 +102,27 @@ final class ReturnService
             throw new \InvalidArgumentException('Esta devolución no puede ser rechazada');
         }
 
+        $oldStatus = $return->status;
+
         $return->update([
             'status' => ProductReturn::STATUS_REJECTED,
             'resolution_notes' => $reason,
             'reviewed_at' => now(),
         ]);
+
+        app(AuditService::class)->record(
+            event: 'returns.rejected',
+            module: 'returns',
+            description: "Devolución #{$return->return_number} rechazada",
+            auditable: $return,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => ProductReturn::STATUS_REJECTED],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'return_id' => $return->id,
+                'order_id' => $return->order_id,
+            ],
+        );
 
         return $return->fresh();
     }
@@ -89,9 +135,25 @@ final class ReturnService
             throw new \InvalidArgumentException('Esta devolución no puede ser marcada como recibida');
         }
 
+        $oldStatus = $return->status;
+
         $return->update([
             'status' => ProductReturn::STATUS_RECEIVED,
         ]);
+
+        app(AuditService::class)->record(
+            event: 'returns.received',
+            module: 'returns',
+            description: "Devolución #{$return->return_number} recibida",
+            auditable: $return,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => ProductReturn::STATUS_RECEIVED],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'return_id' => $return->id,
+                'order_id' => $return->order_id,
+            ],
+        );
 
         return $return->fresh();
     }
@@ -104,10 +166,26 @@ final class ReturnService
             throw new \InvalidArgumentException('Esta devolución no puede ser reembolsada');
         }
 
+        $oldStatus = $return->status;
+
         $return->update([
             'status' => ProductReturn::STATUS_REFUNDED,
             'resolved_at' => now(),
         ]);
+
+        app(AuditService::class)->record(
+            event: 'returns.refunded',
+            module: 'returns',
+            description: "Devolución #{$return->return_number} reembolsada",
+            auditable: $return,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => ProductReturn::STATUS_REFUNDED],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'return_id' => $return->id,
+                'order_id' => $return->order_id,
+            ],
+        );
 
         return $return->fresh();
     }

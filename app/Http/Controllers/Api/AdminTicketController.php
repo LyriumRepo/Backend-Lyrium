@@ -15,6 +15,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketRepliedNotification;
 use App\Notifications\TicketStatusChangedNotification;
+use App\Services\AuditService;
 use App\Services\TicketAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ use Illuminate\Support\Str;
 
 final class AdminTicketController extends Controller
 {
-    public function __construct(private readonly TicketAttachmentService $attachmentService) {}
+    public function __construct(private readonly TicketAttachmentService $attachmentService, private readonly AuditService $auditService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -235,6 +236,20 @@ final class AdminTicketController extends Controller
             new TicketStatusChangedNotification($ticket, $oldStatus, $newStatus)
         );
 
+        $this->auditService->record(
+            event: 'tickets.status.changed',
+            module: 'tickets',
+            description: "Estado del ticket cambiado de {$oldStatus} a {$newStatus}",
+            auditable: $ticket,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => $newStatus],
+            metadata: [
+                'ticket_id' => $ticket->id,
+                'subject' => $ticket->subject,
+            ],
+        );
+
         $previewText = "Estado cambiado de {$oldStatus} a {$newStatus}.";
         $totalMessages = $ticket->messages()->count();
         $updatedAt = now()->toIso8601String();
@@ -286,6 +301,19 @@ final class AdminTicketController extends Controller
             'type' => 'system',
         ]);
 
+        $this->auditService->record(
+            event: 'tickets.assigned',
+            module: 'tickets',
+            description: "Ticket asignado a {$admin->name}",
+            auditable: $ticket,
+            source: AuditService::SOURCE_WEB,
+            newValues: ['assigned_admin_id' => $admin->id],
+            metadata: [
+                'ticket_id' => $ticket->id,
+                'subject' => $ticket->subject,
+            ],
+        );
+
         return response()->json([
             'success' => true,
             'message' => "Ticket asignado a {$admin->name}.",
@@ -303,6 +331,19 @@ final class AdminTicketController extends Controller
             'priority' => $request->input('priority'),
             'is_critical' => in_array($request->input('priority'), ['high', 'critical']),
         ]);
+
+        $this->auditService->record(
+            event: 'tickets.priority.changed',
+            module: 'tickets',
+            description: 'Prioridad del ticket actualizada',
+            auditable: $ticket,
+            source: AuditService::SOURCE_WEB,
+            newValues: ['priority' => $request->input('priority')],
+            metadata: [
+                'ticket_id' => $ticket->id,
+                'subject' => $ticket->subject,
+            ],
+        );
 
         return response()->json([
             'success' => true,

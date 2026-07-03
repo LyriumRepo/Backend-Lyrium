@@ -10,6 +10,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         Schema::table('invoices', function (Blueprint $table) {
             $columns = \Illuminate\Support\Facades\DB::select("SHOW COLUMNS FROM invoices");
             $existing = array_column($columns, 'Field');

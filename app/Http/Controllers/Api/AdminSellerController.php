@@ -12,12 +12,14 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\StoreStatusNotification;
 use App\Notifications\UserBannedNotification;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 final class AdminSellerController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
     /**
      * GET /api/admin/sellers/stats
      *
@@ -248,7 +250,20 @@ final class AdminSellerController extends Controller
         $user = User::role('seller')->findOrFail($id);
         $reason = $request->input('reason');
 
-        $user->update(['is_banned' => ! $user->is_banned]);
+        $wasBanned = $user->is_banned;
+        $user->update(['is_banned' => ! $wasBanned]);
+
+        $isBanned = !$wasBanned;
+        $this->auditService->record(
+            event: $isBanned ? 'users.banned' : 'users.unbanned',
+            module: 'users',
+            description: $isBanned ? 'Vendedor bloqueado' : 'Vendedor habilitado',
+            auditable: $user,
+            oldValues: ['is_banned' => $wasBanned],
+            newValues: ['is_banned' => $isBanned],
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id, 'banned_by' => auth()->id(), 'seller_name' => $user->name],
+        );
 
         if ($user->is_banned) {
             try {

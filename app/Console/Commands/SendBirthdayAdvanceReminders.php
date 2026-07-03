@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\BirthdayAdvanceNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 
 final class SendBirthdayAdvanceReminders extends Command
@@ -62,6 +63,15 @@ final class SendBirthdayAdvanceReminders extends Command
 
         Cache::put($cacheKey, true, now()->endOfDay());
         $this->info("Recordatorios enviados: {$sent} de {$users->count()}");
+
+        app(AuditService::class)->record(
+            source: AuditService::SOURCE_SCHEDULER,
+            event: 'system.scheduler.executed',
+            module: 'system',
+            description: 'Tarea programada ejecutada: birthday:advance',
+            severity: 'info',
+            metadata: ['command' => 'birthday:advance'],
+        );
 
         return self::SUCCESS;
     }

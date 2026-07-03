@@ -11,6 +11,7 @@ use App\Models\UserNotificationSetting;
 use App\Mail\WelcomeInternalUserMail;
 use App\Models\User;
 use App\Notifications\BirthdayNotification;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,7 @@ use Illuminate\Validation\Rules\Password;
 
 final class UserController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
     /**
      * GET /api/users/me
      */
@@ -166,6 +168,15 @@ final class UserController extends Controller
 
         $user->assignRole($data['role']);
 
+        $this->auditService->record(
+            event: 'users.created',
+            module: 'users',
+            description: 'Usuario interno creado con rol: ' . $data['role'],
+            auditable: $user,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['role' => $data['role'], 'created_by' => auth()->id()],
+        );
+
         if ($data['send_welcome'] ?? true) {
             Mail::to($user->email)->queue(
                 new WelcomeInternalUserMail($user->name, $user->email, $data['password'], $data['role'])
@@ -236,6 +247,15 @@ final class UserController extends Controller
         $url = '/storage/' . $path;
 
         $user->update(['avatar' => $url]);
+
+        $this->auditService->record(
+            event: 'users.avatar.changed',
+            module: 'users',
+            description: 'Avatar de usuario actualizado',
+            auditable: $user,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id],
+        );
 
         return response()->json([
             'avatar' => $url,
@@ -309,6 +329,15 @@ final class UserController extends Controller
 
         $user->update(['password' => Hash::make($data['password'])]);
 
+        $this->auditService->record(
+            event: 'auth.password.changed',
+            module: 'auth',
+            description: 'Contraseña de usuario actualizada',
+            auditable: $user,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id],
+        );
+
         return $this->success(null, 'Contraseña actualizada correctamente.');
     }
 
@@ -358,7 +387,19 @@ final class UserController extends Controller
             ]
         );
 
+        $oldValues = $settings->getOriginal();
         $settings->update($data);
+
+        $this->auditService->record(
+            event: 'users.settings.changed',
+            module: 'users',
+            description: 'Configuración de notificaciones actualizada',
+            auditable: $user,
+            oldValues: $oldValues,
+            newValues: $data,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id],
+        );
 
         return $this->success($settings->fresh());
     }
@@ -381,7 +422,19 @@ final class UserController extends Controller
             unset($data['display_name']);
         }
 
+        $original = $user->getOriginal();
         $user->update($data);
+
+        $this->auditService->record(
+            event: 'users.updated',
+            module: 'users',
+            description: 'Usuario actualizado por administrador',
+            auditable: $user,
+            oldValues: $original,
+            newValues: $data,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id, 'updated_by' => auth()->id()],
+        );
 
         return response()->json(new UserResource($user->fresh()));
     }
@@ -396,7 +449,19 @@ final class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
+        $oldRoles = $user->getRoleNames()->toArray();
         $user->syncRoles([$validated['role']]);
+
+        $this->auditService->record(
+            event: 'users.role.changed',
+            module: 'users',
+            description: 'Rol de usuario actualizado',
+            auditable: $user,
+            oldValues: ['roles' => $oldRoles],
+            newValues: ['roles' => [$validated['role']]],
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id, 'assigned_by' => auth()->id()],
+        );
 
         return response()->json(new UserResource($user->fresh()->loadCount('ownedStores')));
     }
@@ -407,7 +472,20 @@ final class UserController extends Controller
     public function toggleBan(int $id): JsonResponse
     {
         $user = User::findOrFail($id);
-        $user->update(['is_banned' => ! $user->is_banned]);
+        $wasBanned = $user->is_banned;
+        $user->update(['is_banned' => ! $wasBanned]);
+
+        $isBanned = !$wasBanned;
+        $this->auditService->record(
+            event: $isBanned ? 'users.banned' : 'users.unbanned',
+            module: 'users',
+            description: $isBanned ? 'Usuario bloqueado' : 'Usuario desbloqueado',
+            auditable: $user,
+            oldValues: ['is_banned' => $wasBanned],
+            newValues: ['is_banned' => $isBanned],
+            source: AuditService::SOURCE_WEB,
+            metadata: ['user_id' => $user->id, 'banned_by' => auth()->id()],
+        );
 
         return response()->json(new UserResource($user->fresh()->loadCount('ownedStores')));
     }

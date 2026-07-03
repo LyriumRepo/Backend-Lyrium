@@ -24,7 +24,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Verificar que la columna status existe antes de modificar
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("
             ALTER TABLE `services`
             MODIFY COLUMN `status`
@@ -36,7 +39,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Antes de revertir, convertir borradores a inactive para no perder filas
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement("UPDATE `services` SET `status` = 'inactive' WHERE `status` = 'draft'");
 
         DB::statement("

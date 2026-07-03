@@ -151,6 +151,45 @@ final class PlanService
         return $this->getButtonColors();
     }
 
+    protected static array $capabilitiesCache = [];
+
+    public function storeCapabilities(\App\Models\Store $store): array
+    {
+        $storeId = $store->id;
+
+        if (! isset(static::$capabilitiesCache[$storeId])) {
+            $plan = $store->activeSubscription?->plan;
+
+            static::$capabilitiesCache[$storeId] = $plan?->capabilities
+                ?? Plan::where('slug', 'emprende')->first()?->capabilities
+                ?? [];
+        }
+
+        return static::$capabilitiesCache[$storeId];
+    }
+
+    public function can(\App\Models\Store $store, string $capability): bool
+    {
+        return (bool) data_get($this->storeCapabilities($store), $capability, false);
+    }
+
+    public function limit(\App\Models\Store $store, string $capability): int
+    {
+        return (int) data_get($this->storeCapabilities($store), $capability, 0);
+    }
+
+    public function isUnlimited(\App\Models\Store $store, string $capability): bool
+    {
+        return $this->limit($store, $capability) === -1;
+    }
+
+    public function exceedsLimit(\App\Models\Store $store, string $capability, int $currentCount): bool
+    {
+        $limit = $this->limit($store, $capability);
+
+        return $limit !== -1 && $currentCount >= $limit;
+    }
+
     public function getDefaultPlansData(): array
     {
         $plans = Plan::orderBy('monthly_fee')->get();

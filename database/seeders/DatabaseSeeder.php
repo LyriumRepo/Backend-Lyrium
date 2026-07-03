@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             ForumCategorySeeder::class,
             SecurityAdminSeeder::class,
             SpecialistSeeder::class,
+            LogisticsSeeder::class,
         ]);
     }
 }

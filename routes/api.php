@@ -67,14 +67,13 @@ use App\Http\Controllers\Api\AdminMedalController;
 use App\Http\Controllers\Api\SellerMedalController;
 use App\Http\Controllers\Api\LogisticsController;
 
-
 /*
 |--------------------------------------------------------------------------
 | Auth (público)
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('audit.auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/register-customer', [AuthController::class, 'registerCustomer']);
@@ -95,6 +94,30 @@ Route::prefix('auth')->group(function () {
 
 // Endpoint interno usado por el servicio RPA para disparar el OTP
 Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
+
+
+/*
+|--------------------------------------------------------------------------
+| Logística (públicos: geo + shalom | calcular usa carrito auth implícito)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('logistics')->group(function () {
+    // Geo — alimentan los selects de destino en checkout (siempre públicos)
+    Route::get('/departamentos',              [LogisticsController::class, 'departamentos']);
+    Route::get('/provincias/{departamento}',  [LogisticsController::class, 'provincias']);
+    Route::get('/distritos',                  [LogisticsController::class, 'distritos']);
+    Route::get('/operadores',                 [LogisticsController::class, 'operadores']);
+
+    // Shalom — endpoints para que shalom.js del scraper consulte la BD
+    Route::get('/shalom/terminal',            [LogisticsController::class, 'shalomTerminal']);
+    Route::get('/shalom/reparto',             [LogisticsController::class, 'shalomReparto']);
+
+    // Cálculo — Paso 2 (sin destino) y Paso 3 (con destino + couriers)
+    Route::post('/calcular-caja',             [LogisticsController::class, 'calcularCaja']);
+    Route::post('/calcular',                  [LogisticsController::class, 'calcular']);
+    Route::post('/confirmar-envio',           [LogisticsController::class, 'confirmarEnvio']);
+});
 
 
 /*
@@ -288,7 +311,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Log de Auditoría Técnica (RF-13) ──────────────────────────────────
     // Sólo lectura — sólo administrators
-    Route::middleware('role:administrator')->prefix('audit-logs')->name('audit-logs.')->group(function () {
+    Route::middleware('role:administrator,security_admin')->prefix('audit-logs')->name('audit-logs.')->group(function () {
         Route::get('/', [AuditLogController::class, 'index'])->name('index');
         Route::get('/modules', [AuditLogController::class, 'modules'])->name('modules');
         Route::get('/{id}', [AuditLogController::class, 'show'])->name('show');
@@ -461,7 +484,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services (Citas/Servicios)
     //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
-    
+
     Route::get('/seller/services', [ServiceController::class, 'sellerServices']);
     Route::get('/seller/services/{id}', [ServiceController::class, 'showMyService']);
 
@@ -755,7 +778,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/stores/{id}', [StoreController::class, 'update']);
         Route::get('/stores/{id}/branches', [StoreController::class, 'branches']);
         Route::put('/stores/{id}/branches', [StoreController::class, 'updateBranches']);
-        Route::post('/stores/{id}/rep-photo',[StoreController::class, 'uploadRepLegalPhoto']);
+        Route::post('/stores/{id}/rep-photo', [StoreController::class, 'uploadRepLegalPhoto']);
 
         Route::get('/stores/me/specialists', [\App\Http\Controllers\Api\SpecialistController::class, 'index']);
         Route::get('/stores/me/specialists/{specialist}', [\App\Http\Controllers\Api\SpecialistController::class, 'show']);
@@ -769,8 +792,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Store logo and banner
         Route::post('/stores/{id}/media/logo', [MediaController::class, 'uploadStoreLogo']);
+        Route::post('/stores/{id}/media/logo-marketplace', [MediaController::class, 'uploadStoreMarketplaceLogo']);
         Route::post('/stores/{id}/media/banner', [MediaController::class, 'uploadStoreBanner']);
         Route::post('/stores/{id}/media/banner2', [MediaController::class, 'uploadStoreBanner2']);
+        Route::delete('/stores/{id}/media/banner', [MediaController::class, 'deleteStoreBanner']);
+        Route::delete('/stores/{id}/media/banner2', [MediaController::class, 'deleteStoreBanner2']);
+
+        // Store ad banners
+        Route::post('/stores/{id}/media/ad-banners', [MediaController::class, 'uploadStoreAdBanner']);
+        Route::delete('/stores/{id}/media/ad-banners/{mediaId}', [MediaController::class, 'deleteStoreAdBanner']);
 
         // Store gallery
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
@@ -910,21 +940,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // ── Security Admin Panel ────────────────────────────────────────────────
-Route::middleware(['auth:sanctum', 'role:security_admin'])->prefix('security')->group(function () {
+Route::middleware(['auth:sanctum', 'role:security_admin', 'audit.security'])->prefix('security')->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
-});
-
-// ── Logística (público) ─────────────────────────────────────────────────
-Route::prefix('logistics')->group(function () {
-    Route::get('/departamentos',              [LogisticsController::class, 'departamentos']);
-    Route::get('/provincias/{departamento}',  [LogisticsController::class, 'provincias']);
-    Route::get('/distritos',                  [LogisticsController::class, 'distritos']);
-    Route::get('/operadores',                 [LogisticsController::class, 'operadores']);
-    Route::get('/shalom/terminal',            [LogisticsController::class, 'shalomTerminal']);
-    Route::get('/shalom/reparto',             [LogisticsController::class, 'shalomReparto']);
-    Route::post('/calcular-caja',             [LogisticsController::class, 'calcularCaja']);
-    Route::post('/calcular',                  [LogisticsController::class, 'calcular']);
-    Route::post('/confirmar-envio',           [LogisticsController::class, 'confirmarEnvio']);
+    Route::get('dashboard/realtime', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'realtime']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

@@ -30,7 +30,8 @@ final class ServiceService
      * Inyección del servicio de Google Calendar en el constructor.
      */
     public function __construct(
-        private readonly GoogleCalendarService $googleCalendar
+        private readonly GoogleCalendarService $googleCalendar,
+        private readonly AuditService $auditService
     ) {}
 
     public function paginateForStore(int $storeId, int $perPage = self::DEFAULT_PER_PAGE): LengthAwarePaginator
@@ -211,6 +212,8 @@ final class ServiceService
     public function update(int $id, array $data): Service
     {
         $service = $this->findOrFail($id);
+        $oldPrice = $service->price;
+
         $service->update($data);
 
         if (! empty($data['specialist_ids'])) {
@@ -224,7 +227,33 @@ final class ServiceService
             }
         }
 
-        return $service->fresh(['schedules', 'specialists']);
+        $fresh = $service->fresh(['schedules', 'specialists']);
+
+        if (isset($data['price']) && (float) $data['price'] !== (float) $oldPrice) {
+            $this->auditService->record(
+                event: 'services.price.changed',
+                module: 'services',
+                description: 'Precio del servicio actualizado',
+                auditable: $service,
+                oldValues: ['price' => $oldPrice],
+                newValues: ['price' => $data['price']],
+                source: AuditService::SOURCE_WEB,
+                metadata: ['service_id' => $service->id],
+            );
+        }
+
+        if (isset($data['schedules'])) {
+            $this->auditService->record(
+                event: 'services.schedule.updated',
+                module: 'services',
+                description: 'Horarios del servicio actualizados',
+                auditable: $service,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['service_id' => $service->id],
+            );
+        }
+
+        return $fresh;
     }
 
     public function delete(int $id): bool
@@ -463,6 +492,15 @@ final class ServiceService
             }
         }
 
+        $this->auditService->record(
+            event: 'bookings.created',
+            module: 'bookings',
+            description: 'Reserva de servicio creada',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
+
         return $booking;
     }
 
@@ -520,6 +558,15 @@ final class ServiceService
                 ));
         }
 
+        $this->auditService->record(
+            event: 'bookings.confirmed',
+            module: 'bookings',
+            description: 'Reserva de servicio confirmada',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
+
         return $booking;
     }
 
@@ -571,6 +618,15 @@ final class ServiceService
             }
         }
 
+        $this->auditService->record(
+            event: 'bookings.cancelled',
+            module: 'bookings',
+            description: 'Reserva de servicio cancelada',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
+
         return $booking;
     }
 
@@ -593,7 +649,18 @@ final class ServiceService
             $store->addStrike();
         }
 
-        return $booking->fresh();
+        $booking = $booking->fresh();
+
+        $this->auditService->record(
+            event: 'bookings.no.show',
+            module: 'bookings',
+            description: 'Reserva de servicio marcada como no presentado',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
+
+        return $booking;
     }
 
     public function completeBooking(int $bookingId): ServiceBooking
@@ -617,7 +684,18 @@ final class ServiceService
             $orderServiceItem->order->refreshGlobalStatus();
         }
 
-        return $booking->fresh();
+        $booking = $booking->fresh();
+
+        $this->auditService->record(
+            event: 'bookings.completed',
+            module: 'bookings',
+            description: 'Reserva de servicio completada',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
+
+        return $booking;
     }
 
     public function markAsOnTheWay(int $bookingId): ServiceBooking
@@ -701,6 +779,15 @@ final class ServiceService
         $booking = $booking->fresh()->load('service');
 
         \App\Events\BookingRescheduled::dispatch($booking);
+
+        $this->auditService->record(
+            event: 'bookings.rescheduled',
+            module: 'bookings',
+            description: 'Reserva de servicio reagendada',
+            auditable: $booking,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['booking_id' => $booking->id],
+        );
 
         return $booking;
     }

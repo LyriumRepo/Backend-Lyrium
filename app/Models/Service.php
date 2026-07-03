@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\AuditableModel;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 final class Service extends Model implements HasMedia
 {
+    use AuditableModel;
     use HasFactory;
     use SoftDeletes;
     use InteractsWithMedia;

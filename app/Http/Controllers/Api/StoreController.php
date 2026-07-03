@@ -14,6 +14,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Notifications\StoreProfileUpdatedNotification;
 use App\Notifications\StoreStatusNotification;
+use App\Services\AuditService;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,8 @@ use Illuminate\Support\Str;
 
 final class StoreController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
+
     /**
      * GET /api/stores (público)
      * Lista tiendas aprobadas con info básica
@@ -345,6 +348,24 @@ final class StoreController extends Controller
             // Real-time broadcast unavailable; data was saved successfully
         }
 
+        $event = match ($data['status']) {
+            'approved' => 'stores.approved',
+            'rejected' => 'stores.rejected',
+            'suspended' => 'stores.suspended',
+            'banned' => 'stores.banned',
+        };
+
+        $this->auditService->record(
+            event: $event,
+            module: 'stores',
+            description: 'Tienda ' . ($data['reason'] ?? $data['status']),
+            auditable: $store,
+            oldValues: ['status' => $store->getOriginal('status')],
+            newValues: ['status' => $data['status'], 'reason' => $data['reason'] ?? null],
+            correlationId: (string) $store->id,
+            metadata: ['reason' => $data['reason'] ?? null],
+        );
+
         return response()->json(new StoreResource($store->fresh()->load(['owner', 'category'])));
     }
 
@@ -399,9 +420,14 @@ final class StoreController extends Controller
         $incomingIds = collect($data['branches'])->pluck('id')->filter()->toArray();
 
         $toDelete = array_diff($existingIds, $incomingIds);
+        $deletedBranchNames = [];
         if (! empty($toDelete)) {
+            $deletedBranchNames = $store->branches()->whereIn('id', $toDelete)->pluck('name')->toArray();
             $store->branches()->whereIn('id', $toDelete)->delete();
         }
+
+        $createdBranchIds = [];
+        $updatedBranchIds = [];
 
         foreach ($data['branches'] as $branchData) {
 
@@ -411,12 +437,63 @@ final class StoreController extends Controller
 
             $branchData['store_id'] = $store->id;
 
-            $store->branches()->updateOrCreate(
+            $branch = $store->branches()->updateOrCreate(
                 [
                     'id' => $branchId,
                     'store_id' => $store->id
                 ],
                 $branchData
+            );
+
+            if ($branch->wasRecentlyCreated) {
+                $createdBranchIds[] = $branch->id;
+            } else {
+                $updatedBranchIds[] = $branch->id;
+            }
+        }
+
+        $principal = $store->branches()->where('is_principal', true)->first();
+        if ($principal) {
+            $store->branches()->where('id', '!=', $principal->id)->update(['is_principal' => false]);
+            $store->update([
+                'department' => $principal->department,
+                'province'   => $principal->province,
+                'district'   => $principal->district,
+            ]);
+        }
+
+        if (! empty($toDelete)) {
+            $this->auditService->record(
+                event: 'stores.branch.deleted',
+                module: 'stores',
+                description: count($toDelete) . ' sucursales eliminadas',
+                auditable: $store,
+                oldValues: ['branch_ids' => $toDelete],
+                correlationId: (string) $store->id,
+                metadata: ['deleted_branch_ids' => $toDelete, 'deleted_branch_names' => $deletedBranchNames],
+            );
+        }
+
+        if (! empty($createdBranchIds)) {
+            $this->auditService->record(
+                event: 'stores.branch.created',
+                module: 'stores',
+                description: count($createdBranchIds) . ' sucursales creadas',
+                auditable: $store,
+                newValues: ['branch_ids' => $createdBranchIds],
+                correlationId: (string) $store->id,
+                metadata: ['created_branch_ids' => $createdBranchIds],
+            );
+        }
+
+        if (! empty($updatedBranchIds)) {
+            $this->auditService->record(
+                event: 'stores.branch.updated',
+                module: 'stores',
+                description: count($updatedBranchIds) . ' sucursales actualizadas',
+                auditable: $store,
+                correlationId: (string) $store->id,
+                metadata: ['updated_branch_ids' => $updatedBranchIds],
             );
         }
 
@@ -438,8 +515,20 @@ final class StoreController extends Controller
             return response()->json(['message' => 'No tienes una tienda registrada'], 404);
         }
 
+        $plan = $store->activeSubscription?->plan;
+
+        // Plan Emprende: layout fijo, no se puede cambiar
+        if ($plan && $plan->slug === 'emprende') {
+            return response()->json([
+                'message' => 'Tu plan Emprende incluye un diseño exclusivo no personalizable. Actualiza tu plan para acceder a más opciones de personalización.',
+            ], 422);
+        }
+
+        $allowedLayouts = $plan?->capability('layouts') ?? ['1', '2', '3'];
+        $allowedString = implode(',', $allowedLayouts);
+
         $data = $request->validate([
-            'layout' => 'required|in:1,2,3',
+            'layout' => "required|in:{$allowedString}",
             'logo' => 'nullable|url',
             'banner' => 'nullable|url',
             'banner_secondary' => 'nullable|url',
@@ -482,6 +571,16 @@ final class StoreController extends Controller
 
         $store->update(['logo' => $media->getUrl()]);
 
+        $this->auditService->record(
+            event: 'stores.media.uploaded',
+            module: 'stores',
+            description: 'Logo de tienda actualizado',
+            auditable: $store,
+            newValues: ['logo' => $media->getUrl()],
+            correlationId: (string) $store->id,
+            metadata: ['media_type' => 'logo', 'file_name' => $request->file('file')->getClientOriginalName()],
+        );
+
         $this->notifyAdminStoreChanged($store, 'logo');
 
         return response()->json([
@@ -516,6 +615,16 @@ final class StoreController extends Controller
 
         $column = $collection === 'banner2' ? 'banner2' : 'banner';
         $store->update([$column => $media->getUrl()]);
+
+        $this->auditService->record(
+            event: 'stores.media.uploaded',
+            module: 'stores',
+            description: 'Banner de tienda actualizado',
+            auditable: $store,
+            newValues: [$column => $media->getUrl()],
+            correlationId: (string) $store->id,
+            metadata: ['media_type' => $column, 'file_name' => $request->file('file')->getClientOriginalName()],
+        );
 
         $this->notifyAdminStoreChanged($store, 'banner');
 
@@ -553,6 +662,16 @@ final class StoreController extends Controller
 
         $currentGallery = $store->gallery ?? [];
         $store->update(['gallery' => array_merge($currentGallery, $urls)]);
+
+        $this->auditService->record(
+            event: 'stores.media.uploaded',
+            module: 'stores',
+            description: count($urls) . ' imágenes agregadas a galería',
+            auditable: $store,
+            newValues: ['gallery_count' => count($urls)],
+            correlationId: (string) $store->id,
+            metadata: ['media_type' => 'gallery', 'uploaded_urls' => $urls],
+        );
 
         $this->notifyAdminStoreChanged($store, 'gallery');
 
@@ -622,6 +741,16 @@ final class StoreController extends Controller
 
         array_splice($gallery, $index, 1);
         $store->update(['gallery' => array_values($gallery)]);
+
+        $this->auditService->record(
+            event: 'stores.media.deleted',
+            module: 'stores',
+            description: 'Imagen de galería eliminada (índice ' . $index . ')',
+            auditable: $store,
+            oldValues: ['gallery_index' => $index],
+            correlationId: (string) $store->id,
+            metadata: ['media_type' => 'gallery', 'deleted_index' => $index],
+        );
 
         $this->notifyAdminStoreChanged($store, 'gallery');
 

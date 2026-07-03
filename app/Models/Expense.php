@@ -7,11 +7,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\AuditableModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class Expense extends Model
 {
-    use HasFactory, SoftDeletes;
+    use AuditableModel, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'receipt_number',

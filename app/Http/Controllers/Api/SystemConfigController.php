@@ -6,11 +6,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SystemConfig;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class SystemConfigController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = SystemConfig::query();
@@ -69,6 +72,14 @@ final class SystemConfigController extends Controller
 
         $config = SystemConfig::create($data);
 
+        $this->auditService->record(
+            event: 'config.system.updated',
+            module: 'config',
+            description: 'Configuración creada: ' . $config->key,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['config_key' => $config->key, 'action' => 'created'],
+        );
+
         return response()->json([
             'message' => 'Configuración creada correctamente',
             'data' => [
@@ -105,7 +116,18 @@ final class SystemConfigController extends Controller
             }
         }
 
+        $oldValue = $config->value;
         $config->update($data);
+
+        $this->auditService->record(
+            event: 'config.system.updated',
+            module: 'config',
+            description: 'Configuración actualizada: ' . $config->key,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['value' => $oldValue],
+            newValues: ['value' => $config->value],
+            metadata: ['config_key' => $config->key, 'action' => 'updated'],
+        );
 
         return response()->json([
             'message' => 'Configuración actualizada correctamente',
@@ -120,6 +142,15 @@ final class SystemConfigController extends Controller
     {
         $config = SystemConfig::where('key', $key)->firstOrFail();
         $config->delete();
+
+        $this->auditService->record(
+            event: 'config.system.updated',
+            module: 'config',
+            description: 'Configuración eliminada: ' . $config->key,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['value' => $config->value],
+            metadata: ['config_key' => $config->key, 'action' => 'deleted'],
+        );
 
         return response()->json(['message' => 'Configuración eliminada correctamente']);
     }
@@ -166,6 +197,14 @@ final class SystemConfigController extends Controller
                 );
             }
         }
+
+        $this->auditService->record(
+            event: 'config.colors.updated',
+            module: 'config',
+            description: 'Colores del sistema actualizados',
+            source: AuditService::SOURCE_WEB,
+            metadata: ['updated_keys' => array_keys($data)],
+        );
 
         $colors = SystemConfig::getByCategory('colors')->get();
 
