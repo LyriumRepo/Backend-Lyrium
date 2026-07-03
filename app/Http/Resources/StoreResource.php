@@ -17,9 +17,19 @@ final class StoreResource extends JsonResource
             'storeName' => $this->store_name,
             'slug' => $this->slug,
             'logo' => $this->getMediaUrl('logo'),
+            'logo_marketplace' => $this->getMediaUrl('logo_marketplace'),
             'banner' => $this->getMediaUrl('banner'),
             'banner2' => $this->getMediaUrl('banner2'),
             'gallery' => $this->getGalleryUrls(),
+            'ad_banners' => $this->getMedia('ad_banners')
+                ->map(fn ($media) => [
+                    'id' => $media->id,
+                    'url' => $media->getUrl(),
+                    'title' => $media->getCustomProperty('title') ?? '',
+                    'link' => $media->getCustomProperty('link') ?? '',
+                ])
+                ->values()
+                ->all(),
             'layout' => $this->layout ?? '1',
             'description' => $this->description,
             'activity' => $this->activity,
@@ -86,6 +96,9 @@ final class StoreResource extends JsonResource
             'verifiedAt' => $this->approved_at?->toIso8601String(),
             'owner' => new UserResource($this->whenLoaded('owner')),
             'subscription' => $this->whenLoaded('subscription'),
+            'plan_capabilities' => $this->whenLoaded('subscription', function () {
+                return app(\App\Services\PlanService::class)->storeCapabilities($this->resource);
+            }),
             'branches' => $this->whenLoaded('branches', fn () => $this->branches->map(fn ($branch) => [
                 'id' => $branch->id,
                 'name' => $branch->name,

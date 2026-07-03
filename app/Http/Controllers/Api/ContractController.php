@@ -14,9 +14,11 @@ use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Services\AuditService;
 
 final class ContractController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
     /**
      * GET /api/contracts
      */
@@ -123,6 +125,15 @@ final class ContractController extends Controller
             $user->name ?? 'Admin'
         );
 
+        $this->auditService->record(
+            event: 'contracts.created',
+            module: 'contracts',
+            description: 'Contrato creado: ' . $contractNumber,
+            auditable: $contract,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['contract_number' => $contractNumber],
+        );
+
         $contract->load(['auditTrails', 'store']);
 
         return response()->json(['data' => new ContractResource($contract)], 201);
@@ -191,6 +202,15 @@ final class ContractController extends Controller
             $user->name ?? 'Admin'
         );
 
+        $this->auditService->record(
+            event: 'contracts.updated',
+            module: 'contracts',
+            description: 'Contrato actualizado: ' . $contract->contract_number,
+            auditable: $contract,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['contract_number' => $contract->contract_number],
+        );
+
         $contract->load(['auditTrails', 'store']);
 
         return response()->json(['data' => new ContractResource($contract)]);
@@ -221,6 +241,31 @@ final class ContractController extends Controller
             $actionMap[$data['status']] ?? "Estado cambiado de {$oldStatus} a {$data['status']}",
             $user->name ?? 'Admin'
         );
+
+        $auditEvent = match ($data['status']) {
+            'ACTIVE' => 'contracts.activated',
+            'EXPIRED' => 'contracts.expired',
+            'TERMINATED' => 'contracts.terminated',
+            default => null,
+        };
+
+        if ($auditEvent) {
+            $this->auditService->record(
+                event: $auditEvent,
+                module: 'contracts',
+                description: 'Contrato ' . $contract->contract_number . ' ' . match ($data['status']) {
+                    'ACTIVE' => 'activado',
+                    'EXPIRED' => 'expirado',
+                    'TERMINATED' => 'terminado',
+                    default => 'cambiado a ' . $data['status'],
+                },
+                auditable: $contract,
+                oldValues: ['status' => $oldStatus],
+                newValues: ['status' => $data['status']],
+                source: AuditService::SOURCE_WEB,
+                metadata: ['contract_number' => $contract->contract_number],
+            );
+        }
 
         $contract->load(['auditTrails', 'store']);
 
@@ -253,6 +298,18 @@ final class ContractController extends Controller
         $contract->addAuditEntry(
             "Documento Cargado: {$file->getClientOriginalName()}",
             $user->name ?? 'Admin'
+        );
+
+        $this->auditService->record(
+            event: 'contracts.document.uploaded',
+            module: 'contracts',
+            description: 'Documento cargado para el contrato ' . $contract->contract_number,
+            auditable: $contract,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'contract_number' => $contract->contract_number,
+                'file_name' => $file->getClientOriginalName(),
+            ],
         );
 
         $contract->load(['auditTrails', 'store']);
@@ -370,7 +427,18 @@ final class ContractController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $contract = Contract::where('contract_number', $id)->firstOrFail();
+        $contractData = $contract->toArray();
         $contract->delete();
+
+        $this->auditService->record(
+            event: 'contracts.deleted',
+            module: 'contracts',
+            description: 'Contrato eliminado: ' . $contract->contract_number,
+            auditable: $contract,
+            source: AuditService::SOURCE_WEB,
+            oldValues: $contractData,
+            metadata: ['contract_number' => $contract->contract_number],
+        );
 
         return response()->json(['success' => true]);
     }
@@ -461,6 +529,15 @@ final class ContractController extends Controller
         $contract->addAuditEntry(
             'Documento firmado subido por el vendedor — pendiente de verificación por admin',
             $request->user()->name ?? 'Vendedor'
+        );
+
+        $this->auditService->record(
+            event: 'contracts.signed',
+            module: 'contracts',
+            description: 'Documento firmado subido para el contrato ' . $contract->contract_number,
+            auditable: $contract,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['contract_number' => $contract->contract_number],
         );
 
         return response()->json(['data' => new ContractResource($contract->fresh()->load('auditTrails'))]);

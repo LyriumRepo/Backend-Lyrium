@@ -8,11 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Coupon\StoreCouponRequest;
 use App\Http\Resources\CouponResource;
 use App\Models\Coupon;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class CouponController extends Controller
 {
+    public function __construct(
+        private readonly AuditService $auditService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Coupon::with('store');
@@ -145,6 +150,20 @@ final class CouponController extends Controller
 
         $orderAmount = (float) $request->query('order_amount', 0);
         $discount = $coupon->calculateDiscount($orderAmount);
+
+        $this->auditService->record(
+            event: 'coupons.validated',
+            module: 'coupons',
+            description: "Cupón {$coupon->code} validado para la orden de S/{$orderAmount}",
+            auditable: $coupon,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'coupon_code' => $coupon->code,
+                'user_id' => $userId,
+                'order_amount' => $orderAmount,
+                'discount' => $discount,
+            ],
+        );
 
         return $this->success([
             'valid' => true,

@@ -14,6 +14,7 @@ use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,7 @@ final class AuthController extends Controller
     public function __construct(
         private readonly OtpService $otpService,
         private readonly GoogleAuthService $googleAuthService,
+        private readonly AuditService $auditService,
     ) {}
 
     /**
@@ -108,6 +110,15 @@ final class AuthController extends Controller
 
             $this->otpService->generate($user);
 
+            $this->auditService->record(
+                event: 'auth.register',
+                module: 'auth',
+                description: 'Registro de vendedor',
+                success: true,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $user->email],
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Registro exitoso. Revisa tu correo para el código de verificación.',
@@ -146,6 +157,15 @@ final class AuthController extends Controller
 
         $this->otpService->generate($user);
 
+        $this->auditService->record(
+            event: 'auth.register.customer',
+            module: 'auth',
+            description: 'Registro de cliente',
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['email' => $user->email],
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Cuenta creada. Revisa tu correo para el código de verificación.',
@@ -180,6 +200,15 @@ final class AuthController extends Controller
         $result = $this->otpService->verify($user, $request->validated('code'));
 
         if ($result['success']) {
+            $this->auditService->record(
+                event: 'auth.email.verified',
+                module: 'auth',
+                description: 'Verificación de correo',
+                success: true,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $user->email],
+            );
+
             $userType = $user->hasRole('seller') ? 'seller' : 'customer';
             $result['user_type'] = $userType;
             $result['message'] = $userType === 'seller'
@@ -244,6 +273,15 @@ final class AuthController extends Controller
         }
         $this->otpService->generate($user);
 
+        $this->auditService->record(
+            event: 'auth.password.reset.requested',
+            module: 'auth',
+            description: 'Solicitud de restablecimiento de contraseña',
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['email' => $user->email],
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Codigo enviado al correo',
@@ -303,6 +341,15 @@ final class AuthController extends Controller
         $user->tokens()->delete();
 
         DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+        $this->auditService->record(
+            event: 'auth.password.reset.completed',
+            module: 'auth',
+            description: 'Contraseña restablecida',
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['email' => $user->email],
+        );
 
         return response()->json([
             'success' => true,
@@ -371,6 +418,18 @@ final class AuthController extends Controller
 
         $user->tokens()->delete();
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        $this->auditService->record(
+            event: 'auth.oauth.login',
+            module: 'auth',
+            description: 'Inicio de sesión con Google',
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'email' => $user->email,
+                'is_new_user' => $result['is_new_user'],
+            ],
+        );
 
         return response()->json([
             'success' => true,

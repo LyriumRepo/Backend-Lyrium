@@ -17,6 +17,7 @@ final class Plan extends Model
         'has_membership_fee',
         'features',
         'detailed_benefits',
+        'capabilities',
         'is_active',
         'timeline_icon',
         'badge',
@@ -59,6 +60,7 @@ final class Plan extends Model
             'show_bg_in_card' => 'boolean',
             'features' => 'array',
             'detailed_benefits' => 'array',
+            'capabilities' => 'array',
         ];
     }
 
@@ -75,5 +77,10 @@ final class Plan extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function capability(string $key): mixed
+    {
+        return data_get($this->capabilities, $key);
     }
 }

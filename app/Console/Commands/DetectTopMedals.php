@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Services\AuditService;
 use App\Services\TopMedalService;
 use Illuminate\Console\Command;
 
@@ -42,6 +43,15 @@ final class DetectTopMedals extends Command
 
         $total = array_sum(array_map('count', $changes));
         $this->info("Done. {$total} change(s) processed.");
+
+        app(AuditService::class)->record(
+            source: AuditService::SOURCE_SCHEDULER,
+            event: 'system.scheduler.executed',
+            module: 'system',
+            description: 'Tarea programada ejecutada: top-medals:detect',
+            severity: 'info',
+            metadata: ['command' => 'top-medals:detect'],
+        );
 
         return self::SUCCESS;
     }

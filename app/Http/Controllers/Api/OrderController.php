@@ -28,6 +28,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
 use App\Models\ServiceSlotHold;
+use App\Services\AuditService;
 use App\Services\CommissionService;
 use App\Services\LiriosService;
 use App\Services\ShippingService;
@@ -49,6 +50,10 @@ final class OrderController extends Controller
         'shipments',
         'user',
     ];
+
+    public function __construct(
+        private readonly AuditService $auditService,
+    ) {}
 
     public function activeCount(Request $request): JsonResponse
     {
@@ -288,6 +293,20 @@ final class OrderController extends Controller
                     'order_id' => $order->id,
                     'discount_amount' => $discountAmount,
                 ]);
+
+                $this->auditService->record(
+                    event: 'coupons.redeemed',
+                    module: 'coupons',
+                    description: "Cupón {$couponCode} canjeado en la orden #{$order->order_number}",
+                    auditable: $coupon,
+                    source: AuditService::SOURCE_WEB,
+                    metadata: [
+                        'coupon_code' => $couponCode,
+                        'user_id' => $user->id,
+                        'order_id' => $order->id,
+                        'discount_amount' => $discountAmount,
+                    ],
+                );
             }
 
             if ($liriosUsed > 0) {
@@ -303,6 +322,17 @@ final class OrderController extends Controller
         });
 
         $order->load(self::WITH_RELATIONS);
+
+        $this->auditService->record(
+            event: 'orders.created',
+            module: 'orders',
+            description: "Pedido #{$order->order_number} creado por {$user->email}",
+            auditable: $order,
+            newValues: ['status' => $order->status, 'total' => $order->total],
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: ['item_count' => $order->items->count() + $order->serviceItems->count()],
+        );
 
         $user->notify(new OrderCreatedNotification($order));
 
@@ -402,6 +432,18 @@ final class OrderController extends Controller
         if ($order->wasChanged('status')) {
             event(new OrderStatusChanged($order));
         }
+
+        $this->auditService->record(
+            event: 'orders.status.changed',
+            module: 'orders',
+            description: "Pedido #{$order->order_number} confirmado por {$user->email}",
+            auditable: $order,
+            oldValues: ['status' => $order->getOriginal('status')],
+            newValues: ['status' => $order->status],
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+        );
 
         return $this->success(new OrderResource($order));
     }
@@ -629,6 +671,26 @@ final class OrderController extends Controller
             event(new OrderStatusChanged($order));
         }
 
+        $auditEvent = $order->status === Order::STATUS_CANCELLED ? 'orders.cancelled' : 'orders.status.changed';
+        $this->auditService->record(
+            event: $auditEvent,
+            module: 'orders',
+            description: $auditEvent === 'orders.cancelled'
+                ? "Pedido #{$order->order_number} cancelado por {$user->email}"
+                : "Pedido #{$order->order_number} cambió a {$order->status}",
+            auditable: $order,
+            oldValues: $order->wasChanged('status') ? ['status' => $order->getOriginal('status')] : [],
+            newValues: $order->wasChanged('status') ? ['status' => $order->status] : [],
+            success: $auditEvent !== 'orders.cancelled',
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: [
+                'old_status' => $order->getOriginal('status'),
+                'new_status' => $order->status,
+                'has_payment_update' => isset($data['payment_status']),
+            ],
+        );
+
         return $this->success(new OrderResource($order));
     }
 
@@ -661,6 +723,18 @@ final class OrderController extends Controller
         $order->refreshGlobalStatus();
 
         $order->load(self::WITH_RELATIONS);
+
+        $this->auditService->record(
+            event: 'orders.item.status.changed',
+            module: 'orders',
+            description: "Item #{$item->id} del pedido #{$order->order_number} confirmado por {$user->email}",
+            auditable: $order,
+            oldValues: ['item_status' => OrderItem::STATUS_PENDING_SELLER],
+            newValues: ['item_status' => OrderItem::STATUS_CONFIRMED],
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: ['item_id' => $item->id, 'product_name' => $item->product_name],
+        );
 
         return $this->success(new OrderResource($order));
     }
@@ -722,6 +796,16 @@ final class OrderController extends Controller
         ));
 
         $conversation->load(['store.owner', 'latestMessage']);
+
+        $this->auditService->record(
+            event: 'orders.receipt.requested',
+            module: 'orders',
+            description: "Comprobante solicitado para pedido #{$order->order_number} por {$user->email}",
+            auditable: $order,
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: ['store_id' => $storeId],
+        );
 
         return response()->json([
             'success' => true,
@@ -860,6 +944,18 @@ final class OrderController extends Controller
 
         $order->refreshGlobalStatus();
         $order->load(self::WITH_RELATIONS);
+
+        $this->auditService->record(
+            event: 'orders.item.status.changed',
+            module: 'orders',
+            description: "Item #{$item->id} del pedido #{$order->order_number} cambió a {$newStatus}",
+            auditable: $order,
+            oldValues: ['item_status' => $item->getOriginal('status')],
+            newValues: ['item_status' => $newStatus],
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: ['item_id' => $item->id, 'product_name' => $item->product_name],
+        );
 
         return $this->success(new OrderResource($order));
     }

@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\SellerPayment;
 use App\Models\Store;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -21,6 +22,7 @@ final class OrderPaymentService
         private readonly NubefactService $nubefact,
         private readonly InvoiceProviderInterface $provider,
         private readonly PaymentSchedulerService $paymentScheduler,
+        private readonly AuditService $auditService,
     ) {}
 
     public static function fromConfig(): self
@@ -29,6 +31,7 @@ final class OrderPaymentService
             nubefact: NubefactService::fromConfig(),
             provider: \App\Services\NubefactProvider::fromConfig(),
             paymentScheduler: new PaymentSchedulerService(),
+            auditService: app(AuditService::class),
         );
     }
 
@@ -86,6 +89,18 @@ final class OrderPaymentService
                 }
             }
         });
+
+        $this->auditService->record(
+            event: 'payments.transaction.completed',
+            module: 'payments',
+            description: "Pago procesado para pedido #{$order->order_number} via {$paymentMethod}",
+            auditable: $order,
+            newValues: ['payment_status' => Order::PAYMENT_STATUS_PAID],
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+            metadata: ['payment_method' => $paymentMethod],
+        );
     }
 
     private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, float $subtotalSinIgv): void

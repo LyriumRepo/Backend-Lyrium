@@ -55,6 +55,7 @@ final class ProductResource extends JsonResource
                 'name' => $this->store->store_name,
                 'slug' => $this->store->slug,
                 'logo' => $this->store->getMediaUrl('logo'),
+                'logo_marketplace' => $this->store->getMediaUrl('logo_marketplace'),
                 'email' => $this->store->corporate_email,
                 'phone' => $this->store->phone,
             ]),

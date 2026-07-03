@@ -127,6 +127,21 @@ final class CulqiService
                     paymentMethod: 'culqi',
                 ));
 
+                app(AuditService::class)->record(
+                    event: 'payments.transaction.completed',
+                    module: 'payments',
+                    description: "Pago confirmado via Culqi para orden #{$order->order_number}",
+                    auditable: $order,
+                    newValues: ['payment_status' => Order::PAYMENT_STATUS_PAID],
+                    success: true,
+                    source: AuditService::SOURCE_WEB,
+                    correlationId: (string) $order->id,
+                    metadata: [
+                        'culqi_charge_id' => $data['id'],
+                        'payment_method' => 'culqi',
+                    ],
+                );
+
                 return $transaction;
             }
 
@@ -199,6 +214,15 @@ final class CulqiService
         $eventType = $payload['type'] ?? null;
         $data = $payload['data'] ?? [];
         $chargeId = $data['id'] ?? null;
+
+        app(AuditService::class)->record(
+            event: 'payments.webhook.received',
+            module: 'payments',
+            description: 'Webhook Culqi recibido',
+            source: AuditService::SOURCE_API,
+            correlationId: $chargeId,
+            metadata: ['event_type' => $eventType],
+        );
 
         if (! $chargeId) {
             Log::warning('Culqi webhook sin charge_id', $payload);

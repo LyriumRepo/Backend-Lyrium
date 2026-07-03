@@ -45,6 +45,11 @@ final class ServiceResource extends JsonResource
                 fn () => $this->store->getMediaUrl('logo'),
                 null
             ),
+            'store_logo_marketplace' => $this->whenLoaded(
+                'store',
+                fn () => $this->store->getMediaUrl('logo_marketplace'),
+                null
+            ),
 
             // ── Contenido ───────────────────────────────────────────────────
             'name' => $this->name,

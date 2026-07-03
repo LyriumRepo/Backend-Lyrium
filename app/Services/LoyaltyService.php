@@ -11,6 +11,7 @@ use App\Models\UserLoyaltyAccount;
 use App\Models\UserRedeemedReward;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use App\Services\AuditService;
 
 final class LoyaltyService
 {
@@ -63,9 +64,42 @@ final class LoyaltyService
             $points += $bonusPoints;
         }
 
+        $oldTierId = $account->tier_id;
+
         $account->addPoints($points, $orderId, "Compra #{$orderId}");
 
-        return $account->fresh(['tier', 'program']);
+        $fresh = $account->fresh(['tier', 'program']);
+
+        app(AuditService::class)->record(
+            event: 'loyalty.points.earned',
+            module: 'loyalty',
+            description: "El usuario #{$userId} ganó {$points} puntos por la orden #{$orderId}",
+            source: AuditService::SOURCE_SYSTEM,
+            metadata: [
+                'user_id' => $userId,
+                'points' => $points,
+                'order_id' => $orderId,
+                'tier_id' => $fresh->tier_id,
+                'tier_name' => $fresh->tier?->name,
+            ],
+        );
+
+        if ($fresh->tier_id !== $oldTierId) {
+            app(AuditService::class)->record(
+                event: 'loyalty.tier.changed',
+                module: 'loyalty',
+                description: "El usuario #{$userId} subió al nivel {$fresh->tier?->name}",
+                source: AuditService::SOURCE_SYSTEM,
+                metadata: [
+                    'user_id' => $userId,
+                    'old_tier_id' => $oldTierId,
+                    'new_tier_id' => $fresh->tier_id,
+                    'new_tier_name' => $fresh->tier?->name,
+                ],
+            );
+        }
+
+        return $fresh;
     }
 
     public function redeemPoints(
@@ -107,6 +141,19 @@ final class LoyaltyService
 
             $reward->increment('uses_count');
         });
+
+        app(AuditService::class)->record(
+            event: 'loyalty.points.redeemed',
+            module: 'loyalty',
+            description: "El usuario #{$userId} canjeó {$points} puntos por la recompensa {$reward->name}",
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'user_id' => $userId,
+                'points' => $points,
+                'reward_id' => $reward->id,
+                'reward_name' => $reward->name,
+            ],
+        );
 
         return $account->fresh(['tier', 'program']);
     }
@@ -199,6 +246,18 @@ final class LoyaltyService
                         $account->decrement('points_balance', $transaction->points);
                         $transaction->update(['type' => 'expired']);
                         $expiredCount++;
+
+                        app(AuditService::class)->record(
+                            event: 'loyalty.points.expired',
+                            module: 'loyalty',
+                            description: "{$transaction->points} puntos expirados para el usuario #{$account->user_id}",
+                            source: AuditService::SOURCE_SYSTEM,
+                            metadata: [
+                                'user_id' => $account->user_id,
+                                'points' => $transaction->points,
+                                'transaction_id' => $transaction->id,
+                            ],
+                        );
                     }
                 }
             });

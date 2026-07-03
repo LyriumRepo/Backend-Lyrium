@@ -534,6 +534,17 @@ final class IzipayService
             return ['success' => false, 'message' => 'Firma inválida'];
         }
 
+        app(AuditService::class)->record(
+            event: 'payments.webhook.received',
+            module: 'payments',
+            description: 'Webhook Izipay recibido',
+            source: AuditService::SOURCE_API,
+            metadata: [
+                'hash_valid' => true,
+                'mode' => $this->mode,
+            ],
+        );
+
         $answer = $this->decodeKrAnswer($rawKrAnswer ?: ($payload['kr-answer'] ?? ''));
 
         if (! $answer) {
@@ -642,6 +653,21 @@ final class IzipayService
                 $this->createBookingsFromHolds($holdIds, $holdAddresses, $order);
             }
 
+            app(AuditService::class)->record(
+                event: 'payments.transaction.completed',
+                module: 'payments',
+                description: "Pago confirmado via Izipay webhook para transacción {$transaction->izipay_order_id}",
+                auditable: $order,
+                newValues: ['payment_status' => Order::PAYMENT_STATUS_PAID],
+                success: true,
+                source: AuditService::SOURCE_API,
+                correlationId: (string) $order->id,
+                metadata: [
+                    'izipay_order_id' => $transaction->izipay_order_id,
+                    'transaction_status' => $transactionStatus,
+                ],
+            );
+
             return ['success' => true, 'message' => 'Pago confirmado'];
         }
 
@@ -657,6 +683,21 @@ final class IzipayService
         $transaction->order->update([
             'payment_status' => Order::PAYMENT_STATUS_FAILED,
         ]);
+
+        app(AuditService::class)->record(
+            event: 'payments.transaction.failed',
+            module: 'payments',
+            description: "Pago rechazado via Izipay webhook para transacción {$transaction->izipay_order_id}",
+            auditable: $transaction->order,
+            newValues: ['payment_status' => Order::PAYMENT_STATUS_FAILED],
+            success: false,
+            source: AuditService::SOURCE_API,
+            correlationId: (string) $transaction->order_id,
+            metadata: [
+                'izipay_order_id' => $transaction->izipay_order_id,
+                'transaction_status' => $transactionStatus,
+            ],
+        );
 
         return ['success' => false, 'message' => 'Pago rechazado'];
     }

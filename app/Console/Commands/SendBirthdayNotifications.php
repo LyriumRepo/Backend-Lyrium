@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\BirthdayNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Log;
 
 final class SendBirthdayNotifications extends Command
@@ -59,6 +60,15 @@ final class SendBirthdayNotifications extends Command
         Cache::put("birthday_sent_{$today}", true, now()->endOfDay());
 
         $this->info("Notificaciones enviadas: {$sent} de {$users->count()}");
+
+        app(AuditService::class)->record(
+            source: AuditService::SOURCE_SCHEDULER,
+            event: 'system.scheduler.executed',
+            module: 'system',
+            description: 'Tarea programada ejecutada: birthday:send',
+            severity: 'info',
+            metadata: ['command' => 'birthday:send'],
+        );
 
         return self::SUCCESS;
     }

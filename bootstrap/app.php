@@ -19,12 +19,38 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
-            'store.approved' => \App\Http\Middleware\EnsureStoreApproved::class,
-            'verified' => \App\Http\Middleware\EnsureEmailVerified::class,
-            'contract.active' => \App\Http\Middleware\EnsureContractActive::class,
+            'role'              => \App\Http\Middleware\EnsureRole::class,
+            'store.approved'    => \App\Http\Middleware\EnsureStoreApproved::class,
+            'verified'          => \App\Http\Middleware\EnsureEmailVerified::class,
+            'contract.active'   => \App\Http\Middleware\EnsureContractActive::class,
+            'plan.module'       => \App\Http\Middleware\EnsurePlanModule::class,
+            'audit.auth'        => \App\Http\Middleware\AuditAuthMiddleware::class,
+            'audit.security'    => \App\Http\Middleware\AuditSecurityMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->reportable(function (Throwable $e): void {
+            $statusCode = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+                ? $e->getStatusCode()
+                : 500;
+
+            if ($statusCode >= 500) {
+                try {
+                    app(\App\Services\AuditService::class)->record(
+                        event: \App\Catalogs\SystemEvents::EXCEPTION,
+                        module: 'system',
+                        description: 'Excepción no controlada: ' . $e->getMessage(),
+                        severity: 'critical',
+                        source: \App\Services\AuditService::SOURCE_SYSTEM,
+                        metadata: [
+                            'exception_class' => $e::class,
+                            'file' => $e->getFile(),
+                            'line' => $e->getLine(),
+                        ],
+                    );
+                } catch (\Throwable) {
+                    // Silent fail — never interrupt the main flow
+                }
+            }
+        });
     })->create();

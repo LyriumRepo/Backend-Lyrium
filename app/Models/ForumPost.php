@@ -6,11 +6,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditableModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 final class ForumPost extends Model
 {
-    use HasFactory;
+    use AuditableModel, HasFactory;
 
     protected $fillable = [
         'store_id',

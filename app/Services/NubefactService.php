@@ -15,11 +15,15 @@ final class NubefactService
 
     public function __construct(
         private readonly InvoiceProviderInterface $provider,
+        private readonly AuditService $auditService,
     ) {}
 
     public static function fromConfig(): self
     {
-        return new self(NubefactProvider::fromConfig());
+        return new self(
+            provider: NubefactProvider::fromConfig(),
+            auditService: app(AuditService::class),
+        );
     }
 
     public function isMock(): bool
@@ -84,7 +88,24 @@ final class NubefactService
 
         $this->logDebug('emitInvoice — Respuesta de NubeFact', ['response' => $response]);
 
-        return $this->parseProviderResponse($response);
+        $parsed = $this->parseProviderResponse($response);
+
+        $success = $parsed['sunat_status'] === Invoice::SUNAT_STATUS_ACCEPTED;
+        $this->auditService->record(
+            event: 'invoices.generated',
+            module: 'invoices',
+            description: "Factura {$invoice->series}-{$invoice->number} " . ($success ? 'enviada a SUNAT' : 'rechazada por SUNAT'),
+            auditable: $invoice,
+            success: $success,
+            source: AuditService::SOURCE_API,
+            correlationId: (string) $invoice->id,
+            metadata: [
+                'sunat_status' => $parsed['sunat_status'],
+                'provider_id' => $parsed['id'],
+            ],
+        );
+
+        return $parsed;
     }
 
     private function buildItems(?iterable $orderItems, float $baseGravada, string $fallbackDesc, float $shippingCost = 0.0): array
