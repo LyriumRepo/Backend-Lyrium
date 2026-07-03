@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'store.approved' => \App\Http\Middleware\EnsureStoreApproved::class,
             'verified' => \App\Http\Middleware\EnsureEmailVerified::class,
             'contract.active' => \App\Http\Middleware\EnsureContractActive::class,
+            'track.session' => \App\Http\Middleware\TrackAdminSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

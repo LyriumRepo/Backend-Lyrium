@@ -11,6 +11,7 @@ use App\Http\Resources\ForumTopicResource;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Services\ContentModerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,11 @@ final class ForumController extends Controller
             'content' => 'required|string|max:2000',
         ]);
 
+        $moderation = app(ContentModerationService::class)->check($validated['title'].' '.$validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
         $topic = ForumTopic::create([
             'forum_category_id' => $validated['forumid'],
             'user_id' => $request->user()?->id,
@@ -98,6 +104,11 @@ final class ForumController extends Controller
             'reply_to' => 'nullable|exists:forum_posts,id',
         ]);
 
+        $moderation = app(ContentModerationService::class)->check($validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
         $post = ForumPost::create([
             'forum_topic_id' => $validated['topicid'],
             'user_id' => $request->user()?->id,
@@ -112,6 +123,49 @@ final class ForumController extends Controller
         ForumCategory::where('id', $categoryId)->increment('post_count');
 
         return $this->created(['success' => true]);
+    }
+
+    public function updatePost(Request $request, int $id): JsonResponse
+    {
+        $post = ForumPost::findOrFail($id);
+        $user = $request->user();
+
+        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
+            return $this->error('No tienes permiso para editar esta respuesta', 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $moderation = app(ContentModerationService::class)->check($validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
+        $post->update(['content' => $validated['content']]);
+
+        return $this->success(['success' => true]);
+    }
+
+    public function deletePost(Request $request, int $id): JsonResponse
+    {
+        $post = ForumPost::findOrFail($id);
+        $user = $request->user();
+
+        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
+            return $this->error('No tienes permiso para eliminar esta respuesta', 403);
+        }
+
+        $topicId = $post->forum_topic_id;
+        $categoryId = ForumTopic::where('id', $topicId)->value('forum_category_id');
+
+        $post->delete();
+
+        ForumTopic::where('id', $topicId)->decrement('reply_count');
+        ForumCategory::where('id', $categoryId)->decrement('post_count');
+
+        return $this->success(['message' => 'Respuesta eliminada']);
     }
 
     public function vote(Request $request): JsonResponse

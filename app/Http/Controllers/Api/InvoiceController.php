@@ -261,7 +261,10 @@ final class InvoiceController extends Controller
         $store = $this->getStore($request->user());
 
         $query = Invoice::with(['order.user', 'order.items', 'store.owner'])
-            ->where('store_id', $store->id);
+            ->where('store_id', $store->id)
+            ->where(function ($q) {
+                $q->whereNull('source')->orWhere('source', '!=', 'plan_subscription');
+            });
 
         if ($request->filled('status')) {
             $query->where('sunat_status', $request->query('status'));

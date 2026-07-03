@@ -113,6 +113,11 @@ final class Store extends Model implements HasMedia
         return $this->hasMany(Product::class);
     }
 
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class)->latestOfMany();

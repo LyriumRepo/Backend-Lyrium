@@ -175,7 +175,7 @@ final class IzipayPlanController extends Controller
             } catch (\Throwable) {}
 
             if ($user) {
-                $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
+                $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest));
             }
 
             GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
@@ -276,7 +276,7 @@ final class IzipayPlanController extends Controller
         $subscription->load('plan');
         try { broadcast(new PlanStatusChanged($subscription)); } catch (\Throwable) {}
 
-        try { $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription)); } catch (\Throwable) {}
+        try { $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest)); } catch (\Throwable) {}
 
         GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
     }

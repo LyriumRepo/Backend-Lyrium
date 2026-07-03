@@ -690,7 +690,7 @@ final class PlanRequestController extends Controller
         $owner = $planRequest->store->owner;
         if ($owner) {
             try {
-                $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription));
+                $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest));
             } catch (\Throwable $e) {
                 Log::error('[PlanRequest] Error notificando PlanActivated', [
                     'plan_request_id' => $planRequest->id, 'error' => $e->getMessage(),

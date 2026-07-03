@@ -6,16 +6,19 @@
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
 
         {{-- BANNER SUPERIOR --}}
-        @if($bannerTopCid)
         <tr>
-            <td style="text-align: center; line-height: 0; font-size: 0;">
-                <img src="cid:{{ $bannerTopCid }}" alt="Lyrium" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" />
+            <td align="center" style="background:linear-gradient(140deg,#1B4332 0%,#2A5A4D 55%,#3D7A6B 100%); padding: 26px 30px; border-radius: 10px;">
+                <p style="margin:0; font-size:12px; font-weight:700; color:#8ecfb4; letter-spacing:3px; text-transform:uppercase; font-family:'Segoe UI',Arial,sans-serif;">
+                    Notificación para ti 🌿
+                </p>
+                <p style="margin:8px 0 0 0; font-size:18px; font-weight:800; color:#ffffff; font-family:'Segoe UI',Arial,sans-serif; line-height:1.4;">
+                    {{ $trackingTitle }}
+                </p>
             </td>
         </tr>
         <tr>
             <td style="height: 24px; font-size: 0;">&nbsp;</td>
         </tr>
-        @endif
 
         {{-- IMAGEN DE SEGUIMIENTO --}}
         @if($imageCid)
@@ -25,15 +28,6 @@
             </td>
         </tr>
         @endif
-
-        {{-- TÍTULO PRINCIPAL --}}
-        <tr>
-            <td style="text-align: center; padding-bottom: 20px;">
-                <h1 style="font-size: 22px; font-weight: 800; color: #00BFC1; margin: 0; line-height: 1.3;">
-                    {{ $trackingTitle }}
-                </h1>
-            </td>
-        </tr>
 
         {{-- DETALLE DEL PEDIDO --}}
         <tr>
@@ -215,13 +209,13 @@
         </tr>
 
         {{-- BANNER INFERIOR --}}
-        @if($bannerBottomCid)
         <tr>
-            <td style="text-align: center; line-height: 0; font-size: 0; padding-top: 8px;">
-                <img src="cid:{{ $bannerBottomCid }}" alt="Lyrium" style="display: block; width: 100%; max-width: 600px; height: auto; border: 0;" />
+            <td align="center" style="background:linear-gradient(140deg,#1B4332 0%,#2A5A4D 100%); padding:16px 30px; border-radius: 10px;">
+                <p style="margin:0; font-size:11px; color:#8ecfb4; font-weight:600; font-family:'Segoe UI',Arial,sans-serif; letter-spacing:1.5px; text-transform:uppercase;">
+                    © Lyrium Biomarketplace &middot; Perú 🌱
+                </p>
             </td>
         </tr>
-        @endif
 
         {{-- CTA --}}
         <tr>

@@ -17,8 +17,11 @@ use App\Models\BlogComment;
 use App\Models\BlogPodcast;
 use App\Models\BlogShort;
 use App\Models\BlogVideo;
+use App\Services\ContentModerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 final class BlogController extends Controller
 {
@@ -105,10 +108,15 @@ final class BlogController extends Controller
 
     public function comments(Request $request): JsonResponse
     {
+        $this->optionalAuth($request);
+
         $articleId = $request->query('article_id');
         $postId = $request->query('post_id');
+        $videoId = $request->query('video_id');
+        $podcastId = $request->query('podcast_id');
+        $shortId = $request->query('short_id');
 
-        $query = BlogComment::where('is_approved', true);
+        $query = BlogComment::where('is_approved', true)->with('user');
 
         if ($articleId) {
             $query->where('commentable_id', $articleId)
@@ -116,8 +124,17 @@ final class BlogController extends Controller
         } elseif ($postId) {
             $query->where('commentable_id', $postId)
                 ->where('commentable_type', 'post');
+        } elseif ($videoId) {
+            $query->where('commentable_id', $videoId)
+                ->where('commentable_type', 'video');
+        } elseif ($podcastId) {
+            $query->where('commentable_id', $podcastId)
+                ->where('commentable_type', 'podcast');
+        } elseif ($shortId) {
+            $query->where('commentable_id', $shortId)
+                ->where('commentable_type', 'short');
         } else {
-            return $this->error('article_id o post_id es requerido', 422);
+            return $this->error('Se requiere article_id, post_id, video_id, podcast_id o short_id', 422);
         }
 
         $comments = $query->orderBy('created_at', 'desc')->get();
@@ -130,8 +147,11 @@ final class BlogController extends Controller
         $data = $request->validate([
             'article_id' => 'nullable|integer|exists:blog_articles,id',
             'post_id' => 'nullable|integer|exists:blog_posts,id',
-            'author_name' => 'required|string|max:255',
-            'author_email' => 'required|email|max:255',
+            'video_id' => 'nullable|integer|exists:blog_videos,id',
+            'podcast_id' => 'nullable|integer|exists:blog_podcasts,id',
+            'short_id' => 'nullable|integer|exists:blog_shorts,id',
+            'author_name' => 'nullable|string|max:255',
+            'author_email' => 'nullable|email|max:255',
             'content' => 'required|string|max:5000',
         ]);
 
@@ -141,20 +161,79 @@ final class BlogController extends Controller
         } elseif ($data['post_id'] ?? null) {
             $commentableType = 'post';
             $commentableId = $data['post_id'];
+        } elseif ($data['video_id'] ?? null) {
+            $commentableType = 'video';
+            $commentableId = $data['video_id'];
+        } elseif ($data['podcast_id'] ?? null) {
+            $commentableType = 'podcast';
+            $commentableId = $data['podcast_id'];
+        } elseif ($data['short_id'] ?? null) {
+            $commentableType = 'short';
+            $commentableId = $data['short_id'];
         } else {
-            return $this->error('article_id o post_id es requerido', 422);
+            return $this->error('Se requiere article_id, post_id, video_id, podcast_id o short_id', 422);
         }
 
+        $moderation = app(ContentModerationService::class)->check($data['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
+        $user = $request->user();
+        $authorName = $data['author_name'] ?? ($user?->display_name ?? $user?->name ?? 'Anónimo');
+        $authorEmail = $data['author_email'] ?? ($user?->email ?? '');
+
         $comment = BlogComment::create([
+            'user_id' => $user?->id,
             'commentable_id' => $commentableId,
             'commentable_type' => $commentableType,
-            'author_name' => $data['author_name'],
-            'author_email' => $data['author_email'],
+            'author_name' => $authorName,
+            'author_email' => $authorEmail,
             'content' => $data['content'],
             'is_approved' => true,
         ]);
 
+        $comment->load('user');
+
         return $this->success(new BlogCommentResource($comment), null, 201);
+    }
+
+    public function updateComment(Request $request, int $id): JsonResponse
+    {
+        $comment = BlogComment::findOrFail($id);
+        $user = $request->user();
+
+        if (! $user || ! $comment->user_id || $user->id !== $comment->user_id) {
+            return $this->error('No tienes permiso para editar este comentario', 403);
+        }
+
+        $data = $request->validate([
+            'content' => 'required|string|max:5000',
+        ]);
+
+        $moderation = app(ContentModerationService::class)->check($data['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
+        $comment->update(['content' => $data['content']]);
+        $comment->load('user');
+
+        return $this->success(new BlogCommentResource($comment));
+    }
+
+    public function deleteComment(Request $request, int $id): JsonResponse
+    {
+        $comment = BlogComment::findOrFail($id);
+        $user = $request->user();
+
+        if (! $user || ! $comment->user_id || $user->id !== $comment->user_id) {
+            return $this->error('No tienes permiso para eliminar este comentario', 403);
+        }
+
+        $comment->delete();
+
+        return $this->success(['message' => 'Comentario eliminado']);
     }
 
     public function podcasts(): JsonResponse
@@ -166,6 +245,19 @@ final class BlogController extends Controller
         return $this->success(BlogPodcastResource::collection($podcasts));
     }
 
+    public function showPodcast(int $id): JsonResponse
+    {
+        $podcast = BlogPodcast::where('id', $id)
+            ->where('status', 'published')
+            ->first();
+
+        if (! $podcast) {
+            return $this->error('Podcast no encontrado', 404);
+        }
+
+        return $this->success(new BlogPodcastResource($podcast));
+    }
+
     public function videos(): JsonResponse
     {
         $videos = BlogVideo::where('status', 'published')
@@ -175,6 +267,19 @@ final class BlogController extends Controller
         return $this->success(BlogVideoResource::collection($videos));
     }
 
+    public function showVideo(int $id): JsonResponse
+    {
+        $video = BlogVideo::where('id', $id)
+            ->where('status', 'published')
+            ->first();
+
+        if (! $video) {
+            return $this->error('Video no encontrado', 404);
+        }
+
+        return $this->success(new BlogVideoResource($video));
+    }
+
     public function shorts(): JsonResponse
     {
         $shorts = BlogShort::where('status', 'published')
@@ -182,5 +287,28 @@ final class BlogController extends Controller
             ->get();
 
         return $this->success(BlogShortResource::collection($shorts));
+    }
+
+    public function showShort(int $id): JsonResponse
+    {
+        $short = BlogShort::where('id', $id)
+            ->where('status', 'published')
+            ->first();
+
+        if (! $short) {
+            return $this->error('Short no encontrado', 404);
+        }
+
+        return $this->success(new BlogShortResource($short));
+    }
+
+    private function optionalAuth(Request $request): void
+    {
+        if ($bearer = $request->bearerToken()) {
+            $accessToken = PersonalAccessToken::findToken($bearer);
+            if ($accessToken?->tokenable) {
+                Auth::setUser($accessToken->tokenable);
+            }
+        }
     }
 }

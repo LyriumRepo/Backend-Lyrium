@@ -190,6 +190,23 @@ final class ChatBotFaqService
             'response' => "Si hubo un problema con la entrega, el transportista generalmente realiza hasta 2 intentos. Revisa si dejaron un aviso de visita. Si no recibes noticias en 24 horas, escribe al vendedor desde 'Mis pedidos' → 'Contactar vendedor', o abre un ticket de soporte desde tu panel. 📦❓",
         ],
 
+        // ── EMPAQUE Y CUIDADO DEL PEDIDO ─────────────────────────────────────────
+        'empaque_cuidado' => [
+            'keywords' => ['como empacan', 'cuidado del empaque', 'como cuidan mi pedido', 'empaque seguro', 'como protegen el producto'],
+            'terms'    => ['empaque', 'empacar', 'embalaje'],
+            'response' => "En Lyrium el empaque es parte de nuestro compromiso con tu salud 🌿. Cada pedido se protege según el tipo de producto (frágil, líquido, perecible o delicado) para que llegue en perfecto estado. Además, fotografiamos cada pedido antes de cerrarlo como respaldo ante cualquier reclamo. 📦💚",
+        ],
+        'simbolos_caja' => [
+            'keywords' => ['que significan los simbolos', 'simbolos de la caja', 'que significa fragil en la caja', 'iconos de la caja', 'dibujos en la caja'],
+            'terms'    => ['simbolo caja', 'icono caja'],
+            'response' => "Los símbolos en tu caja te indican cómo manejarla:\n📦 *Frágil* (copa rota) — contenido delicado, manejo cuidadoso.\n⬆️ *Este lado arriba* (flechas) — no debe voltearse durante el viaje.\n☔ *Mantener seco* (paraguas) — evitar humedad.\nSon estándares internacionales para proteger tu pedido en el camino. 🌱",
+        ],
+        'evidencia_empaque' => [
+            'keywords' => ['prueba de que llego bien empacado', 'foto del pedido antes de enviar', 'tienen foto de mi pedido', 'como saben si llego dañado', 'como saben si llego danado'],
+            'terms'    => ['foto del pedido', 'evidencia empaque'],
+            'response' => "Antes de cerrar cada pedido, tomamos una foto del contenido ya embalado. Esto nos permite verificar el estado real con el que salió tu pedido si necesitas abrir una disputa por daños o faltantes. 📸🛡️ _Escribe \"disputa\" si necesitas reportar un problema con tu pedido._",
+        ],
+
         // ── MI CUENTA ─────────────────────────────────────────────────────────────
         'recuperar_contrasena' => [
             'keywords' => ['olvide mi contrasena', 'recuperar contrasena', 'no recuerdo mi clave', 'restablecer contrasena', 'cambiar clave olvidada'],

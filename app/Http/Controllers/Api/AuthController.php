@@ -12,6 +12,8 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResendOtpRequest;
 use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AdminSession;
+use App\Models\LoginAttempt;
 use App\Models\SellerApplication;
 use App\Models\User;
 use App\Notifications\NewSellerRegistrationNotification;
@@ -44,6 +46,13 @@ final class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            LoginAttempt::create([
+                'email' => $credentials['email'],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'status' => 'failed',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => 'Credenciales inválidas.',
@@ -53,6 +62,14 @@ final class AuthController extends Controller
         // Verificar email
         if (! $user->hasVerifiedEmail()) {
             $this->otpService->generate($user);
+
+            LoginAttempt::create([
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'status' => 'failed',
+            ]);
 
             return response()->json([
                 'success' => false,
@@ -64,6 +81,24 @@ final class AuthController extends Controller
 
         $user->tokens()->delete();
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        LoginAttempt::create([
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'status' => 'success',
+        ]);
+
+        AdminSession::where('user_id', $user->id)->delete();
+        AdminSession::create([
+            'id' => (string) Str::uuid(),
+            'user_id' => $user->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'last_activity' => now()->timestamp,
+            'payload' => '[]',
+        ]);
 
         return response()->json([
             'success' => true,
@@ -499,7 +534,14 @@ final class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        $user->currentAccessToken()->delete();
+
+        // Marcar sesión como inactiva inmediatamente
+        AdminSession::where('user_id', $user->id)
+            ->where('last_activity', '>=', now()->subMinutes(15)->timestamp)
+            ->update(['last_activity' => now()->subMinutes(16)->timestamp]);
 
         return response()->json(['success' => true]);
     }

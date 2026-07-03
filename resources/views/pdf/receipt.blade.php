@@ -194,8 +194,14 @@
   $bolitaPath   = public_path('images/iconologo.png');
   $bolitaBase64 = file_exists($bolitaPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($bolitaPath)) : '';
 
-  // Base = subtotal del pedido CON IGV incluido (tax_amount ya está dentro del subtotal)
-  $baseConIgv = (float) $order->subtotal;
+  // Base = subtotal de los ítems de ESTA tienda (invoice->store_id).
+  // Si no hay store_id (legacy/manual), usa el subtotal total del pedido como fallback.
+  if ($invoice && $invoice->store_id) {
+      $order->loadMissing('items');
+      $baseConIgv = (float) $order->items->where('store_id', $invoice->store_id)->sum('line_total');
+  } else {
+      $baseConIgv = (float) $order->subtotal;
+  }
 
   $commissionCalc   = app(\App\Services\CommissionCalculatorService::class)->calculate($baseConIgv);
   $comisionSinIgv   = round($commissionCalc['comision_base'], 2);

@@ -53,9 +53,6 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
         Order::STATUS_CANCELLED      => 'Cancelado',
     ];
 
-    private const BANNER_TOP = 'banner-top.jpg';
-    private const BANNER_BOTTOM = 'banner-bottom.jpg';
-
     public function __construct(
         private readonly Order $order,
     ) {}
@@ -142,8 +139,6 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'orderNumber'        => $this->order->order_number,
                 'trackingTitle'      => $trackingTitle ?? $tracking['title'],
                 'imageCid'           => null,
-                'bannerTopCid'       => null,
-                'bannerBottomCid'    => null,
                 'items'              => $items,
                 'subtotal'           => number_format((float) $this->order->subtotal, 2),
                 'shippingCost'       => number_format((float) $this->order->shipping_cost, 2),
@@ -151,6 +146,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'actionUrl'          => config('app.frontend_url') . '/customer/orders',
                 'showTagline'        => true,
                 'hideHeader'         => true,
+                'hideFooter'         => true,
                 'carrierName'        => $carrierInfo['name'],
                 'trackingCode'       => $carrierInfo['tracking_code'],
                 'trackingUrl'        => $carrierInfo['tracking_url'],
@@ -175,8 +171,6 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'orderNumber'     => $this->order->order_number,
                 'trackingTitle'   => 'Tu pedido ha sido actualizado',
                 'imageCid'        => null,
-                'bannerTopCid'    => null,
-                'bannerBottomCid' => null,
                 'items'           => $items,
                 'subtotal'        => number_format((float) $this->order->subtotal, 2),
                 'shippingCost'    => number_format((float) $this->order->shipping_cost, 2),
@@ -184,12 +178,12 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'actionUrl'       => config('app.frontend_url') . '/customer/orders',
                 'showTagline'     => true,
                 'hideHeader'      => true,
+                'hideFooter'      => true,
                 'carrierName'     => $carrierInfo['name'],
                 'trackingCode'    => $carrierInfo['tracking_code'],
                 'trackingUrl'     => $carrierInfo['tracking_url'],
                 'carrierFields'   => $carrierInfo['fields'],
-            ])
-;
+            ]);
     }
 
     private function getCarrierInfo(): array

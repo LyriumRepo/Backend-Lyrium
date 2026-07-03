@@ -9,10 +9,13 @@ use App\Http\Requests\EmitInvoiceRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Services\NubefactService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
+use Illuminate\View\View;
 
 final class NubefactController extends Controller
 {
@@ -64,6 +67,42 @@ final class NubefactController extends Controller
                 'totalPages' => $invoices->lastPage(),
             ],
         ]);
+    }
+
+    public function receiptPdf(Invoice $invoice)
+    {
+        abort_unless($invoice->source === 'plan_subscription', 404);
+
+        $invoice->loadMissing(['store', 'planRequest.plan']);
+
+        $verifyUrl = URL::signedRoute('plan-receipt.verify', ['invoice' => $invoice->id]);
+
+        $qrBase64 = '';
+        try {
+            $qrOpts = new \chillerlan\QRCode\QROptions;
+            $qrOpts->outputInterface = \chillerlan\QRCode\Output\QRGdImagePNG::class;
+            $qrOpts->outputBase64 = true;
+            $qrBase64 = (new \chillerlan\QRCode\QRCode($qrOpts))->render($verifyUrl);
+        } catch (\Throwable $e) {
+            Log::warning('[NubefactController] No se pudo generar QR de verificación', ['error' => $e->getMessage()]);
+        }
+
+        $pdf = Pdf::loadView('pdf.plan-receipt', [
+            'invoice' => $invoice,
+            'qrBase64' => $qrBase64,
+            'verifyUrlLabel' => parse_url($verifyUrl, PHP_URL_HOST) ?? 'lyriumbiomarketplace.com',
+        ]);
+
+        return $pdf->download("Recibo-{$invoice->series}-{$invoice->number}.pdf");
+    }
+
+    public function verifyReceipt(Invoice $invoice): View
+    {
+        abort_unless($invoice->source === 'plan_subscription', 404);
+
+        $invoice->loadMissing(['store', 'planRequest.plan']);
+
+        return view('verify.plan-receipt', ['invoice' => $invoice]);
     }
 
     public function emitir(EmitInvoiceRequest $request): JsonResponse

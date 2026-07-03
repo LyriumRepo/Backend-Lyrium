@@ -1,19 +1,14 @@
-@extends('emails.layout')
+@extends('emails.layout-clean')
 
 @section('email_title', 'Compra confirmada — Pedido #' . $orderNumber)
 
-@section('email_content')
+@section('email_top')
+<img src="https://fv5-5.files.fm/thumb_show.php?i=msu7t9u4py&view&v=1&PHPSESSID=53ba53ad2030b8e5aae3cf48c4ba83f8e248150a"
+     width="100%" alt="Gracias por tu compra - Lyrium Biomarketplace"
+     style="display:block;width:100%;height:auto;border:0;" />
+@endsection
 
-{{-- ===== IMAGEN SUPERIOR (misma que la boleta en pantalla) ===== --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0;">
-    <tr>
-        <td style="padding:0;">
-            <img src="https://fv5-5.files.fm/thumb_show.php?i=msu7t9u4py&view&v=1&PHPSESSID=53ba53ad2030b8e5aae3cf48c4ba83f8e248150a"
-                 width="100%" alt="Gracias por tu compra - Lyrium Biomarketplace"
-                 style="display:block;width:100%;height:auto;border:0;" />
-        </td>
-    </tr>
-</table>
+@section('email_content')
 
 {{-- ===== DETALLE DEL PEDIDO ===== --}}
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0;">
@@ -192,15 +187,11 @@
     </tr>
 </table>
 
-{{-- ===== IMAGEN INFERIOR (pie 2025) ===== --}}
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:0;">
-    <tr>
-        <td style="padding:0;">
-            <img src="https://fv5-4.files.fm/thumb_show.php?i=67vwf5vakf&view&v=1&PHPSESSID=b6862738416edfc1629012e3aecc89734866bb64"
-                 width="100%" alt="Lyrium Biomarketplace 2025"
-                 style="display:block;width:100%;height:auto;border:0;" />
-        </td>
-    </tr>
-</table>
 
+@endsection
+
+@section('email_bottom')
+<img src="https://fv5-4.files.fm/thumb_show.php?i=67vwf5vakf&view&v=1&PHPSESSID=b6862738416edfc1629012e3aecc89734866bb64"
+     width="100%" alt="Lyrium Biomarketplace 2025"
+     style="display:block;width:100%;height:auto;border:0;" />
 @endsection

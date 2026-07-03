@@ -321,7 +321,7 @@
             <div class="commission-row">
                 <table>
                     <tr>
-                        <td>Base Cálculo Comisión (sin IGV)</td>
+                        <td>Subtotal productos (base comisión)</td>
                         <td class="right">S/ {{ number_format($commissionBase, 2) }}</td>
                     </tr>
                     <tr>
@@ -329,21 +329,13 @@
                         <td class="right">{{ number_format($commissionRate, 1) }}%</td>
                     </tr>
                     <tr>
-                        <td>Comisión (Base Imponible)</td>
-                        <td class="right">S/ {{ number_format($commissionAmount, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td>I.G.V. de Comisión (18%)</td>
-                        <td class="right">S/ {{ number_format($commissionIgv, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Comisión Total</strong></td>
-                        <td class="right"><strong>S/ {{ number_format($commissionTotal, 2) }}</strong></td>
+                        <td>Comisión Lyrium</td>
+                        <td class="right">S/ {{ number_format($commissionTotal, 2) }}</td>
                     </tr>
                 </table>
             </div>
             <p class="commission-note">
-                Comisión calculada sobre Valor Venta ÷ 1.18 × tasa vigente (sin envío).<br>
+                Comisión calculada sobre el subtotal de productos × tasa vigente (sin envío).<br>
                 No modifica los importes fiscales del comprobante.
             </p>
             @endif

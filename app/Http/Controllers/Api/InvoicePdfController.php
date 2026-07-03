@@ -79,7 +79,15 @@ final class InvoicePdfController extends Controller
             ];
         }
 
-        $shippingCost = (float) ($order?->shipping_cost ?? 0);
+        // Shipping proporcional por tienda: dividir entre nº de tiendas únicas del pedido.
+        // No hay shipping_cost por tienda en BD, pero cada tienda tiene su propio envío.
+        $totalShipping  = (float) ($order?->shipping_cost ?? 0);
+        $storeCount     = $order
+            ? max(1, $order->items->pluck('store_id')->filter()->unique()->count())
+            : 1;
+        $shippingCost   = $invoice->store_id && $storeCount > 1
+            ? round($totalShipping / $storeCount, 2)
+            : $totalShipping;
 
         // Siempre recalcular desde ítems reales (ignorar total guardado en invoice,
         // que puede estar mal por el bug pre-fix del doble IGV)
@@ -88,8 +96,9 @@ final class InvoicePdfController extends Controller
         $total       = round($rawLineTotal + $shippingCost, 2);
 
         $showCommission = true;
-        // Base de cálculo de comisión = valor venta sin IGV, sin envío (fórmula Lyrium)
-        $commissionBase = $baseGravada;
+        // Base visible de comisión = subtotal de productos CON IGV (lo que el cliente pagó).
+        // La tasa se aplica internamente sobre valor sin IGV, pero se muestra el precio real.
+        $commissionBase = $rawLineTotal;
 
         $commissionSummary = [];
         if ($order) {

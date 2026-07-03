@@ -212,7 +212,7 @@ final class OrderPaymentService
             ];
         }
 
-        $maxAttempts = 3;
+        $maxAttempts = 10;
         $lastException = null;
 
         for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
@@ -392,13 +392,9 @@ final class OrderPaymentService
 
     private function resolveNextNumber(Store $store, string $series): string
     {
-        $max = Invoice::where('store_id', $store->id)
-            ->where('series', $series)
-            ->lockForUpdate()
-            ->max(DB::raw('CAST(number AS UNSIGNED)'));
-
-        $next = $max ? (int) $max + 1 : 1;
-
-        return str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+        // El correlativo de NubeFact es global por serie, no por tienda
+        // (ver Invoice::resolveNextNumber). $store se conserva en la firma
+        // para no tocar el call site, aunque ya no participa en el cálculo.
+        return Invoice::resolveNextNumber($series);
     }
 }
