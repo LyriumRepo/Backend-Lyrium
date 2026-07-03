@@ -50,16 +50,19 @@ return new class extends Migration
         // ── PASO B: Migrar datos existentes ───────────────────────────────
         // Para cada horario sin specialist_id, buscar el primer especialista
         // asignado al mismo servicio en el pivot service_specialist.
-        DB::statement('
-            UPDATE service_schedules ss
-            INNER JOIN (
-                SELECT service_id, MIN(specialist_id) AS first_specialist_id
-                FROM service_specialist
-                GROUP BY service_id
-            ) sp ON ss.service_id = sp.service_id
-            SET ss.specialist_id = sp.first_specialist_id
-            WHERE ss.specialist_id IS NULL
-        ');
+        // Se ejecuta solo en MySQL (SQLite/in-memory testing no soporta INNER JOIN en UPDATE).
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('
+                UPDATE service_schedules ss
+                INNER JOIN (
+                    SELECT service_id, MIN(specialist_id) AS first_specialist_id
+                    FROM service_specialist
+                    GROUP BY service_id
+                ) sp ON ss.service_id = sp.service_id
+                SET ss.specialist_id = sp.first_specialist_id
+                WHERE ss.specialist_id IS NULL
+            ');
+        }
 
         // ── PASO C: Añadir la FK ahora que los datos están migrados ───────
         // Solo se añade si todos los registros tienen specialist_id resuelto.

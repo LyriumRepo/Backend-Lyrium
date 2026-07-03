@@ -188,6 +188,12 @@ final class ProductController extends Controller
             $productData['service_location'] = $data['serviceLocation'] ?? null;
         }
 
+        if (! empty($data['discountPercentage']) && $data['discountPercentage'] > 0 && $data['discountPercentage'] < 100) {
+            $productData['regular_price'] = round(
+                $data['price'] / (1 - $data['discountPercentage'] / 100), 2
+            );
+        }
+
         $product = Product::create($productData);
 
         $this->syncCategory($product, $data['category'] ?? null);
@@ -510,6 +516,16 @@ final class ProductController extends Controller
         foreach ($typeMap[$type] ?? [] as $input => $column) {
             if (array_key_exists($input, $data)) {
                 $updateData[$column] = $data[$input];
+            }
+        }
+
+        if (array_key_exists('discountPercentage', $data) && array_key_exists('price', $data)) {
+            if ($data['discountPercentage'] > 0 && $data['discountPercentage'] < 100) {
+                $updateData['regular_price'] = round(
+                    $data['price'] / (1 - $data['discountPercentage'] / 100), 2
+                );
+            } else {
+                $updateData['regular_price'] = $data['price'];
             }
         }
 

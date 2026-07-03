@@ -6,11 +6,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\AuditableModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class Supplier extends Model
 {
-    use HasFactory, SoftDeletes;
+    use AuditableModel, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'name',

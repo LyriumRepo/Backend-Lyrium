@@ -11,7 +11,6 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Http\Resources\ScannedDocumentResource;
-use App\Models\AuditLog;
 use App\Models\Expense;
 use App\Models\Supplier;
 use App\Services\DocumentScanner\DocumentScannerService;
@@ -323,14 +322,6 @@ final class ExpenseController extends Controller
 
         $expense->load(['supplier', 'registeredBy']);
 
-        AuditLog::record(
-            event: 'created',
-            module: 'expenses',
-            description: "Escaneó y registró {$expense->receipt_number} — {$expense->concept} (S/ {$expense->amount})",
-            auditable: $expense,
-            newValues: $expense->toArray(),
-        );
-
         return response()->json([
             'file_url' => Storage::disk('public')->url($filePath),
             'file_path' => $filePath,
@@ -400,14 +391,6 @@ final class ExpenseController extends Controller
 
         $expense->load(['supplier', 'registeredBy']);
 
-        AuditLog::record(
-            event: 'created',
-            module: 'expenses',
-            description: "Registró {$expense->receipt_number} — {$expense->concept} (S/ {$expense->amount}, ".count($data['lines']).' líneas)',
-            auditable: $expense,
-            newValues: $expense->toArray(),
-        );
-
         return response()->json([
             'success' => true,
             'expense' => new ExpenseResource($expense),
@@ -458,14 +441,6 @@ final class ExpenseController extends Controller
 
         $expense->load(['supplier', 'registeredBy']);
 
-        AuditLog::record(
-            event: 'created',
-            module: 'expenses',
-            description: "Registró recibo {$expense->receipt_number} — {$expense->concept} (S/ {$expense->amount})",
-            auditable: $expense,
-            newValues: $expense->toArray(),
-        );
-
         return response()->json(new ExpenseResource($expense), 201);
     }
 
@@ -485,15 +460,6 @@ final class ExpenseController extends Controller
 
         $expense->update($data);
 
-        AuditLog::record(
-            event: 'updated',
-            module: 'expenses',
-            description: "Actualizó recibo {$expense->receipt_number}",
-            auditable: $expense,
-            oldValues: $oldData,
-            newValues: $expense->fresh()->toArray(),
-        );
-
         return response()->json(new ExpenseResource($expense->fresh()->load(['supplier', 'registeredBy'])));
     }
 
@@ -507,13 +473,6 @@ final class ExpenseController extends Controller
 
         $expense->update(['status' => 'Anulado']);
         $expense->delete();
-
-        AuditLog::record(
-            event: 'deleted',
-            module: 'expenses',
-            description: "Anuló recibo {$expense->receipt_number} — {$expense->concept}",
-            auditable: $expense,
-        );
 
         return response()->json(['success' => true]);
     }

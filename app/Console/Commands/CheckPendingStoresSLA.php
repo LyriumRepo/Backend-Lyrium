@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Store;
 use App\Models\User;
 use App\Notifications\PendingStoreOverdueNotification;
+use App\Services\AuditService;
 use Illuminate\Console\Command;
 
 final class CheckPendingStoresSLA extends Command
@@ -50,6 +51,15 @@ final class CheckPendingStoresSLA extends Command
         ]);
 
         $this->info("Notificación enviada a {$admins->count()} admin(s) sobre {$count} tienda(s) con SLA vencido.");
+
+        app(AuditService::class)->record(
+            source: AuditService::SOURCE_SCHEDULER,
+            event: 'system.scheduler.executed',
+            module: 'system',
+            description: 'Tarea programada ejecutada: stores:check-sla',
+            severity: 'info',
+            metadata: ['command' => 'stores:check-sla'],
+        );
 
         return self::SUCCESS;
     }

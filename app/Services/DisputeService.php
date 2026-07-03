@@ -10,6 +10,7 @@ use App\Models\DisputeMessage;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
+use App\Services\AuditService;
 
 final class DisputeService
 {
@@ -35,6 +36,18 @@ final class DisputeService
             $this->addMessage($dispute->id, $data['user_id'], $data['message']);
         }
 
+        app(AuditService::class)->record(
+            event: 'disputes.created',
+            module: 'disputes',
+            description: "Disputa #{$dispute->dispute_number} abierta para la orden #{$dispute->order_id}",
+            auditable: $dispute,
+            newValues: ['status' => Dispute::STATUS_OPEN, 'type' => $data['type']],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'dispute_id' => $dispute->id,
+            ],
+        );
+
         return $dispute->fresh(['order', 'store', 'user']);
     }
 
@@ -53,12 +66,26 @@ final class DisputeService
             throw new \InvalidArgumentException('No se puede agregar mensajes a esta disputa');
         }
 
-        return DisputeMessage::create([
+        $message = DisputeMessage::create([
             'dispute_id' => $disputeId,
             'user_id' => $userId,
             'message' => $message,
             'is_internal' => $isInternal,
         ]);
+
+        app(AuditService::class)->record(
+            event: 'disputes.message.added',
+            module: 'disputes',
+            description: "Mensaje agregado a la disputa #{$dispute->dispute_number}",
+            auditable: $dispute,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'dispute_id' => $disputeId,
+                'message_id' => $message->id,
+            ],
+        );
+
+        return $message;
     }
 
     public function addAttachment(
@@ -118,6 +145,8 @@ final class DisputeService
     ): Dispute {
         $dispute = $this->findOrFail($disputeId);
 
+        $oldStatus = $dispute->status;
+
         $dispute->update([
             'status' => Dispute::STATUS_RESOLVED,
             'resolution' => $resolution,
@@ -125,6 +154,19 @@ final class DisputeService
             'refund_amount' => $refundAmount,
             'resolved_at' => now(),
         ]);
+
+        app(AuditService::class)->record(
+            event: 'disputes.resolved',
+            module: 'disputes',
+            description: "Disputa #{$dispute->dispute_number} resuelta",
+            auditable: $dispute,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => Dispute::STATUS_RESOLVED, 'resolution' => $resolution],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'dispute_id' => $disputeId,
+            ],
+        );
 
         return $dispute->fresh();
     }
@@ -137,10 +179,25 @@ final class DisputeService
             throw new \InvalidArgumentException('Esta disputa no puede ser cerrada');
         }
 
+        $oldStatus = $dispute->status;
+
         $dispute->update([
             'status' => Dispute::STATUS_CLOSED,
             'closed_at' => now(),
         ]);
+
+        app(AuditService::class)->record(
+            event: 'disputes.closed',
+            module: 'disputes',
+            description: "Disputa #{$dispute->dispute_number} cerrada",
+            auditable: $dispute,
+            oldValues: ['status' => $oldStatus],
+            newValues: ['status' => Dispute::STATUS_CLOSED],
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'dispute_id' => $disputeId,
+            ],
+        );
 
         return $dispute->fresh();
     }

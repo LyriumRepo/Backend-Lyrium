@@ -64,12 +64,19 @@ Default queue driver is `database` — always run `php artisan queue:work` along
 - **Supplier** — internal supplier management (admin)
 - **SystemConfig** — key/value config store for dynamic settings
 - **ServiceHold** — temporary slot reservation during service booking checkout (added 2026-06-11)
+- **BlockedIp** — IP addresses blocked/flagged/whitelisted by the security module (Fase 7)
+- **SecurityAlert** — security alerts generated from critical audit events (Fase 7)
 - Soft deletes on User, Store, Product
 
 ### Observers
 Two model observers auto-maintain denormalized counters — never update these fields manually:
 - `ExpenseObserver` (`app/Observers/ExpenseObserver.php`) — syncs `suppliers.total_gastado` and `total_recibos` whenever an `Expense` is created, updated, or deleted
 - `ReviewObserver` (`app/Observers/ReviewObserver.php`) — recalculates and updates the average rating on the parent Store (or Product) whenever a Review is created, updated, or deleted
+
+### Security Listeners (Fase 7)
+Two listeners react to audit events to keep security tables in sync:
+- `LogBlockedIpListener` — listens to `AuditLogCreated` and reacts to `security.ip.*` events (block/unblock/flag/whitelist), upserting `BlockedIp` records accordingly
+- `LogSecurityAlertListener` — listens to `CriticalSecurityEvent` and creates `SecurityAlert` records for every critical event detected by the audit system
 
 ### Request/Response Pattern
 - Validation in `app/Http/Requests/` (FormRequest classes)
@@ -196,5 +203,8 @@ These controllers exist but their routes are **not registered** in `routes/api.p
 - **Fase 1 — Fundación:** ✅ Completada
 - **Fase 2 — Comercio (órdenes, inventario, comisiones):** ✅ Completada
 - **Fase 3 — WebSockets (Reverb):** ✅ Infraestructura + eventos implementados
-- **Fase 4 — Funcionalidades avanzadas:** 🔜 Pendiente
+- **Fase 4 — Auditoría: Eventos de sistema:** ✅ Completada (Exception Handler, listeners, commands)
+- **Fase 5 — Auditoría: Seguridad y Dashboard:** ✅ Completada (AuditSecurityMiddleware, SecurityDashboardController, AuditLog API mejorada, frontend audit page)
+- **Fase 6 — Auditoría: Dashboard y retención:** ✅ Completada (archive/purge/summarize commands, audit_log_summaries, AuditCoverageTest, frontend timeline + filtros avanzados)
+- **Fase 7 — Auditoría: Esqueletos IPs, Alertas:** ✅ Completada (BlockedIp model + listener, SecurityAlert model + migration + listener, EventServiceProvider registrado)
 - **Admin Plans Panel:** ✅ Completado (routes, CRUD, payment history, vendedores, colors)

@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOperationalRoleRequest;
 use App\Http\Requests\UpdateOperationalRoleRequest;
 use App\Http\Resources\OperationalRoleResource;
-use App\Models\AuditLog;
+use App\Services\AuditService;
 use App\Models\OperationalRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
 
 final class OperationalRoleController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
+
     /**
      * GET /api/operational-roles
      */
@@ -55,12 +57,14 @@ final class OperationalRoleController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
-        AuditLog::record(
-            event: 'created',
+        $this->auditService->record(
+            event: 'operational_roles.created',
             module: 'operational_roles',
             description: "Creó rol operativo «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
             newValues: $role->toArray(),
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         return response()->json(new OperationalRoleResource($role->loadCount('users')), 201);
@@ -76,13 +80,15 @@ final class OperationalRoleController extends Controller
 
         $role->update($request->validated());
 
-        AuditLog::record(
-            event: 'updated',
+        $this->auditService->record(
+            event: 'operational_roles.updated',
             module: 'operational_roles',
             description: "Actualizó rol operativo «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
             oldValues: $oldData,
             newValues: $role->fresh()->toArray(),
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         return response()->json(new OperationalRoleResource($role->fresh()->loadCount('users')));
@@ -95,15 +101,20 @@ final class OperationalRoleController extends Controller
     public function toggle(int $id): JsonResponse
     {
         $role = OperationalRole::findOrFail($id);
-        $role->update(['is_active' => ! $role->is_active]);
+        $oldActive = $role->is_active;
+        $role->update(['is_active' => !$oldActive]);
 
         $action = $role->is_active ? 'activó' : 'desactivó';
 
-        AuditLog::record(
-            event: 'updated',
+        $this->auditService->record(
+            event: 'operational_roles.toggled',
             module: 'operational_roles',
             description: "Se {$action} el rol operativo «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['is_active' => $oldActive],
+            newValues: ['is_active' => $role->is_active],
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         return response()->json(new OperationalRoleResource($role->loadCount('users')));
@@ -122,11 +133,14 @@ final class OperationalRoleController extends Controller
         $role = OperationalRole::findOrFail($id);
         $role->users()->syncWithoutDetaching([$validated['user_id']]);
 
-        AuditLog::record(
-            event: 'assigned',
+        $this->auditService->record(
+            event: 'operational_roles.user.assigned',
             module: 'operational_roles',
             description: "Asignó usuario #{$validated['user_id']} al rol «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
+            newValues: ['user_id' => $validated['user_id']],
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         return response()->json(new OperationalRoleResource($role->loadCount('users')));
@@ -141,11 +155,14 @@ final class OperationalRoleController extends Controller
         $role = OperationalRole::findOrFail($id);
         $role->users()->detach($userId);
 
-        AuditLog::record(
-            event: 'removed',
+        $this->auditService->record(
+            event: 'operational_roles.user.removed',
             module: 'operational_roles',
             description: "Removió usuario #{$userId} del rol «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['user_id' => $userId],
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         return response()->json(['success' => true]);
@@ -165,11 +182,14 @@ final class OperationalRoleController extends Controller
             ], 422);
         }
 
-        AuditLog::record(
-            event: 'deleted',
+        $this->auditService->record(
+            event: 'operational_roles.deleted',
             module: 'operational_roles',
             description: "Eliminó rol operativo «{$role->name}»",
             auditable: $role,
+            source: AuditService::SOURCE_WEB,
+            oldValues: ['id' => $role->id, 'name' => $role->name, 'is_active' => $role->is_active],
+            metadata: ['role_id' => $role->id, 'role_name' => $role->name],
         );
 
         $role->delete();

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Media\StoreMediaRequest;
+use App\Services\AuditService;
 use App\Http\Resources\MediaResource;
 use App\Models\Product;
 use App\Models\Service;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Storage;
 
 final class MediaController extends Controller
 {
+    public function __construct(private readonly AuditService $auditService) {}
+
     /**
      * Upload media to a product.
      * POST /api/products/{productId}/media
@@ -28,15 +31,26 @@ final class MediaController extends Controller
         Gate::authorize('update', $product);
 
         $file = $request->file('file');
-        
+
+        $mimeType = $file->getMimeType();
+
         $product->clearMediaCollection('images');
 
         $media = $product->addMedia($file)
             ->toMediaCollection('images');
 
-        $product->update(['image' => $media->getUrl()]);
+        $imageUrl = $media->getUrl();
+        $product->update(['image' => $imageUrl]);
 
-        return $this->created(new MediaResource($media));
+        $this->auditService->record(
+            event: 'media.uploaded',
+            module: 'media',
+            description: 'Imagen subida al producto ID ' . $productId,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['product_id' => $productId, 'file_type' => $mimeType, 'media_id' => $media->id],
+        );
+
+        return $this->created(['url' => $imageUrl]);
     }
 
     /**
@@ -70,6 +84,14 @@ final class MediaController extends Controller
 
         $media->delete();
 
+        $this->auditService->record(
+            event: 'media.deleted',
+            module: 'media',
+            description: 'Imagen eliminada del producto ID ' . $productId,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['product_id' => $productId, 'media_id' => $mediaId],
+        );
+
         return $this->success();
     }
 
@@ -91,6 +113,14 @@ final class MediaController extends Controller
         foreach ($order as $index => $mediaId) {
             $product->media()->where('id', $mediaId)->update(['order_column' => $index]);
         }
+
+        $this->auditService->record(
+            event: 'media.uploaded',
+            module: 'media',
+            description: 'Orden de imágenes reordenado para producto ID ' . $productId,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['product_id' => $productId, 'new_order' => $order],
+        );
 
         return $this->success();
     }
@@ -115,11 +145,55 @@ final class MediaController extends Controller
 
             $url = $store->getMedia('logo')->first()?->getUrl() ?? $store->getFirstMediaUrl('logo');
 
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Logo subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
+
             return $this->created(['logo' => $url, 'id' => $media->id]);
         } catch (\Exception $e) {
             \Log::error('Error uploading logo: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al subir logo', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Upload store marketplace logo (for product/service cards).
+     * POST /api/stores/{storeId}/media/logo-marketplace
+     */
+    public function uploadStoreMarketplaceLogo(StoreMediaRequest $request, int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $file = $request->file('file');
+
+            $store->clearMediaCollection('logo_marketplace');
+            $media = $store->addMedia($file)
+                ->preservingOriginal()
+                ->toMediaCollection('logo_marketplace');
+
+            $url = $store->getMedia('logo_marketplace')->first()?->getUrl() ?? $store->getFirstMediaUrl('logo_marketplace');
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Logo marketplace subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
+
+            return $this->created(['logo_marketplace' => $url, 'id' => $media->id]);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading marketplace logo: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al subir logo marketplace', 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -142,6 +216,14 @@ final class MediaController extends Controller
                 ->toMediaCollection('banner');
 
             $url = $store->getMedia('banner')->first()?->getUrl() ?? $store->getFirstMediaUrl('banner');
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Banner subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
 
             return $this->created(['banner' => $url, 'id' => $media->id]);
         } catch (\Exception $e) {
@@ -171,11 +253,184 @@ final class MediaController extends Controller
 
             $url = $store->getMedia('banner2')->first()?->getUrl() ?? $store->getFirstMediaUrl('banner2');
 
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Banner 2 subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
+
             return $this->created(['banner2' => $url, 'id' => $media->id]);
         } catch (\Exception $e) {
             \Log::error('Error uploading banner2: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al subir banner2', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Validate max ad banners limit.
+     */
+    private function validateAdBannersLimit(Store $store): void
+    {
+        $max = app(\App\Services\PlanService::class)->limit($store, 'max_ad_banners');
+        $count = $store->getMedia('ad_banners')->count();
+        if ($count >= $max) {
+            throw new \OverflowException("Máximo {$max} banners promocionales permitidos.");
+        }
+    }
+
+    /**
+     * Upload store ad banner.
+     * POST /api/stores/{storeId}/media/ad-banners
+     */
+    public function uploadStoreAdBanner(StoreMediaRequest $request, int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $this->validateAdBannersLimit($store);
+
+            $file = $request->file('file');
+
+            $media = $store->addMedia($file)
+                ->preservingOriginal()
+                ->toMediaCollection('ad_banners');
+
+            $url = $media->getUrl();
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Banner promocional subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
+
+            return $this->created([
+                'id' => $media->id,
+                'url' => $url,
+            ]);
+        } catch (\OverflowException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading ad banner: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al subir banner promocional', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete store ad banner.
+     * DELETE /api/stores/{storeId}/media/ad-banners/{mediaId}
+     */
+    public function deleteStoreAdBanner(int $storeId, int $mediaId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $media = $store->media()
+                ->where('collection_name', 'ad_banners')
+                ->find($mediaId);
+
+            if (! $media) {
+                return $this->notFound('Banner promocional no encontrado.');
+            }
+
+            $media->delete();
+
+            $this->auditService->record(
+                event: 'media.deleted',
+                module: 'media',
+                description: 'Banner promocional eliminado de tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $mediaId],
+            );
+
+            return $this->success();
+        } catch (\Exception $e) {
+            \Log::error('Error deleting ad banner: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al eliminar banner promocional'], 500);
+        }
+    }
+
+    /**
+     * Delete store banner (principal).
+     * DELETE /api/stores/{storeId}/media/banner
+     */
+    public function deleteStoreBanner(int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $media = $store->media()
+                ->where('collection_name', 'banner')
+                ->first();
+
+            if (! $media) {
+                return $this->notFound('Banner principal no encontrado.');
+            }
+
+            $media->delete();
+
+            $this->auditService->record(
+                event: 'media.deleted',
+                module: 'media',
+                description: 'Banner principal eliminado de tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id],
+            );
+
+            return $this->success();
+        } catch (\Exception $e) {
+            \Log::error('Error deleting banner: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al eliminar banner principal'], 500);
+        }
+    }
+
+    /**
+     * Delete store banner2 (oferta).
+     * DELETE /api/stores/{storeId}/media/banner2
+     */
+    public function deleteStoreBanner2(int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $media = $store->media()
+                ->where('collection_name', 'banner2')
+                ->first();
+
+            if (! $media) {
+                return $this->notFound('Banner de oferta no encontrado.');
+            }
+
+            $media->delete();
+
+            $this->auditService->record(
+                event: 'media.deleted',
+                module: 'media',
+                description: 'Banner de oferta eliminado de tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id],
+            );
+
+            return $this->success();
+        } catch (\Exception $e) {
+            \Log::error('Error deleting banner2: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al eliminar banner de oferta'], 500);
         }
     }
 
@@ -196,7 +451,15 @@ final class MediaController extends Controller
                 ->preservingOriginal()
                 ->toMediaCollection('gallery');
 
-            $url = $store->getMedia('gallery')->last()?->getUrl() ?? $store->getFirstMediaUrl('gallery');
+            $url = $media->getUrl();
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Galería actualizada para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
 
             return $this->created([
                 'id' => $media->id,
@@ -229,6 +492,14 @@ final class MediaController extends Controller
 
         $media->delete();
 
+        $this->auditService->record(
+            event: 'media.deleted',
+            module: 'media',
+            description: 'Imagen de galería eliminada de tienda ID ' . $storeId,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['store_id' => $storeId, 'media_id' => $mediaId],
+        );
+
         return $this->success();
     }
 
@@ -249,6 +520,14 @@ final class MediaController extends Controller
         }
 
         $media->delete();
+
+        $this->auditService->record(
+            event: 'media.deleted',
+            module: 'media',
+            description: 'Media eliminado de tienda ID ' . $storeId,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['store_id' => $storeId, 'media_id' => $mediaId],
+        );
 
         return $this->success();
     }
@@ -274,6 +553,14 @@ final class MediaController extends Controller
             $url = Storage::url($path);
 
             $service->update(['image' => $url]);
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Imagen subida para servicio ID ' . $serviceId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['service_id' => $serviceId, 'path' => $path],
+            );
 
             return $this->created([
                 'url' => $url,

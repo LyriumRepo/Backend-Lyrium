@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 
 final class GlossaryEntry extends Model
 {
+    use AuditableModel;
     protected $fillable = [
         'key',
         'description',

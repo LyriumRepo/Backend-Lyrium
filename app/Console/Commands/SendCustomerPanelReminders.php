@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Mail;
 
 final class SendCustomerPanelReminders extends Command
@@ -91,6 +92,15 @@ final class SendCustomerPanelReminders extends Command
         }
 
         $this->info("Recordatorios enviados: {$sent} | Omitidos (ya recibieron todos o no aplican): " . ($customers->count() - $sent));
+
+        app(AuditService::class)->record(
+            source: AuditService::SOURCE_SCHEDULER,
+            event: 'system.scheduler.executed',
+            module: 'system',
+            description: 'Tarea programada ejecutada: customers:panel-reminders',
+            severity: 'info',
+            metadata: ['command' => 'customers:panel-reminders'],
+        );
 
         return self::SUCCESS;
     }

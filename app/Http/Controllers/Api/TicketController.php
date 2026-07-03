@@ -16,6 +16,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketCreatedNotification;
 use App\Notifications\TicketRepliedNotification;
+use App\Services\AuditService;
 use App\Services\TicketAttachmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ use Illuminate\Support\Str;
 
 final class TicketController extends Controller
 {
-    public function __construct(private readonly TicketAttachmentService $attachmentService) {}
+    public function __construct(private readonly TicketAttachmentService $attachmentService, private readonly AuditService $auditService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -133,6 +134,18 @@ final class TicketController extends Controller
 
         $ticket->refresh();
 
+        $this->auditService->record(
+            event: 'tickets.created',
+            module: 'tickets',
+            description: 'Ticket creado',
+            auditable: $ticket,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'ticket_id' => $ticket->id,
+                'subject' => $ticket->subject,
+            ],
+        );
+
         $previewText = $request->filled('mensaje')
             ? Str::limit($request->input('mensaje'), 100)
             : $this->buildImagePreview($request->file('adjuntos') ?? []);
@@ -238,6 +251,18 @@ final class TicketController extends Controller
             'content' => 'El usuario cerró este ticket.',
             'type' => 'system',
         ]);
+
+        $this->auditService->record(
+            event: 'tickets.closed',
+            module: 'tickets',
+            description: 'Ticket cerrado por el usuario',
+            auditable: $ticket,
+            source: AuditService::SOURCE_WEB,
+            metadata: [
+                'ticket_id' => $ticket->id,
+                'subject' => $ticket->subject,
+            ],
+        );
 
         $previewText = 'El usuario cerró este ticket.';
         $totalMessages = $ticket->messages()->count();

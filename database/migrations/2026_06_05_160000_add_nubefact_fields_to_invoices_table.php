@@ -10,6 +10,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         Schema::table('invoices', function (Blueprint $table) {
             $table->string('document_type')->nullable()->after('business_name');
             $table->string('series')->nullable()->after('document_type');

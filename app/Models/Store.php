@@ -13,11 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
+use App\Traits\AuditableModel;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 final class Store extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, SoftDeletes;
+    use AuditableModel, HasFactory, InteractsWithMedia, SoftDeletes;
 
     protected $fillable = [
         'owner_id',
@@ -236,6 +237,12 @@ final class Store extends Model implements HasMedia
 
         $this->addMediaCollection('policies')
             ->useDisk('public');
+
+        $this->addMediaCollection('logo_marketplace')
+            ->useDisk('public');
+
+        $this->addMediaCollection('ad_banners')
+            ->useDisk('public');
     }
 
     public function reviews(): HasManyThrough
@@ -285,5 +292,16 @@ final class Store extends Model implements HasMedia
             ->where('status', 'active')
             ->where('ends_at', '>=', now())
             ->latestOfMany();
+    }
+
+    public function resolveCapability(string $key): mixed
+    {
+        $plan = $this->activeSubscription?->plan;
+
+        if (! $plan) {
+            return null;
+        }
+
+        return $plan->capability($key);
     }
 }

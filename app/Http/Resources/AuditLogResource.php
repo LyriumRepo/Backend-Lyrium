@@ -19,6 +19,14 @@ final class AuditLogResource extends JsonResource
             'old_values' => $this->old_values,
             'new_values' => $this->new_values,
             'ip_address' => $this->ip_address,
+            'severity' => $this->severity,
+            'source' => $this->source,
+            'session_id' => $this->session_id,
+            'request_method' => $this->request_method,
+            'request_url' => $this->request_url,
+            'response_code' => $this->response_code,
+            'correlation_id' => $this->correlation_id,
+            'metadata' => $this->when($this->metadata, $this->metadata),
             'created_at' => $this->created_at->toISOString(),
 
             'actor' => [

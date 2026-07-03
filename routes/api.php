@@ -69,7 +69,7 @@ use App\Http\Controllers\Api\LogisticsController;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('audit.auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/register-customer', [AuthController::class, 'registerCustomer']);
@@ -288,7 +288,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Log de Auditoría Técnica (RF-13) ──────────────────────────────────
     // Sólo lectura — sólo administrators
-    Route::middleware('role:administrator')->prefix('audit-logs')->name('audit-logs.')->group(function () {
+    Route::middleware('role:administrator,security_admin')->prefix('audit-logs')->name('audit-logs.')->group(function () {
         Route::get('/', [AuditLogController::class, 'index'])->name('index');
         Route::get('/modules', [AuditLogController::class, 'modules'])->name('modules');
         Route::get('/{id}', [AuditLogController::class, 'show'])->name('show');
@@ -709,8 +709,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Store logo and banner
         Route::post('/stores/{id}/media/logo', [MediaController::class, 'uploadStoreLogo']);
+        Route::post('/stores/{id}/media/logo-marketplace', [MediaController::class, 'uploadStoreMarketplaceLogo']);
         Route::post('/stores/{id}/media/banner', [MediaController::class, 'uploadStoreBanner']);
         Route::post('/stores/{id}/media/banner2', [MediaController::class, 'uploadStoreBanner2']);
+        Route::delete('/stores/{id}/media/banner', [MediaController::class, 'deleteStoreBanner']);
+        Route::delete('/stores/{id}/media/banner2', [MediaController::class, 'deleteStoreBanner2']);
+
+        // Store ad banners
+        Route::post('/stores/{id}/media/ad-banners', [MediaController::class, 'uploadStoreAdBanner']);
+        Route::delete('/stores/{id}/media/ad-banners/{mediaId}', [MediaController::class, 'deleteStoreAdBanner']);
 
         // Store gallery
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
@@ -851,8 +858,9 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // ── Security Admin Panel ────────────────────────────────────────────────
-Route::middleware(['auth:sanctum', 'role:security_admin'])->prefix('security')->group(function () {
+Route::middleware(['auth:sanctum', 'role:security_admin', 'audit.security'])->prefix('security')->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
+    Route::get('dashboard/realtime', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'realtime']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

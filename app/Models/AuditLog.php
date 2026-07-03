@@ -18,21 +18,32 @@ final class AuditLog extends Model
         'user_id',
         'user_email',
         'user_role',
+        'session_id',
+        'correlation_id',
         'event',
         'module',
+        'severity',
         'description',
+        'success',
+        'source',
         'auditable_type',
         'auditable_id',
         'old_values',
         'new_values',
+        'metadata',
         'ip_address',
         'user_agent',
+        'request_method',
+        'request_url',
+        'response_code',
         'created_at',
     ];
 
     protected $casts = [
         'old_values' => 'array',
         'new_values' => 'array',
+        'metadata' => 'array',
+        'success' => 'boolean',
         'created_at' => 'datetime',
     ];
 
