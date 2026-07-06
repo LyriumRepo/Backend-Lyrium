@@ -33,12 +33,22 @@ final class SendNewOrderToSellerListener
             return;
         }
 
-        $order = $event->order->loadMissing(['items', 'user']);
+        $order = $event->order->loadMissing(['items', 'serviceItems', 'user']);
 
-        $owner->notify(new NewOrderSellerNotification(
-            order: $order,
-            store: $store,
-        ));
+        try {
+            $owner->notify(new NewOrderSellerNotification(
+                order: $order,
+                store: $store,
+            ));
+        } catch (\Throwable $e) {
+            Log::error('SendNewOrderToSellerListener: error al notificar', [
+                'store_id' => $store->id,
+                'owner_id' => $owner->id,
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+            return;
+        }
 
         Log::info('SendNewOrderToSellerListener: notificación enviada', [
             'store_id' => $store->id,

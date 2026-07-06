@@ -8,8 +8,9 @@ use App\Events\NewBookingReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Models\IzipayOrderTransaction;
 use App\Models\Order;
+use App\Models\PlanRequest;
 use App\Models\ServiceBooking;
-use App\Models\ServiceSlotHold;
+use App\Models\ServiceHold;
 use App\Notifications\BookingCreatedNotification;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -19,18 +20,29 @@ use Illuminate\Support\Facades\Log;
 final class IzipayService
 {
     private const API_URL = 'https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment';
+
     private const MOCK_PREFIX = 'MOCK-';
 
     private readonly bool $mock;
+
     private readonly string $apiUrl;
+
     private readonly string $publicKey;
+
     private readonly string $privateKey;
+
     private readonly string $username;
+
     private readonly string $password;
+
     private readonly string $hmacKey;
+
     private readonly string $shopId;
+
     private readonly string $userId;
+
     private readonly string $mode;
+
     private readonly string $hashKey;
 
     public function __construct(
@@ -62,17 +74,17 @@ final class IzipayService
     public static function fromConfig(): self
     {
         return new self(
-            mock:       (bool) config('services.izipay.mock', true),
-            apiUrl:     (string) config('services.izipay.api_url', 'https://api.micuentaweb.pe/api-payment'),
-            publicKey:  (string) config('services.izipay.public_key', ''),
+            mock: (bool) config('services.izipay.mock', true),
+            apiUrl: (string) config('services.izipay.api_url', 'https://api.micuentaweb.pe/api-payment'),
+            publicKey: (string) config('services.izipay.public_key', ''),
             privateKey: (string) config('services.izipay.private_key', ''),
-            username:   (string) config('services.izipay.username', ''),
-            password:   (string) config('services.izipay.password', ''),
-            hmacKey:    (string) config('services.izipay.hmac_key', ''),
-            shopId:     (string) config('services.izipay.shop_id', ''),
-            userId:     (string) config('services.izipay.user_id', ''),
-            mode:       (string) config('services.izipay.mode', 'test'),
-            hashKey:    (string) config('services.izipay.hash_key', ''),
+            username: (string) config('services.izipay.username', ''),
+            password: (string) config('services.izipay.password', ''),
+            hmacKey: (string) config('services.izipay.hmac_key', ''),
+            shopId: (string) config('services.izipay.shop_id', ''),
+            userId: (string) config('services.izipay.user_id', ''),
+            mode: (string) config('services.izipay.mode', 'test'),
+            hashKey: (string) config('services.izipay.hash_key', ''),
         );
     }
 
@@ -106,33 +118,33 @@ final class IzipayService
     public function mockConfirmPayment(Order $order): array
     {
         Log::info('[IzipayService:MOCK] Confirmando pago simulado', [
-            'order_id'     => $order->id,
+            'order_id' => $order->id,
             'order_number' => $order->order_number,
         ]);
 
         return [
-            'success'          => true,
-            'order_id'         => (string) $order->id,
-            'transaction_id'   => self::MOCK_PREFIX . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
+            'success' => true,
+            'order_id' => (string) $order->id,
+            'transaction_id' => self::MOCK_PREFIX.str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
             'transaction_state' => 'PAID',
-            'mock'             => true,
+            'mock' => true,
         ];
     }
 
     private function mockInit(Order $order): array
     {
         Log::info('[IzipayService:MOCK] Inicializando pago simulado', [
-            'order_id'     => $order->id,
+            'order_id' => $order->id,
             'order_number' => $order->order_number,
-            'total'        => $order->total,
+            'total' => $order->total,
         ]);
 
         return [
-            'mode'       => 'mock',
-            'order_id'   => (string) $order->id,
+            'mode' => 'mock',
+            'order_id' => (string) $order->id,
             'public_key' => 'MOCK_PUBLIC_KEY',
-            'form_token' => self::MOCK_PREFIX . bin2hex(random_bytes(16)),
-            'amount'     => (float) $order->total,
+            'form_token' => self::MOCK_PREFIX.bin2hex(random_bytes(16)),
+            'amount' => (float) $order->total,
         ];
     }
 
@@ -140,15 +152,15 @@ final class IzipayService
 
     private function realInit(Order $order): array
     {
-        $url = rtrim($this->apiUrl, '/') . '/V4/Charge/CreatePayment';
+        $url = rtrim($this->apiUrl, '/').'/V4/Charge/CreatePayment';
 
         $amountCents = (int) round((float) $order->total * 100);
 
         $payload = [
-            'amount'             => $amountCents,
-            'currency'           => 'PEN',
-            'orderId'            => $order->order_number,
-            'customer'           => [
+            'amount' => $amountCents,
+            'currency' => 'PEN',
+            'orderId' => $order->order_number,
+            'customer' => [
                 'email' => $order->shipping_email ?? $order->user?->email ?? '',
             ],
             'transactionOptions' => [
@@ -160,7 +172,7 @@ final class IzipayService
         ];
 
         Log::info('[IzipayService] Inicializando pago real', [
-            'order_id'     => $order->id,
+            'order_id' => $order->id,
             'amount_cents' => $amountCents,
         ]);
 
@@ -173,11 +185,11 @@ final class IzipayService
             if ($response->failed()) {
                 Log::error('[IzipayService] Error al crear pago', [
                     'status' => $response->status(),
-                    'body'   => $response->body(),
+                    'body' => $response->body(),
                 ]);
 
                 throw new \RuntimeException(
-                    'Izipay respondió con HTTP ' . $response->status() . ': ' . $response->body()
+                    'Izipay respondió con HTTP '.$response->status().': '.$response->body()
                 );
             }
 
@@ -188,17 +200,91 @@ final class IzipayService
             ]);
 
             return [
-                'mode'       => 'izipay',
-                'order_id'   => (string) $order->id,
+                'mode' => 'izipay',
+                'order_id' => (string) $order->id,
                 'public_key' => $this->publicKey,
                 'form_token' => $data['answer']['formToken'] ?? '',
-                'amount'     => (float) $order->total,
+                'amount' => (float) $order->total,
             ];
         } catch (\Throwable $e) {
             Log::error('[IzipayService] Excepción al crear pago', [
                 'error' => $e->getMessage(),
             ]);
 
+            throw $e;
+        }
+    }
+
+    // ── Iniciar pago de plan (sin Order, solo monto + referencia) ────────
+
+    public function initPlanPayment(float $amountSoles, string $izipayOrderId, string $email): array
+    {
+        $amountCents = (int) round($amountSoles * 100);
+
+        if ($this->isMock()) {
+            Log::info('[IzipayService:MOCK] Iniciando pago de plan simulado', [
+                'izipay_order_id' => $izipayOrderId,
+                'amount_cents' => $amountCents,
+            ]);
+
+            return [
+                'mode' => 'mock',
+                'public_key' => 'MOCK_PUBLIC_KEY',
+                'form_token' => self::MOCK_PREFIX.bin2hex(random_bytes(16)),
+                'amount' => $amountSoles,
+            ];
+        }
+
+        $url = rtrim($this->apiUrl, '/').'/V4/Charge/CreatePayment';
+
+        $payload = [
+            'amount' => $amountCents,
+            'currency' => 'PEN',
+            'orderId' => $izipayOrderId,
+            'customer' => ['email' => $email],
+        ];
+
+        Log::info('[IzipayService] Iniciando pago de plan', [
+            'izipay_order_id' => $izipayOrderId,
+            'amount_cents' => $amountCents,
+        ]);
+
+        try {
+            $response = Http::withBasicAuth($this->username, $this->password)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->timeout(15)
+                ->post($url, $payload);
+
+            if ($response->failed()) {
+                throw new \RuntimeException(
+                    'Izipay respondió con HTTP '.$response->status().': '.$response->body()
+                );
+            }
+
+            $data = $response->json();
+
+            Log::info('[IzipayService] Respuesta plan payment', [
+                'status' => $data['status'] ?? null,
+                'errorCode' => $data['answer']['errorCode'] ?? null,
+                'errorMsg' => $data['answer']['errorMessage'] ?? null,
+                'hasToken' => isset($data['answer']['formToken']),
+            ]);
+
+            if (($data['status'] ?? '') !== 'SUCCESS' || ! isset($data['answer']['formToken'])) {
+                $errorMsg = $data['answer']['errorMessage']
+                    ?? $data['answer']['detailedErrorMessage']
+                    ?? 'Error al crear la sesión de pago con Izipay.';
+                throw new \RuntimeException($errorMsg);
+            }
+
+            return [
+                'mode' => 'izipay',
+                'public_key' => $this->publicKey,
+                'form_token' => $data['answer']['formToken'],
+                'amount' => $amountSoles,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[IzipayService] Error al iniciar pago de plan', ['error' => $e->getMessage()]);
             throw $e;
         }
     }
@@ -215,7 +301,7 @@ final class IzipayService
         $holdIds = [];
 
         if ($cartToken) {
-            $holds = ServiceSlotHold::active()->forCart($cartToken)->with('service')->get();
+            $holds = ServiceHold::active()->forCart($cartToken)->with('service')->get();
             $holdIds = $holds->pluck('id')->toArray();
         }
 
@@ -327,24 +413,24 @@ final class IzipayService
 
     private function mockCreatePaymentSession(Order $order): IzipayOrderTransaction
     {
-        $amountCents   = IzipayOrderTransaction::toCents((float) $order->total);
+        $amountCents = IzipayOrderTransaction::toCents((float) $order->total);
         $izipayOrderId = IzipayOrderTransaction::generateIzipayOrderId($order->id);
 
         Log::info('[IzipayService:MOCK] Sesión de pago simulada — confirmando inmediatamente', [
             'order_id' => $order->id,
-            'amount'   => $order->total,
+            'amount' => $order->total,
         ]);
 
         $transaction = IzipayOrderTransaction::create([
-            'order_id'           => $order->id,
-            'user_id'            => $order->user_id,
-            'izipay_order_id'    => $izipayOrderId,
-            'status'             => 'paid',
+            'order_id' => $order->id,
+            'user_id' => $order->user_id,
+            'izipay_order_id' => $izipayOrderId,
+            'status' => 'paid',
             'transaction_status' => 'PAID',
-            'amount_in_cents'    => $amountCents,
-            'currency'           => 'PEN',
-            'mode'               => $this->mode,
-            'form_token'         => self::MOCK_PREFIX . bin2hex(random_bytes(16)),
+            'amount_in_cents' => $amountCents,
+            'currency' => 'PEN',
+            'mode' => $this->mode,
+            'form_token' => self::MOCK_PREFIX.bin2hex(random_bytes(16)),
         ]);
 
         $order->update([
@@ -370,13 +456,13 @@ final class IzipayService
     {
         if ($this->isMock()) {
             return [
-                'mode'       => 'mock',
+                'mode' => 'mock',
                 'public_key' => 'MOCK_PUBLIC_KEY',
-                'form_token' => self::MOCK_PREFIX . 'TOKENIZE-' . bin2hex(random_bytes(16)),
+                'form_token' => self::MOCK_PREFIX.'TOKENIZE-'.bin2hex(random_bytes(16)),
             ];
         }
 
-        $url = rtrim($this->apiUrl, '/') . '/V4/Token/Create';
+        $url = rtrim($this->apiUrl, '/').'/V4/Token/Create';
         $credentials = base64_encode("{$this->userId}:{$this->password}");
 
         Log::info('IzipayService: creando sesión de tokenización');
@@ -384,7 +470,7 @@ final class IzipayService
         try {
             $response = Http::withHeaders([
                 'Authorization' => "Basic {$credentials}",
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])
                 ->timeout(30)
                 ->post($url);
@@ -393,8 +479,9 @@ final class IzipayService
 
             if (($data['status'] ?? '') === 'SUCCESS' && isset($data['answer']['formToken'])) {
                 Log::info('IzipayService: sesión de tokenización creada');
+
                 return [
-                    'mode'       => 'izipay',
+                    'mode' => 'izipay',
                     'public_key' => $this->publicKey,
                     'form_token' => $data['answer']['formToken'],
                 ];
@@ -425,50 +512,50 @@ final class IzipayService
     {
         if ($this->isMock()) {
             return [
-                'success'          => true,
-                'order_id'         => (string) $order->id,
-                'transaction_id'   => self::MOCK_PREFIX . 'TOKEN-' . str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
+                'success' => true,
+                'order_id' => (string) $order->id,
+                'transaction_id' => self::MOCK_PREFIX.'TOKEN-'.str_pad((string) random_int(0, 999999999), 9, '0', STR_PAD_LEFT),
                 'transaction_state' => 'PAID',
-                'mock'             => true,
+                'mock' => true,
             ];
         }
 
-        $amountCents   = IzipayOrderTransaction::toCents($order->total);
+        $amountCents = IzipayOrderTransaction::toCents($order->total);
         $izipayOrderId = IzipayOrderTransaction::generateIzipayOrderId($order->id);
-        $credentials   = base64_encode("{$this->userId}:{$this->password}");
+        $credentials = base64_encode("{$this->userId}:{$this->password}");
 
         $transaction = IzipayOrderTransaction::create([
-            'order_id'        => $order->id,
-            'user_id'         => $order->user_id,
+            'order_id' => $order->id,
+            'user_id' => $order->user_id,
             'izipay_order_id' => $izipayOrderId,
-            'status'          => 'pending',
+            'status' => 'pending',
             'amount_in_cents' => $amountCents,
-            'currency'        => 'PEN',
-            'mode'            => $this->mode,
+            'currency' => 'PEN',
+            'mode' => $this->mode,
         ]);
 
         $payload = [
-            'amount'   => $amountCents,
+            'amount' => $amountCents,
             'currency' => 'PEN',
-            'orderId'  => $izipayOrderId,
+            'orderId' => $izipayOrderId,
             'customer' => ['email' => $email],
             'cardToken' => $cardToken,
             'metadata' => [
-                'order_id'     => (string) $order->id,
+                'order_id' => (string) $order->id,
                 'order_number' => $order->order_number,
             ],
         ];
 
         Log::info('IzipayService: cobrando con token guardado', [
-            'order_id'        => $order->id,
+            'order_id' => $order->id,
             'izipay_order_id' => $izipayOrderId,
-            'amount_cents'    => $amountCents,
+            'amount_cents' => $amountCents,
         ]);
 
         try {
             $response = Http::withHeaders([
                 'Authorization' => "Basic {$credentials}",
-                'Content-Type'  => 'application/json',
+                'Content-Type' => 'application/json',
             ])
                 ->timeout(30)
                 ->post(self::API_URL, $payload);
@@ -477,14 +564,14 @@ final class IzipayService
 
             if (($data['status'] ?? '') === 'SUCCESS' && isset($data['answer']['formToken'])) {
                 $transaction->update([
-                    'form_token'      => $data['answer']['formToken'],
+                    'form_token' => $data['answer']['formToken'],
                     'izipay_response' => $data,
                 ]);
 
                 return [
-                    'success'    => true,
-                    'order_id'   => (string) $order->id,
-                    'transaction'=> $transaction,
+                    'success' => true,
+                    'order_id' => (string) $order->id,
+                    'transaction' => $transaction,
                     'form_token' => $data['answer']['formToken'],
                 ];
             }
@@ -494,20 +581,115 @@ final class IzipayService
                 ?? 'Error al procesar pago con token.';
 
             $transaction->update([
-                'status'          => 'failed',
-                'error_code'      => (string) ($data['answer']['errorCode'] ?? 'TOKEN_ERROR'),
-                'error_message'   => $errorMsg,
+                'status' => 'failed',
+                'error_code' => (string) ($data['answer']['errorCode'] ?? 'TOKEN_ERROR'),
+                'error_message' => $errorMsg,
                 'izipay_response' => $data,
             ]);
 
             throw new \RuntimeException($errorMsg);
         } catch (ConnectionException $e) {
             $transaction->update([
-                'status'        => 'failed',
-                'error_code'    => 'CONNECTION_ERROR',
+                'status' => 'failed',
+                'error_code' => 'CONNECTION_ERROR',
                 'error_message' => 'No se pudo conectar con Izipay.',
             ]);
             throw new \RuntimeException('No se pudo conectar con el servidor de pagos.');
+        }
+    }
+
+    /**
+     * Cobra la renovación automática de un plan usando una tarjeta guardada.
+     * A diferencia de chargeWithToken(), trabaja sobre PlanRequest (no Order)
+     * y no crea IzipayOrderTransaction (ese modelo es específico de pedidos).
+     * Devuelve requires_3ds=true cuando Izipay exige un reto que no se puede
+     * resolver sin el navegador del vendedor presente — en ese caso el cobro
+     * automático se considera fallido y no se reintenta desde aquí.
+     */
+    public function chargeSubscriptionRenewal(PlanRequest $planRequest, string $cardToken, string $email): array
+    {
+        if ($this->isMock()) {
+            return [
+                'success' => true,
+                'requires_3ds' => false,
+                'izipay_order_id' => self::MOCK_PREFIX.'RENEWAL-'.$planRequest->id,
+            ];
+        }
+
+        $amountCents = IzipayOrderTransaction::toCents((float) $planRequest->total_amount);
+        $izipayOrderId = 'RENEWAL-'.$planRequest->id.'-'.now()->timestamp;
+        $credentials = base64_encode("{$this->userId}:{$this->password}");
+
+        $payload = [
+            'amount' => $amountCents,
+            'currency' => 'PEN',
+            'orderId' => $izipayOrderId,
+            'customer' => ['email' => $email],
+            'cardToken' => $cardToken,
+            'metadata' => [
+                'plan_request_id' => (string) $planRequest->id,
+                'type' => 'plan_auto_renewal',
+            ],
+        ];
+
+        Log::info('IzipayService: cobrando renovación automática de plan', [
+            'plan_request_id' => $planRequest->id,
+            'izipay_order_id' => $izipayOrderId,
+            'amount_cents' => $amountCents,
+        ]);
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$credentials}",
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout(30)
+                ->post(self::API_URL, $payload);
+
+            $data = $response->json();
+
+            if (($data['status'] ?? '') === 'SUCCESS' && isset($data['answer']['formToken'])) {
+                // Izipay devolvió un formToken en vez de confirmar el pago:
+                // el banco emisor exige un reto (3DS) que no se puede resolver
+                // sin el navegador del vendedor. No se puede cobrar en silencio.
+                Log::warning('IzipayService: renovación requiere 3DS, no se puede completar en silencio', [
+                    'plan_request_id' => $planRequest->id,
+                ]);
+
+                return [
+                    'success' => false,
+                    'requires_3ds' => true,
+                    'izipay_order_id' => $izipayOrderId,
+                ];
+            }
+
+            $errorMsg = $data['answer']['errorMessage']
+                ?? $data['answer']['detailedErrorMessage']
+                ?? 'Error al procesar la renovación automática.';
+
+            Log::error('IzipayService: error cobrando renovación automática', [
+                'plan_request_id' => $planRequest->id,
+                'error' => $errorMsg,
+            ]);
+
+            return [
+                'success' => false,
+                'requires_3ds' => false,
+                'izipay_order_id' => $izipayOrderId,
+                'error' => $errorMsg,
+            ];
+        } catch (ConnectionException $e) {
+            Log::error('IzipayService: error de conexión cobrando renovación automática', [
+                'plan_request_id' => $planRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'requires_3ds' => false,
+                'izipay_order_id' => $izipayOrderId,
+                'error' => 'No se pudo conectar con el servidor de pagos.',
+            ];
         }
     }
 
@@ -519,8 +701,8 @@ final class IzipayService
      * IMPORTANTE: $rawKrAnswer debe ser el string CRUDO de kr-answer,
      * tal como llegó en el body — sin pasar por json_decode/json_encode.
      *
-     * @param  array   $payload       Datos POST parseados ($request->all())
-     * @param  string  $rawKrAnswer   String crudo de kr-answer
+     * @param  array  $payload  Datos POST parseados ($request->all())
+     * @param  string  $rawKrAnswer  String crudo de kr-answer
      */
     public function processWebhook(array $payload, string $rawKrAnswer = ''): array
     {
@@ -630,21 +812,6 @@ final class IzipayService
                 'tx_status' => $transactionStatus,
                 'amount' => $txData['amount'] ?? null,
             ]);
-
-            // ── Accrue Lirios points ──────────────────────────────────────────
-            try {
-                $liriosService = app(\App\Services\LiriosService::class);
-                $liriosService->accrue($order->user_id, (float) $order->total, $order);
-                Log::info('IzipayService: Lirios acumulados', [
-                    'order_id' => $order->id,
-                    'total' => $order->total,
-                ]);
-            } catch (\Throwable $liriosEx) {
-                Log::error('IzipayService: error acumulando Lirios', [
-                    'order_id' => $order->id,
-                    'error' => $liriosEx->getMessage(),
-                ]);
-            }
 
             // ── Create ServiceBookings from holds ──────────────────────────
             $holdIds = $this->extractHoldIdsFromMetadata($answer);
@@ -828,7 +995,7 @@ final class IzipayService
      */
     private function createBookingsFromHolds(array $holdIds, array $holdAddresses, Order $order): void
     {
-        $holds = ServiceSlotHold::whereIn('id', $holdIds)
+        $holds = ServiceHold::whereIn('id', $holdIds)
             ->active()
             ->where('cart_token', 'LIKE', '%') // any cart_token
             ->get();
@@ -900,7 +1067,13 @@ final class IzipayService
             // Database notification to store owner
             $storeUser = $booking->service?->store?->owner;
             if ($storeUser) {
-                $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                try {
+                    $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+                } catch (\Throwable $e) {
+                    Log::error('[Izipay] Error notificando BookingCreated', [
+                        'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 

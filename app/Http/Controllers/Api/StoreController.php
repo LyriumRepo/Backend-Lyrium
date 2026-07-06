@@ -19,6 +19,7 @@ use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class StoreController extends Controller
@@ -98,6 +99,8 @@ final class StoreController extends Controller
             $plan = $store->subscription->plan?->name === 'Premium' ? 'premium' : 'basico';
         }
 
+        $storeReviewStats = \App\Models\StoreReview::getStoreStats($store->id);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -114,7 +117,7 @@ final class StoreController extends Controller
                 'email' => $store->corporate_email,
                 'category' => $store->category?->name,
                 'category_id' => $store->category_id,
-                'rating' => (float) $store->rating,
+                'rating' => (float) $storeReviewStats['average'],
                 'layout' => $store->layout ?? '1',
                 'plan' => $plan,
                 'open' => true,
@@ -140,8 +143,8 @@ final class StoreController extends Controller
                 ]),
                 'stats' => [
                     'products' => $store->products()->where('status', 'approved')->count(),
-                    'rating' => (float) $store->rating,
-                    'reviews' => 0,
+                    'rating' => (float) $storeReviewStats['average'],
+                    'reviews' => $storeReviewStats['count'],
                 ],
             ],
         ]);
@@ -325,13 +328,25 @@ final class StoreController extends Controller
         }
 
         // Enviar notificación al propietario de la tienda
-        $store->owner->notify(new StoreStatusNotification(
-            $store,
-            $data['status'],
-            $data['reason'] ?? null,
-        ));
+        if ($store->owner) {
+            try {
+                $store->owner->notify(new StoreStatusNotification(
+                    $store,
+                    $data['status'],
+                    $data['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[Store] Error notificando StoreStatus al dueño', [
+                    'store_id' => $store->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
-        broadcast(new StoreStatusChanged($store->fresh()));
+        try {
+            broadcast(new StoreStatusChanged($store->fresh()));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         $event = match ($data['status']) {
             'approved' => 'stores.approved',
@@ -785,7 +800,13 @@ final class StoreController extends Controller
 
         $admins = User::role('administrator')->get();
         foreach ($admins as $admin) {
-            $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+            try {
+                $admin->notify(new StoreProfileUpdatedNotification($store, $changeType));
+            } catch (\Throwable $e) {
+                Log::error('[Store] Error notificando StoreProfileUpdated al admin', [
+                    'store_id' => $store->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

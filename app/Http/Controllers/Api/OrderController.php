@@ -8,9 +8,15 @@ use App\Events\NewConversationMessage;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Models\User;
+use App\Notifications\InvoiceRequestedNotification;
+use App\Notifications\NewOrderAdminNotification;
+use App\Notifications\OrderCancelledCustomerNotification;
+use App\Notifications\OrderCancelledSellerNotification;
 use App\Notifications\OrderCreatedNotification;
 use App\Notifications\NewOrderSellerNotification;
 use App\Notifications\OrderDeliveredSellerNotification;
+use Illuminate\Support\Facades\Notification;
 use App\Models\Store;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\CreateOrderRequest;
@@ -27,7 +33,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
-use App\Models\ServiceSlotHold;
+use App\Models\ServiceHold;
 use App\Services\AuditService;
 use App\Services\CommissionService;
 use App\Services\LiriosService;
@@ -143,9 +149,9 @@ final class OrderController extends Controller
         $cartToken = $request->header('X-Session-ID');
         $serviceHolds = collect();
         if ($cartToken) {
-            $serviceHolds = ServiceSlotHold::where('cart_token', $cartToken)
+            $serviceHolds = ServiceHold::where('cart_token', $cartToken)
                 ->active()
-                ->with('service')
+                ->with(['service.store', 'specialist'])
                 ->get();
         }
 
@@ -190,9 +196,18 @@ final class OrderController extends Controller
                 }
             }
 
+            $serviceOrderItems = [];
             if ($hasServices) {
                 foreach ($serviceHolds as $hold) {
-                    $subtotal += (float) ($hold->service?->price ?? 0);
+                    $service = $hold->service;
+                    $servicePrice = (float) ($service?->price ?? 0);
+                    $subtotal += $servicePrice;
+
+                    $serviceOrderItems[] = [
+                        'hold'         => $hold,
+                        'service'      => $service,
+                        'servicePrice' => $servicePrice,
+                    ];
                 }
             }
 
@@ -265,6 +280,7 @@ final class OrderController extends Controller
                 'shipping_notes' => $data['shipping_notes'] ?? null,
                 'shipping_type' => $data['shipping_type'] ?? null,
                 'carrier' => $data['carrier'] ?? null,
+                'store_shipping' => $data['store_shipping'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'tax_amount' => $taxAmount,
@@ -280,6 +296,46 @@ final class OrderController extends Controller
 
             foreach ($orderItems as $item) {
                 $order->items()->create($item);
+            }
+
+            foreach ($serviceOrderItems as $entry) {
+                $hold    = $entry['hold'];
+                $service = $entry['service'];
+                $price   = $entry['servicePrice'];
+
+                $booking = ServiceBooking::create([
+                    'service_id'      => $hold->service_id,
+                    'user_id'         => $user->id,
+                    'schedule_id'     => $hold->schedule_id,
+                    'appointment_date'=> $hold->appointment_date,
+                    'status'          => ServiceBooking::STATUS_CONFIRMED,
+                    'total_price'     => $price,
+                    'payment_method'  => $data['payment_method'] ?? null,
+                    'payment_status'  => 'pending',
+                    'customer_notes'  => $hold->customer_notes,
+                    'service_address' => $hold->service_address,
+                    'specialist_id'   => $hold->specialist_id,
+                ]);
+
+                $order->serviceItems()->create([
+                    'service_id'                => $hold->service_id,
+                    'store_id'                  => $service?->store_id,
+                    'service_booking_id'        => $booking->id,
+                    'specialist_id'             => $hold->specialist_id,
+                    'appointment_date'          => $hold->appointment_date,
+                    'service_name'              => $service?->name ?? 'Servicio',
+                    'quantity'                  => 1,
+                    'unit_price'                => $price,
+                    'line_total'                => $price,
+                    'status'                    => 'pending',
+                    'modality'                  => $service?->is_home_service ? 'home' : 'in_person',
+                    'duration_minutes'          => $service?->duration_minutes,
+                    'service_snapshot'          => $service ? $service->only(['id', 'name', 'price', 'description']) : null,
+                    'store_name_snapshot'       => $service?->store?->name,
+                    'specialist_name_snapshot'  => $hold->specialist?->name,
+                ]);
+
+                $hold->delete();
             }
 
             $order->load('items');
@@ -323,6 +379,12 @@ final class OrderController extends Controller
 
         $order->load(self::WITH_RELATIONS);
 
+        try {
+            $user->notify(new OrderCreatedNotification($order));
+        } catch (\Throwable) {
+            // Notification failure must never block order creation
+        }
+
         $this->auditService->record(
             event: 'orders.created',
             module: 'orders',
@@ -334,17 +396,33 @@ final class OrderController extends Controller
             metadata: ['item_count' => $order->items->count() + $order->serviceItems->count()],
         );
 
-        $user->notify(new OrderCreatedNotification($order));
+        try {
+            Notification::send(User::role('administrator')->get(), new NewOrderAdminNotification($order));
+        } catch (\Throwable $e) {
+            Log::error('[Order] Error notificando NewOrderAdmin', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+        }
 
-        // Notificar a cada tienda involucrada en la orden
-        $order->items->pluck('store_id')->unique()->each(function ($storeId) use ($order) {
-            broadcast(new NewOrderReceived($order, $storeId));
-
-            $store = Store::with('owner')->find($storeId);
-            if ($store && $store->owner) {
-                $store->owner->notify(new NewOrderSellerNotification($order, $store));
+        // Notificar a cada tienda involucrada (el listener SendNewOrderToSellerListener
+        // se encarga de enviar NewOrderSellerNotification al vendedor)
+        $productStoreIds = $order->items->pluck('store_id')->unique();
+        $productStoreIds->each(function ($storeId) use ($order) {
+            try {
+                broadcast(new NewOrderReceived($order, $storeId));
+            } catch (\Throwable) {
+                // Real-time broadcast unavailable; data was saved successfully
             }
         });
+
+        // También notificar a tiendas de servicios que no estén ya cubiertas por productos
+        $order->serviceItems->pluck('store_id')->unique()
+            ->diff($productStoreIds)
+            ->each(function ($storeId) use ($order) {
+                try {
+                    broadcast(new NewOrderReceived($order, $storeId));
+                } catch (\Throwable) {
+                    // Real-time broadcast unavailable; data was saved successfully
+                }
+            });
 
         event(new OrderStatusChanged($order));
 
@@ -473,6 +551,7 @@ final class OrderController extends Controller
             $sellerAllowedStatuses = [
                 Order::STATUS_PROCESSING,
                 Order::STATUS_SHIPPED,
+                Order::STATUS_ON_THE_WAY,
                 Order::STATUS_DELIVERED,
                 Order::STATUS_CANCELLED,
             ];
@@ -517,9 +596,10 @@ final class OrderController extends Controller
                 }
             } else {
                 $currentItemStatus = match ($newStatus) {
-                    Order::STATUS_PROCESSING => OrderItem::STATUS_CONFIRMED,
-                    Order::STATUS_SHIPPED => OrderItem::STATUS_PROCESSING,
-                    Order::STATUS_DELIVERED => OrderItem::STATUS_SHIPPED,
+                    Order::STATUS_PROCESSING  => OrderItem::STATUS_CONFIRMED,
+                    Order::STATUS_SHIPPED     => OrderItem::STATUS_PROCESSING,
+                    Order::STATUS_ON_THE_WAY  => OrderItem::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED   => OrderItem::STATUS_SHIPPED,
                     default => null,
                 };
 
@@ -528,9 +608,10 @@ final class OrderController extends Controller
                         ->whereIn('store_id', $storeIds)
                         ->where('status', $currentItemStatus)
                         ->update(['status' => match ($newStatus) {
-                            Order::STATUS_PROCESSING => OrderItem::STATUS_PROCESSING,
-                            Order::STATUS_SHIPPED => OrderItem::STATUS_SHIPPED,
-                            Order::STATUS_DELIVERED => OrderItem::STATUS_DELIVERED,
+                            Order::STATUS_PROCESSING  => OrderItem::STATUS_PROCESSING,
+                            Order::STATUS_SHIPPED     => OrderItem::STATUS_SHIPPED,
+                            Order::STATUS_ON_THE_WAY  => OrderItem::STATUS_SHIPPED,
+                            Order::STATUS_DELIVERED   => OrderItem::STATUS_DELIVERED,
                             default => $newStatus,
                         }]);
                 }
@@ -604,9 +685,16 @@ final class OrderController extends Controller
                     ->each(function ($storeId) use ($order) {
                         $store = Store::with('owner')->find($storeId);
                         if ($store?->owner) {
-                            $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                            try {
+                                $store->owner->notify(new OrderDeliveredSellerNotification($order, $store));
+                            } catch (\Throwable $e) {
+                                Log::error('[Order] Error notificando OrderDelivered al vendedor', [
+                                    'order_id' => $order->id, 'store_id' => $storeId, 'error' => $e->getMessage(),
+                                ]);
+                            }
                         }
                     });
+
             } elseif ($newStatus === Order::STATUS_CANCELLED) {
                 $itemsToCancel = $order->items()
                     ->where('status', OrderItem::STATUS_PENDING_SELLER)
@@ -626,6 +714,33 @@ final class OrderController extends Controller
                 $order->refreshGlobalStatus();
             } else {
                 return $this->forbidden('No tienes permiso para cambiar a este estado.');
+            }
+        }
+
+        // Notificar a vendedor(es) y cliente cuando la orden es cancelada
+        if ($newStatus === Order::STATUS_CANCELLED) {
+            $order->load(['items', 'user']);
+            $order->items->pluck('store_id')->unique()
+                ->each(function ($storeId) use ($order) {
+                    $store = Store::with('owner')->find($storeId);
+                    if ($store?->owner) {
+                        try {
+                            $store->owner->notify(new OrderCancelledSellerNotification($order, $store));
+                        } catch (\Throwable $e) {
+                            Log::error('[Order] Error notificando OrderCancelled al vendedor', [
+                                'order_id' => $order->id, 'store_id' => $storeId, 'error' => $e->getMessage(),
+                            ]);
+                        }
+                    }
+                });
+            if ($order->user) {
+                try {
+                    $order->user->notify(new OrderCancelledCustomerNotification($order));
+                } catch (\Throwable $e) {
+                    Log::error('[Order] Error notificando OrderCancelled al cliente', [
+                        'order_id' => $order->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -753,49 +868,68 @@ final class OrderController extends Controller
             return $this->forbidden('Esta orden no te pertenece.');
         }
 
-        $firstItem = $order->items->first();
+        // Agrupar ítems por tienda para cubrir pedidos multi-tienda
+        $itemsByStore = $order->items
+            ->filter(fn ($item) => $item->store !== null)
+            ->groupBy('store_id');
 
-        if (! $firstItem || ! $firstItem->store) {
+        if ($itemsByStore->isEmpty()) {
             return $this->error('No se encontró una tienda asociada a esta orden.', 404);
         }
 
-        $storeId = $firstItem->store_id;
         $orderNumber = $order->order_number;
+        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
+        $firstConversation = null;
 
-        // Buscar conversación existente de facturación con esta tienda
-        $conversation = Conversation::where('customer_user_id', $user->id)
-            ->where('store_id', $storeId)
-            ->where('category', 'facturacion')
-            ->where('status', 'active')
-            ->first();
+        foreach ($itemsByStore as $storeId => $storeItems) {
+            $store = $storeItems->first()->store;
 
-        if (! $conversation) {
-            $conversation = Conversation::create([
-                'customer_user_id' => $user->id,
-                'store_id' => $storeId,
-                'category' => 'facturacion',
-                'subject' => "Solicitud de comprobante - Pedido {$orderNumber}",
-                'last_message_at' => now(),
+            // Conversación de facturación existente o nueva para esta tienda
+            $conversation = Conversation::where('customer_user_id', $user->id)
+                ->where('store_id', $storeId)
+                ->where('category', 'facturacion')
+                ->where('status', 'active')
+                ->first();
+
+            if (! $conversation) {
+                $conversation = Conversation::create([
+                    'customer_user_id' => $user->id,
+                    'store_id'         => $storeId,
+                    'category'         => 'facturacion',
+                    'subject'          => "Solicitud de comprobante - Pedido {$orderNumber}",
+                    'last_message_at'  => now(),
+                ]);
+            }
+
+            $message = ConversationMessage::create([
+                'conversation_id' => $conversation->id,
+                'sender_id'       => $user->id,
+                'content'         => $messageContent,
             ]);
+
+            $conversation->update(['last_message_at' => now()]);
+
+            try {
+                broadcast(new NewConversationMessage(
+                    message: $message->loadMissing(['sender', 'conversation']),
+                    customerUserId: $user->id,
+                    storeId: (int) $storeId,
+                ));
+            } catch (\Throwable) {
+                // Real-time broadcast unavailable; data was saved successfully
+            }
+
+            // Campanita al dueño de esta tienda
+            if ($store->owner) {
+                $store->owner->notify(
+                    new InvoiceRequestedNotification($order, $store, $storeItems->values())
+                );
+            }
+
+            $firstConversation ??= $conversation;
         }
 
-        $messageContent = "Hola, quisiera solicitar el comprobante de mi pedido {$orderNumber}.";
-
-        $message = ConversationMessage::create([
-            'conversation_id' => $conversation->id,
-            'sender_id' => $user->id,
-            'content' => $messageContent,
-        ]);
-
-        $conversation->update(['last_message_at' => now()]);
-
-        broadcast(new NewConversationMessage(
-            message: $message->loadMissing(['sender', 'conversation']),
-            customerUserId: $user->id,
-            storeId: (int) $storeId,
-        ));
-
-        $conversation->load(['store.owner', 'latestMessage']);
+        $firstConversation->load(['store.owner', 'latestMessage']);
 
         $this->auditService->record(
             event: 'orders.receipt.requested',
@@ -809,7 +943,7 @@ final class OrderController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => new ConversationResource($conversation),
+            'data'    => new ConversationResource($firstConversation),
             'message' => 'Solicitud enviada al vendedor correctamente.',
         ]);
     }
@@ -980,7 +1114,14 @@ final class OrderController extends Controller
             return $this->forbidden('No tienes una tienda asociada.');
         }
 
-        $user->notify(new NewOrderSellerNotification($order, $store));
+        try {
+            $user->notify(new NewOrderSellerNotification($order, $store));
+        } catch (\Throwable $e) {
+            Log::error('[Order] Error reenviando NewOrderSellerNotification', [
+                'order_id' => $order->id, 'user_id' => $user->id, 'error' => $e->getMessage(),
+            ]);
+            return $this->error('No se pudo reenviar la notificación.', 500);
+        }
 
         return $this->success(['message' => 'Notificación reenviada a tu correo.']);
     }

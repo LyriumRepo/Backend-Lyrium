@@ -56,6 +56,8 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
+    'internal_rpa_secret' => env('INTERNAL_RPA_SECRET', 'CAMBIAR_EN_ENV'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -8,6 +8,7 @@ use App\Channels\PushChannel;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 final class OrderCreatedNotification extends Notification implements ShouldQueue
@@ -23,11 +24,26 @@ final class OrderCreatedNotification extends Notification implements ShouldQueue
         $channels = ['database'];
 
         $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsEmailOrder() ?? true) {
+            $channels[] = 'mail';
+        }
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
         }
 
         return $channels;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('¡Tu pedido #' . $this->order->order_number . ' fue registrado! - Lyrium')
+            ->greeting('¡Hola, ' . $notifiable->name . '!')
+            ->line('Hemos recibido tu pedido correctamente.')
+            ->line('**Pedido:** #' . $this->order->order_number)
+            ->line('**Total:** S/ ' . number_format((float) $this->order->total, 2))
+            ->action('Ver mis pedidos', config('app.frontend_url') . '/customer/orders')
+            ->line('Te notificaremos cuando el vendedor confirme tu pedido.');
     }
 
     public function toPush(object $notifiable): array

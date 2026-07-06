@@ -113,6 +113,43 @@
     .words-text { font-size: 10px; font-weight: bold; color: #14532D; }
     .words-num  { font-size: 7px; color: #9CA3AF; margin-top: 3px; }
 
+    /* ── QR SUNAT SECTION ───────────────────── */
+    .qr-section { width: 100%; border-collapse: collapse; margin-bottom: 18px; page-break-inside: avoid; }
+    .qr-section td { vertical-align: middle; padding: 0; }
+    .qr-card {
+      border: 1.5px solid #15803D;
+      background: #F0FDF4;
+      padding: 14px 20px;
+      display: table;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .qr-card-inner { display: table; width: 100%; border-collapse: collapse; }
+    .qr-left  { display: table-cell; vertical-align: middle; width: 110px; padding-right: 16px; }
+    .qr-right { display: table-cell; vertical-align: middle; }
+    .qr-img-wrap {
+      background: #ffffff;
+      padding: 6px;
+      border: 1px solid #BBF7D0;
+      display: inline-block;
+    }
+    .qr-img-wrap img { display: block; width: 90px; height: 90px; }
+    .qr-badge {
+      display: inline-block;
+      background: #15803D;
+      color: #ffffff;
+      font-size: 5px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      padding: 3px 7px;
+      margin-bottom: 7px;
+    }
+    .qr-title  { font-size: 9px; font-weight: bold; color: #14532D; margin-bottom: 4px; }
+    .qr-desc   { font-size: 6.5px; color: #374151; line-height: 1.8; }
+    .qr-desc b { color: #14532D; }
+    .qr-url    { font-size: 6px; color: #15803D; margin-top: 5px; font-weight: bold; }
+
     /* ── FOOTER ─────────────────────────────── */
     .footer-wrap { width: 100%; border-collapse: collapse; margin-top: 4px; }
     .footer-wrap td { vertical-align: top; padding: 0; }
@@ -157,8 +194,14 @@
   $bolitaPath   = public_path('images/iconologo.png');
   $bolitaBase64 = file_exists($bolitaPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($bolitaPath)) : '';
 
-  // Base = valor de productos con IGV incluido (excluye envío, que no genera comisión)
-  $baseConIgv = (float) $order->subtotal + (float) $order->tax_amount;
+  // Base = subtotal de los ítems de ESTA tienda (invoice->store_id).
+  // Si no hay store_id (legacy/manual), usa el subtotal total del pedido como fallback.
+  if ($invoice && $invoice->store_id) {
+      $order->loadMissing('items');
+      $baseConIgv = (float) $order->items->where('store_id', $invoice->store_id)->sum('line_total');
+  } else {
+      $baseConIgv = (float) $order->subtotal;
+  }
 
   $commissionCalc   = app(\App\Services\CommissionCalculatorService::class)->calculate($baseConIgv);
   $comisionSinIgv   = round($commissionCalc['comision_base'], 2);
@@ -170,8 +213,12 @@
 
   $qrBase64 = '';
   if (!empty($qrData)) {
-      try { $qrBase64 = (new \chillerlan\QRCode\QRCode)->render($qrData); }
-      catch (\Throwable $e) { $qrBase64 = ''; }
+      try {
+          $qrOpts = new \chillerlan\QRCode\QROptions;
+          $qrOpts->outputInterface = \chillerlan\QRCode\Output\QRGdImagePNG::class;
+          $qrOpts->outputBase64 = true;
+          $qrBase64 = (new \chillerlan\QRCode\QRCode($qrOpts))->render($qrData);
+      } catch (\Throwable $e) { $qrBase64 = ''; }
   }
 @endphp
 
@@ -344,26 +391,46 @@
 </div>
 
 {{-- ═══════════════════════════════════════════════
-     7. PIE DE PÁGINA
+     7. QR SUNAT
+     ═══════════════════════════════════════════════ --}}
+@if($qrBase64)
+<div class="qr-card" style="margin-bottom: 18px;">
+  <table class="qr-card-inner">
+    <tr>
+      <td class="qr-left">
+        <div class="qr-img-wrap">
+          <img src="{{ $qrBase64 }}" alt="QR SUNAT">
+        </div>
+      </td>
+      <td class="qr-right">
+        <div class="qr-badge">Verificación SUNAT</div>
+        <div class="qr-title">Código QR de Autenticidad</div>
+        <div class="qr-desc">
+          Escanea este código para verificar la validez de este comprobante electrónico ante SUNAT.<br>
+          Comprobante: <b>{{ $docSeries }}</b> &nbsp;·&nbsp; RUC Emisor: <b>{{ $issuerRuc }}</b><br>
+          Autorización: <b>{{ $authCode }}</b>
+        </div>
+        <div class="qr-url">e-consulta.sunat.gob.pe</div>
+      </td>
+    </tr>
+  </table>
+</div>
+@endif
+
+{{-- ═══════════════════════════════════════════════
+     8. PIE DE PÁGINA
      ═══════════════════════════════════════════════ --}}
 <hr class="line-light">
 
 <table class="footer-wrap">
   <tr>
-    <td style="width:75%;">
+    <td style="width:100%;">
       <div class="footer-txt">
-        Código de Autorización: <b>{{ $authCode }}</b><br>
         Resolución Nro. 0340050010017 / SUNAT<br>
         Representación impresa de la {{ $docType === 'FACTURA' ? 'Factura' : 'Boleta' }} Electrónica. Consulte su validez en: <b>e-consulta.sunat.gob.pe</b><br>
         Generado el {{ now()->format('d/m/Y H:i') }}
       </div>
     </td>
-    @if($qrBase64)
-    <td class="footer-qr">
-      <img src="{{ $qrBase64 }}" alt="QR SUNAT">
-      <div class="footer-qr-lbl">Código QR</div>
-    </td>
-    @endif
   </tr>
 </table>
 

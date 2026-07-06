@@ -29,6 +29,14 @@ final class TransactionResource extends JsonResource
             ];
         })->values();
 
+        $hasProduct = $items->contains(fn ($i) => in_array($i->product?->type, ['physical', 'digital'], true));
+        $hasService = $items->contains(fn ($i) => $i->product?->type === 'service');
+        $tipo = $hasProduct && $hasService ? 'ambos' : ($hasService ? 'servicio' : 'producto');
+
+        $commissionBase = $items->sum('commission_amount');
+        $commissionIgv = round($commissionBase * 0.18, 2);
+        $commissionTotal = round($commissionBase + $commissionIgv, 2);
+
         return [
             'id' => (string) $this->id,
             'orderNumber' => $this->order_number,
@@ -45,6 +53,10 @@ final class TransactionResource extends JsonResource
             'shippingCost' => (float) $this->shipping_cost,
             'discountAmount' => (float) $this->discount_amount,
             'total' => (float) $this->total,
+            'tipo' => $tipo,
+            'commissionAmount' => $commissionBase,
+            'commissionIgv' => $commissionIgv,
+            'commissionTotal' => $commissionTotal,
             'paymentMethod' => $izipayTxn?->payment_method_type ?? $this->payment_method,
             'paymentStatus' => $this->payment_status,
             'cardBrand' => $izipayTxn?->card_brand,

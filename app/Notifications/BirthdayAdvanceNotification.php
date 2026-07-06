@@ -17,12 +17,16 @@ final class BirthdayAdvanceNotification extends Notification implements ShouldQu
     public function via(object $notifiable): array
     {
         $settings = $notifiable->notificationSetting;
+        $channels = ['database'];
 
-        if (!($settings?->wantsEmailPromotions() ?? true)) {
-            return [];
+        if ($settings?->wantsPush() ?? true) {
+            $channels[] = PushChannel::class;
+        }
+        if ($settings?->wantsEmailPromotions() ?? true) {
+            $channels[] = 'mail';
         }
 
-        return ['mail'];
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -31,16 +35,26 @@ final class BirthdayAdvanceNotification extends Notification implements ShouldQu
             ->subject('¡Tu cumpleaños se acerca! Un regalo de Lyrium te espera 🌿🎁')
             ->view('emails.notifications.birthday-advance', [
                 'name' => $notifiable->name,
-            ])
-            ->withSymfonyMessage(function ($message): void {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
+    }
+
+    public function toPush(object $notifiable): array
+    {
+        return [
+            'title' => '🎁 ¡Tu cumpleaños se acerca!',
+            'body'  => "Hola {$notifiable->name}, en Lyrium estamos preparando algo especial para ti. ¡Faltan solo 14 días! 🌿",
+            'data'  => [
+                'type' => 'birthday_advance',
+                'url'  => '/customer/profile',
+            ],
+        ];
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'type'    => 'birthday_advance',
+            'subject' => '¡Tu cumpleaños se acerca! Un regalo de Lyrium te espera 🌿🎁',
+        ];
     }
 }

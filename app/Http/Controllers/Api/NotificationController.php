@@ -80,4 +80,20 @@ final class NotificationController extends Controller
             'message' => 'Notificación eliminada.',
         ]);
     }
+
+    public function deleteAll(Request $request): JsonResponse
+    {
+        $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['required', 'string'],
+        ]);
+
+        $user = $request->user();
+        $user->notifications()->whereIn('id', $request->ids)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notificaciones eliminadas.',
+        ]);
+    }
 }

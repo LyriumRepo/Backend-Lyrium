@@ -49,7 +49,7 @@
 
                     {{-- Encabezados de columnas --}}
                     <tr style="background-color: #00BFC1;">
-                        <th style="padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">Producto</th>
+                        <th style="padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">Producto / Servicio</th>
                         <th width="50" style="padding: 10px 8px; text-align: center; font-size: 10px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">Cant.</th>
                         <th width="130" style="padding: 10px 16px; text-align: right; font-size: 10px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">Total</th>
                     </tr>

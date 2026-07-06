@@ -4,13 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
+use App\Jobs\GeneratePlanInvoiceJob;
+use App\Models\IzipayPlanTransaction;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Notifications\PlanActivatedNotification;
+use App\Notifications\PlanRejectedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 final class PlanRequestController extends Controller
 {
@@ -90,6 +97,169 @@ final class PlanRequestController extends Controller
         ], $planRequest->isApproved() ? 200 : 201);
     }
 
+    public function createIzipaySession(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $store = Store::where('owner_id', $user->id)->first();
+
+        if (! $store) {
+            return response()->json(['message' => 'No tienes una tienda registrada'], 404);
+        }
+
+        $data = $request->validate([
+            'plan_id' => ['required', 'integer', 'exists:plans,id'],
+            'months' => ['required', 'integer', 'min:1', 'max:48'],
+        ]);
+
+        $plan = Plan::findOrFail($data['plan_id']);
+
+        $currentSubscription = Subscription::query()
+            ->where('store_id', $store->id)
+            ->where('status', 'active')
+            ->where('ends_at', '>=', now())
+            ->first();
+
+        $currentPlanId = $currentSubscription?->plan_id;
+
+        $pendingRequest = PlanRequest::where('store_id', $store->id)
+            ->where('status', PlanRequest::STATUS_PENDING)
+            ->first();
+
+        if ($pendingRequest) {
+            return response()->json([
+                'message' => 'Ya tienes una solicitud de plan pendiente',
+                'request' => [
+                    'id' => $pendingRequest->id,
+                    'status' => $pendingRequest->status,
+                    'plan_name' => $pendingRequest->plan->name,
+                ],
+            ], 422);
+        }
+
+        $months = $data['months'];
+        $monthlyFee = (float) $plan->monthly_fee;
+        $totalAmount = $monthlyFee * $months;
+        $amountCents = (int) round($totalAmount * 100);
+
+        $planRequest = PlanRequest::create([
+            'store_id' => $store->id,
+            'plan_id' => $data['plan_id'],
+            'current_plan_id' => $currentPlanId,
+            'payment_method' => PlanRequest::PAYMENT_METHOD_IZIPAY,
+            'months' => $months,
+            'total_amount' => $totalAmount,
+            'payment_status' => PlanRequest::PAYMENT_STATUS_PENDING,
+            'status' => PlanRequest::STATUS_PENDING,
+        ]);
+
+        $izipayOrderId = IzipayPlanTransaction::generateIzipayOrderId();
+
+        // Crear transacción Izipay
+        $transaction = IzipayPlanTransaction::create([
+            'plan_request_id' => $planRequest->id,
+            'user_id' => $user->id,
+            'store_id' => $store->id,
+            'izipay_order_id' => $izipayOrderId,
+            'amount_in_cents' => $amountCents,
+            'currency' => 'PEN',
+            'status' => 'pending',
+            'mode' => config('services.izipay.mode', 'test'),
+        ]);
+
+        $planRequest->update(['izipay_order_id' => $izipayOrderId]);
+
+        // Crear sesión en Izipay
+        $userId = config('services.izipay.user_id', '');
+        $password = config('services.izipay.password', '');
+        $credentials = base64_encode("{$userId}:{$password}");
+
+        $payload = [
+            'amount' => $amountCents,
+            'currency' => 'PEN',
+            'orderId' => $izipayOrderId,
+            'customer' => ['email' => $user->email],
+            'metadata' => [
+                'plan_request_id' => (string) $planRequest->id,
+                'plan_name' => $plan->name,
+                'store_id' => (string) $store->id,
+            ],
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => "Basic {$credentials}",
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout(30)
+                ->post('https://api.micuentaweb.pe/api-payment/V4/Charge/CreatePayment', $payload);
+
+            $izipayData = $response->json();
+
+            if (($izipayData['status'] ?? '') === 'SUCCESS' && isset($izipayData['answer']['formToken'])) {
+                $formToken = $izipayData['answer']['formToken'];
+
+                $transaction->update([
+                    'form_token' => $formToken,
+                    'izipay_response' => $izipayData,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'form_token' => $formToken,
+                    'request' => [
+                        'id' => $planRequest->id,
+                        'plan_id' => $planRequest->plan_id,
+                        'plan_name' => $plan->name,
+                        'months' => $months,
+                        'total_amount' => $totalAmount,
+                        'izipay_order_id' => $izipayOrderId,
+                        'status' => $planRequest->status,
+                        'payment_status' => $planRequest->payment_status,
+                    ],
+                ]);
+            }
+
+            $errorMsg = $izipayData['answer']['errorMessage']
+                ?? $izipayData['answer']['detailedErrorMessage']
+                ?? 'Error al crear sesión de pago con Izipay';
+
+            $transaction->update([
+                'status' => 'failed',
+                'error_code' => (string) ($izipayData['answer']['errorCode'] ?? 'IZIPAY_ERROR'),
+                'error_message' => $errorMsg,
+                'izipay_response' => $izipayData,
+            ]);
+            $planRequest->update(['payment_status' => PlanRequest::PAYMENT_STATUS_FAILED]);
+
+            Log::error('Izipay plan session error', [
+                'izipay_data' => $izipayData,
+                'plan_request_id' => $planRequest->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $errorMsg,
+            ], 502);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            $transaction->update([
+                'status' => 'failed',
+                'error_code' => 'CONNECTION_ERROR',
+                'error_message' => 'No se pudo conectar con Izipay.',
+            ]);
+            $planRequest->update(['payment_status' => PlanRequest::PAYMENT_STATUS_FAILED]);
+
+            Log::error('Izipay connection error for plan', [
+                'error' => $e->getMessage(),
+                'plan_request_id' => $planRequest->id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo conectar con la pasarela de pago Izipay',
+            ], 502);
+        }
+    }
+
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -131,7 +301,7 @@ final class PlanRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = PlanRequest::query()
-            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,monthly_fee'])
+            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,slug,monthly_fee'])
             ->orderBy('created_at', 'desc');
 
         if ($status = $request->query('status')) {
@@ -154,6 +324,7 @@ final class PlanRequestController extends Controller
                 'plan' => [
                     'id' => $req->plan->id,
                     'name' => $req->plan->name,
+                    'slug' => $req->plan->slug,
                     'monthly_fee' => $req->plan->monthly_fee,
                 ],
                 'months' => $req->months,
@@ -257,6 +428,17 @@ final class PlanRequestController extends Controller
             'reviewed_by' => $request->user()->id,
         ]);
 
+        // Notificar al vendedor (campanita + email)
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store?->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new PlanRejectedNotification($planRequest));
+            } catch (\Throwable) {
+                // No crítico — el rechazo ya quedó guardado
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Solicitud rechazada',
@@ -295,45 +477,45 @@ final class PlanRequestController extends Controller
             $sub = $store?->activeSubscription;
 
             $transacciones = $storeRequests->map(fn ($req) => [
-                'id'          => $req->id,
-                'estado'      => $req->payment_status,
-                'monto'       => (float) $req->total_amount,
-                'meses'       => $req->months,
-                'fecha'       => $req->created_at->toIso8601String(),
+                'id' => $req->id,
+                'estado' => $req->payment_status,
+                'monto' => (float) $req->total_amount,
+                'meses' => $req->months,
+                'fecha' => $req->created_at->toIso8601String(),
                 'procesadoEn' => $req->updated_at?->toIso8601String(),
-                'metodoPago'  => strtoupper($req->payment_method ?? ''),
-                'planId'      => $req->plan?->slug ?? '',
-                'planNombre'  => $req->plan?->name ?? '',
-                'planColor'   => $req->plan?->css_color ?? '#10b981',
+                'metodoPago' => strtoupper($req->payment_method ?? ''),
+                'planId' => $req->plan?->slug ?? '',
+                'planNombre' => $req->plan?->name ?? '',
+                'planColor' => $req->plan?->css_color ?? '#10b981',
             ])->values()->all();
 
             return [
-                'usuario_id'      => (string) $storeId,
-                'username'        => $store?->trade_name ?? 'Tienda',
-                'email'           => $store?->owner?->email ?? '',
-                'correo'          => $store?->owner?->email ?? '',
-                'plan_actual'     => $sub?->plan?->slug ?? 'basic',
-                'nombre_plan'     => $sub?->plan?->name ?? 'Sin plan',
-                'css_color'       => $sub?->plan?->css_color ?? '#10b981',
-                'fecha_expiracion'=> $sub?->ends_at?->toIso8601String() ?? '',
-                'total_monto'     => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
-                'pagos_exitosos'  => $storeRequests->where('payment_status', 'paid')->count(),
-                'transacciones'   => $transacciones,
-                'historial'       => [],
+                'usuario_id' => (string) $storeId,
+                'username' => $store?->trade_name ?? 'Tienda',
+                'email' => $store?->owner?->email ?? '',
+                'correo' => $store?->owner?->email ?? '',
+                'plan_actual' => $sub?->plan?->slug ?? 'basic',
+                'nombre_plan' => $sub?->plan?->name ?? 'Sin plan',
+                'css_color' => $sub?->plan?->css_color ?? '#10b981',
+                'fecha_expiracion' => $sub?->ends_at?->toIso8601String() ?? '',
+                'total_monto' => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
+                'pagos_exitosos' => $storeRequests->where('payment_status', 'paid')->count(),
+                'transacciones' => $transacciones,
+                'historial' => [],
             ];
         })->values()->all();
 
         $totales = [
-            'total_monto'    => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
+            'total_monto' => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
             'pagos_exitosos' => PlanRequest::where('payment_status', 'paid')->count(),
             'pagos_fallidos' => PlanRequest::where('payment_status', 'failed')->count(),
-            'pagos_pending'  => PlanRequest::where('payment_status', 'pending')->count(),
+            'pagos_pending' => PlanRequest::where('payment_status', 'pending')->count(),
         ];
 
         return response()->json([
-            'success'  => true,
-            'data'     => $vendedores,
-            'totales'  => $totales,
+            'success' => true,
+            'data' => $vendedores,
+            'totales' => $totales,
         ]);
     }
 
@@ -393,15 +575,29 @@ final class PlanRequestController extends Controller
 
     public function webhookIzipay(Request $request): JsonResponse
     {
-        $data = $request->all();
+        $rawKrAnswer = $request->input('kr-answer', '');
+        $payload = $request->all();
 
-        $orderId = $data['orderId'] ?? $data['order_id'] ?? null;
-
-        if (! $orderId) {
-            return response()->json(['message' => 'Order ID no proporcionado'], 400);
+        $answer = json_decode($rawKrAnswer, true);
+        if (! $answer && ! empty($rawKrAnswer)) {
+            $decoded = base64_decode($rawKrAnswer, true);
+            if ($decoded !== false) {
+                $answer = json_decode($decoded, true);
+            }
         }
 
-        $planRequest = PlanRequest::where('izipay_order_id', $orderId)
+        if (! $answer) {
+            return response()->json(['message' => 'kr-answer inválido'], 400);
+        }
+
+        $orderInfo = $answer['orderDetails'] ?? [];
+        $izipayOrderId = $orderInfo['orderId'] ?? $answer['orderId'] ?? '';
+
+        if (empty($izipayOrderId)) {
+            return response()->json(['message' => 'Order ID no encontrado'], 400);
+        }
+
+        $planRequest = PlanRequest::where('izipay_order_id', $izipayOrderId)
             ->where('status', PlanRequest::STATUS_PENDING)
             ->first();
 
@@ -409,9 +605,9 @@ final class PlanRequestController extends Controller
             return response()->json(['message' => 'Solicitud no encontrada'], 404);
         }
 
-        $transactionState = $data['transactionState'] ?? $data['transaction_state'] ?? '';
+        $orderStatus = $answer['orderStatus'] ?? '';
 
-        if ($transactionState === 'AUTHORIZED' || $transactionState === 'CAPTURED') {
+        if (in_array($orderStatus, ['PAID', 'AUTHORISED', 'CAPTURED', 'ACCEPTED'], true)) {
             $planRequest->update([
                 'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
             ]);
@@ -424,7 +620,7 @@ final class PlanRequestController extends Controller
             ]);
         }
 
-        if ($transactionState === 'FAILED' || $transactionState === 'EXPIRED') {
+        if (in_array($orderStatus, ['FAILED', 'EXPIRED'], true)) {
             $planRequest->update([
                 'payment_status' => PlanRequest::PAYMENT_STATUS_FAILED,
             ]);
@@ -441,16 +637,17 @@ final class PlanRequestController extends Controller
         ]);
     }
 
-    private function approvePlanRequest(PlanRequest $planRequest, ?int $reviewedBy): void
+    public function approvePlanRequest(PlanRequest $planRequest, ?int $reviewedBy): void
     {
         $planRequest->update([
             'status' => PlanRequest::STATUS_APPROVED,
+            'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
             'reviewed_by' => $reviewedBy,
         ]);
 
         $endsAt = now()->addMonths($planRequest->months);
 
-        Subscription::updateOrCreate(
+        $subscription = Subscription::updateOrCreate(
             [
                 'store_id' => $planRequest->store_id,
                 'status' => 'active',
@@ -460,6 +657,7 @@ final class PlanRequestController extends Controller
                 'starts_at' => now(),
                 'ends_at' => $endsAt,
                 'status' => 'active',
+                'plan_request_id' => $planRequest->id,
             ]
         );
 
@@ -479,6 +677,30 @@ final class PlanRequestController extends Controller
                 "Vigencia del contrato actualizada por activación del plan {$planRequest->plan->name}",
                 'Sistema'
             );
+        }
+
+        $subscription->load('plan');
+        try {
+            broadcast(new PlanStatusChanged($subscription));
+        } catch (\Throwable) {
+            // Reverb no disponible; suscripción activada correctamente en DB
+        }
+
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest));
+            } catch (\Throwable $e) {
+                Log::error('[PlanRequest] Error notificando PlanActivated', [
+                    'plan_request_id' => $planRequest->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Generar factura electrónica solo para pagos reales (no trials)
+        if (! $planRequest->isTrial()) {
+            GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
         }
     }
 

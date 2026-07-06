@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Store;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Notifications\StoreStatusNotification;
+use App\Notifications\UserBannedNotification;
 use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class AdminSellerController extends Controller
 {
@@ -241,9 +245,11 @@ final class AdminSellerController extends Controller
      * Reutiliza la misma lógica que UserController@toggleBan
      * pero asegura que sea un seller.
      */
-    public function toggleBan(int $id): JsonResponse
+    public function toggleBan(Request $request, int $id): JsonResponse
     {
         $user = User::role('seller')->findOrFail($id);
+        $reason = $request->input('reason');
+
         $wasBanned = $user->is_banned;
         $user->update(['is_banned' => ! $wasBanned]);
 
@@ -258,6 +264,16 @@ final class AdminSellerController extends Controller
             source: AuditService::SOURCE_WEB,
             metadata: ['user_id' => $user->id, 'banned_by' => auth()->id(), 'seller_name' => $user->name],
         );
+
+        if ($user->is_banned) {
+            try {
+                $user->notify(new UserBannedNotification($reason));
+            } catch (\Throwable $e) {
+                Log::error('[AdminSeller] Error notificando UserBanned', [
+                    'user_id' => $user->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'id' => $user->id,
@@ -385,13 +401,30 @@ final class AdminSellerController extends Controller
     {
         $validated = $request->validate([
             'status' => 'required|in:active,pending,suspended',
+            'reason' => 'nullable|string|max:500',
         ]);
 
-        $store = Store::whereNull('deleted_at')->findOrFail($storeId);
+        $store = Store::with('owner')->whereNull('deleted_at')->findOrFail($storeId);
         $store->update([
             'status' => $validated['status'],
             'approved_at' => $validated['status'] === 'active' ? now() : $store->approved_at,
         ]);
+
+        if ($store->owner) {
+            try {
+                $store->owner->notify(new StoreStatusNotification(
+                    $store,
+                    $validated['status'],
+                    $validated['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[AdminSeller] Error notificando StoreStatus', [
+                    'store_id' => $store->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        broadcast(new StoreStatusChanged($store->fresh()));
 
         return response()->json([
             'store_id' => $store->id,

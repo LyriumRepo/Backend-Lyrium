@@ -41,9 +41,9 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
             }
         });
 
-        $order = $this->order->loadMissing(['items.product', 'user']);
+        $order = $this->order->loadMissing(['items.product', 'serviceItems', 'user']);
 
-        $items = $order->items->map(function ($item) {
+        $productItems = $order->items->map(function ($item) {
             return (object) [
                 'name' => $item->product_name,
                 'description' => $item->product?->description ?? '',
@@ -52,6 +52,24 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
                 'line_total' => number_format((float) $item->line_total, 2),
             ];
         });
+
+        $serviceItems = $order->serviceItems->map(function ($item) {
+            return (object) [
+                'name' => $item->service_name,
+                'description' => '',
+                'quantity' => $item->quantity,
+                'unit_price' => number_format((float) $item->unit_price, 2),
+                'line_total' => number_format((float) $item->line_total, 2),
+            ];
+        });
+
+        $items = $productItems->concat($serviceItems);
+
+        $orderType = match (true) {
+            $productItems->isNotEmpty() && $serviceItems->isNotEmpty() => 'Producto y Servicio',
+            $serviceItems->isNotEmpty() => 'Servicio',
+            default => 'Producto',
+        };
 
         $shippingMethod = match ($order->shipping_type) {
             'domicilio' => 'Entrega a Domicilio',
@@ -65,6 +83,7 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
                 'order' => $order,
                 'customerName' => $order->user?->name ?? 'Cliente',
                 'orderNumber' => $order->order_number ?? (string) $order->id,
+                'orderType' => $orderType,
                 'items' => $items,
                 'subtotal' => number_format((float) $order->subtotal, 2),
                 'shippingCost' => number_format((float) ($order->shipping_cost ?? 0), 2),

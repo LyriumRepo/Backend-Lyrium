@@ -286,7 +286,7 @@
             {{-- HEADER --}}
             @if(!isset($hideHeader) || !$hideHeader)
             <div class="email-header">
-                <img src="cid:logo-text" alt="Lyrium" class="logo-img" />
+                <img src="{{ asset('images/nombrelogo.png') }}" alt="Lyrium" class="logo-img" />
                 @if(isset($showTagline) ? $showTagline : true)
                 <div class="tagline">BioMarketplace · Salud y Bienestar</div>
                 @endif
@@ -308,7 +308,7 @@
                                 <tr>
                                     <td style="padding: 0 14px; text-align: center; vertical-align: top;">
                                         <a href="https://www.facebook.com/people/Lyrium-Biomarketplace/61579938364350/" target="_blank" style="text-decoration: none; display: inline-block;">
-                                            <img src="https://fv5-4.files.fm/thumb_show.php?i=726g592gj8&view&v=1&PHPSESSID=53ba53ad2030b8e5aae3cf48c4ba83f8e248150a" width="44" height="44" alt="Facebook" style="display: block; margin: 0 auto;" />
+                                            <img src="https://cdn-icons-png.flaticon.com/128/733/733547.png" width="44" height="44" alt="Facebook" style="display: block; margin: 0 auto;" />
                                         </a>
                                     </td>
                                     <td style="padding: 0;">

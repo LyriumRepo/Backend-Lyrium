@@ -12,9 +12,12 @@ use App\Http\Requests\UpdateShipmentTrackingRequest;
 use App\Http\Resources\ShipmentResource;
 use App\Http\Resources\ShippingMethodResource;
 use App\Http\Resources\ShippingZoneResource;
+use App\Models\Shipment;
+use App\Notifications\ShipmentStatusNotification;
 use App\Services\ShippingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class ShippingController extends Controller
 {
@@ -118,12 +121,16 @@ final class ShippingController extends Controller
             carrier: $request->input('carrier'),
         );
 
+        $this->notifyCustomer($shipment, Shipment::STATUS_PICKED_UP);
+
         return response()->json(new ShipmentResource($shipment));
     }
 
     public function markDelivered(int $id): JsonResponse
     {
         $shipment = $this->shippingService->markAsDelivered($id);
+
+        $this->notifyCustomer($shipment, Shipment::STATUS_DELIVERED);
 
         return response()->json(new ShipmentResource($shipment));
     }
@@ -134,12 +141,30 @@ final class ShippingController extends Controller
             'status' => ['required', 'string', 'in:pending,picked_up,in_transit,out_for_delivery,delivered,failed,returned'],
         ]);
 
+        $newStatus = $request->input('status');
+
         $shipment = $this->shippingService->updateStatus(
             shipmentId: $id,
-            status: $request->input('status'),
+            status: $newStatus,
         );
 
+        $this->notifyCustomer($shipment, $newStatus);
+
         return response()->json(new ShipmentResource($shipment));
+    }
+
+    private function notifyCustomer(Shipment $shipment, string $status): void
+    {
+        $customer = $shipment->loadMissing('order.user')->order?->user;
+        if ($customer) {
+            try {
+                $customer->notify(new ShipmentStatusNotification($shipment, $status));
+            } catch (\Throwable $e) {
+                Log::error('[Shipping] Error notificando ShipmentStatus al cliente', [
+                    'shipment_id' => $shipment->id, 'status' => $status, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     public function addEvent(Request $request, int $id): JsonResponse

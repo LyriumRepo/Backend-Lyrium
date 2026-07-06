@@ -35,12 +35,14 @@ final class PagoController extends Controller
         $perPage = min((int) $request->query('per_page', 20), 100);
         $pagos = $query->paginate($perPage);
 
-        // Totals
-        $totalsQuery = PlanRequest::whereNotNull('total_amount')->where('total_amount', '>', 0);
-        $totalMonto = (clone $totalsQuery)->sum('total_amount');
-        $pagosExitosos = (clone $totalsQuery)->where('payment_status', 'paid')->count();
-        $pagosFallidos = (clone $totalsQuery)->where('payment_status', 'failed')->count();
-        $pagosPendientes = (clone $totalsQuery)->where('payment_status', 'pending')->count();
+        // Totals — single query with conditional aggregation
+        $totals = PlanRequest::whereNotNull('total_amount')
+            ->where('total_amount', '>', 0)
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_monto')
+            ->selectRaw('COALESCE(SUM(CASE WHEN payment_status = ? THEN 1 ELSE 0 END), 0) as pagos_exitosos', ['paid'])
+            ->selectRaw('COALESCE(SUM(CASE WHEN payment_status = ? THEN 1 ELSE 0 END), 0) as pagos_fallidos', ['failed'])
+            ->selectRaw('COALESCE(SUM(CASE WHEN payment_status = ? THEN 1 ELSE 0 END), 0) as pagos_pendientes', ['pending'])
+            ->first();
 
         return response()->json([
             'data' => $pagos->map(fn ($p) => [
@@ -65,10 +67,10 @@ final class PagoController extends Controller
                 'procesado_en' => $p->updated_at->toIso8601String(),
             ]),
             'totales' => [
-                'total_monto' => (float) $totalMonto,
-                'pagos_exitosos' => $pagosExitosos,
-                'pagos_fallidos' => $pagosFallidos,
-                'pagos_pendientes' => $pagosPendientes,
+                'total_monto' => (float) ($totals->total_monto ?? 0),
+                'pagos_exitosos' => (int) ($totals->pagos_exitosos ?? 0),
+                'pagos_fallidos' => (int) ($totals->pagos_fallidos ?? 0),
+                'pagos_pendientes' => (int) ($totals->pagos_pendientes ?? 0),
             ],
             'pagination' => [
                 'page' => $pagos->currentPage(),

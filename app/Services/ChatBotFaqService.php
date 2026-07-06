@@ -11,11 +11,11 @@ final class ChatBotFaqService
     // Respuesta del asesor reutilizada en vender_f, comprar_9 y keyword directo "contáctame"
     private const ASESOR_RESPONSE = "👩🏻¡Por supuesto! En un momento te conectamos con uno de nuestros asesores comerciales para atender todas tus consultas. Por favor, mantente en línea con nosotros.";
 
-    // Lily menu intents — checked before FAQs, no AI cost
+    // Lyrio menu intents — checked before FAQs, no AI cost
     private const LILY_INTENTS = [
         'inicio' => [
             'keywords' => ['hola', 'buenas', 'consulta', 'que tal', 'holis', 'volver', 'inicio'],
-            'response' => "¡Hola! 😊\nSoy Lily👩🏻, tu asistente virtual de LYRIUM BIOMARKETPLACE. Estoy aquí para hacer tu experiencia más fácil y saludable 🌱.\n¿En qué puedo ayudarte hoy? Puedes decirme si deseas \"vender\" o \"comprar\".\n\n¡Estoy lista para ayudarte! 🛍️✨",
+            'response' => "¡Hola! 😊\nSoy Lyrio🌿, tu asistente virtual de LYRIUM BIOMARKETPLACE. Estoy aquí para hacer tu experiencia más fácil y saludable 🌱.\n¿En qué puedo ayudarte hoy? Puedes decirme si deseas \"vender\" o \"comprar\".\n\n¡Estoy listo para ayudarte! 🛍️✨",
         ],
         'vender_menu' => [
             'keywords' => ['vender', 'menu', 'menú'],
@@ -111,7 +111,268 @@ final class ChatBotFaqService
             'terms'    => ['lyrium', 'biomarketplace', 'plataforma', 'informacion'],
             'response' => 'Lyrium es un Biomarketplace peruano que conecta compradores con vendedores de productos y servicios especializados en bienestar, salud natural y estilo de vida sostenible. Ofrecemos una plataforma segura para comprar y vender, con sistemas de pago integrados, seguimiento de pedidos, facturación electrónica y soporte al cliente. Nuestra misión es facilitar el acceso a productos que promuevan una vida saludable mientras apoyamos a emprendedores y pequeñas empresas del sector.',
         ],
+
+        // ── MIS PEDIDOS ──────────────────────────────────────────────────────────
+        'cancelar_pedido' => [
+            'keywords' => ['cancelar pedido', 'anular pedido', 'cancel pedido', 'quiero cancelar mi pedido', 'como cancelo'],
+            'terms'    => ['cancelar', 'anular', 'cancel'],
+            'response' => "Para cancelar un pedido: ve a tu panel → 'Mis pedidos' → selecciona el pedido → 'Cancelar pedido'. ⚠️ Solo puedes cancelar pedidos en estado *Pendiente*. Si el vendedor ya confirmó el pedido, comunícate directamente con él o abre un ticket de soporte desde tu panel. 🔄 _Escribe \"soporte\" si necesitas ayuda adicional._",
+        ],
+        'modificar_pedido' => [
+            'keywords' => ['modificar pedido', 'cambiar pedido', 'editar pedido', 'cambiar direccion envio', 'cambiar direccion de entrega'],
+            'terms'    => ['modificar', 'cambiar pedido', 'editar pedido', 'direccion'],
+            'response' => "Una vez realizado, no es posible modificar productos ni cantidades en un pedido. Si el pedido aún está en estado *Pendiente*, puedes cancelarlo y volver a comprarlo con los cambios que necesitas. Para cambiar la dirección de entrega antes del despacho, escríbenos por WhatsApp: https://wa.me/51937093420 🛍️",
+        ],
+        'historial_compras' => [
+            'keywords' => ['historial de compras', 'mis compras', 'compras anteriores', 'ver mis pedidos', 'lista de pedidos'],
+            'terms'    => ['historial', 'compras anteriores', 'mis pedidos'],
+            'response' => "Puedes ver todas tus compras en tu panel de usuario → 'Mis pedidos'. Allí encontrarás el historial completo con fecha, monto y estado de cada pedido. Haz clic en cualquier pedido para ver sus detalles. 📦",
+        ],
+        'disputa_pedido' => [
+            'keywords' => ['abrir disputa', 'reclamar pedido', 'problema con pedido', 'pedido incorrecto', 'pedido danado', 'pedido dañado', 'no llego mi pedido', 'no llego pedido'],
+            'terms'    => ['disputa', 'reclamo', 'reclamar', 'incorrecto', 'danado'],
+            'response' => "Si tienes un problema con tu pedido (no llegó, llegó dañado o incorrecto), puedes abrir una disputa: ve a 'Mis pedidos' → selecciona el pedido → 'Abrir disputa'. Describe el problema, adjunta fotos si es posible y nuestro equipo mediará entre tú y el vendedor. Tenemos hasta 7 días hábiles para resolverlo. 🛡️",
+        ],
+
+        // ── ESTADO DEL PEDIDO ─────────────────────────────────────────────────────
+        'significado_estados' => [
+            'keywords' => ['que significa pendiente', 'que significa confirmado', 'que significa enviado', 'que significa en preparacion', 'estados del pedido'],
+            'terms'    => ['significa', 'estado pedido', 'pendiente', 'confirmado', 'preparacion'],
+            'response' => "Los estados de tu pedido significan:\n🟡 *Pendiente* — esperando confirmación del vendedor.\n🔵 *Confirmado* — el vendedor aceptó tu pedido y el pago fue procesado.\n🟠 *En preparación* — el vendedor está alistando tu pedido.\n🚚 *Enviado* — tu pedido está en camino (recibirás el número de seguimiento).\n✅ *Entregado* — pedido recibido exitosamente.",
+        ],
+        'rastreo_envio' => [
+            'keywords' => ['rastrear envio', 'numero de seguimiento', 'tracking pedido', 'donde va mi paquete', 'seguir mi paquete'],
+            'terms'    => ['rastrear', 'tracking', 'seguimiento', 'numero envio'],
+            'response' => "Cuando el vendedor despache tu pedido, recibirás una notificación con el número de seguimiento. Para verlo: ve a 'Mis pedidos' → selecciona el pedido → encontrarás el número de tracking y el enlace a la empresa de transporte. 📦🚚",
+        ],
+        'tiempo_entrega' => [
+            'keywords' => ['cuanto tiempo demora', 'cuanto tarda', 'dias de entrega', 'tiempo de envio', 'cuando me llega'],
+            'terms'    => ['demora', 'tarda', 'dias entrega', 'tiempo envio', 'llega'],
+            'response' => "El tiempo de entrega varía según la tienda y tu ubicación:\n📍 *Lima Metropolitana:* 1–3 días hábiles (generalmente).\n📦 *Provincias:* 3–7 días hábiles.\nCada tienda indica sus tiempos estimados en su perfil. También puedes verlo antes de confirmar tu compra en el resumen del carrito. ⏱️",
+        ],
+
+        // ── PAGOS ─────────────────────────────────────────────────────────────────
+        'pago_confirmado' => [
+            'keywords' => ['mi pago fue confirmado', 'confirmar pago', 'se proceso mi pago', 'pago exitoso', 'pago aprobado'],
+            'terms'    => ['pago confirmado', 'pago exitoso', 'pago aprobado', 'proceso pago'],
+            'response' => "Si tu pago fue procesado correctamente, el estado de tu pedido cambiará a *Confirmado* y recibirás un correo de confirmación. Puedes verificarlo en 'Mis pedidos'. Si el estado sigue en *Pendiente* después de 15 minutos, escríbenos por WhatsApp: https://wa.me/51937093420 💳✅",
+        ],
+        'pago_rechazado' => [
+            'keywords' => ['pago rechazado', 'pago fallido', 'no se proceso el pago', 'error en el pago', 'pago no completado'],
+            'terms'    => ['rechazado', 'fallido', 'error pago', 'no proceso'],
+            'response' => "Los pagos pueden ser rechazados por:\n• Fondos insuficientes en la tarjeta.\n• Datos de tarjeta incorrectos.\n• Bloqueo de seguridad de tu banco.\n\n✅ *¿Qué hacer?* Verifica tus datos, intenta con otro método de pago, o contacta a tu banco. Si el problema persiste, escríbenos: https://wa.me/51937093420 💳",
+        ],
+        'pago_con_lirios' => [
+            'keywords' => ['pagar con lirios', 'usar lirios en pago', 'aplicar lirios', 'lirios en checkout', 'descuento con lirios'],
+            'terms'    => ['pagar lirios', 'usar lirios', 'aplicar lirios'],
+            'response' => "Puedes usar tus puntos Lirios como descuento al pagar. En el paso de pago del checkout verás la opción 'Pagar con Lirios' si tienes saldo disponible y la tienda lo permite. Cada tienda define el porcentaje máximo que puedes pagar con Lirios 🌿💚",
+        ],
+
+        // ── ENVÍOS ────────────────────────────────────────────────────────────────
+        'costo_envio' => [
+            'keywords' => ['cuanto cuesta el envio', 'precio de envio', 'tarifa de envio', 'costo de despacho', 'cuanto es el flete'],
+            'terms'    => ['costo envio', 'precio envio', 'tarifa envio', 'flete'],
+            'response' => "El costo de envío varía según la tienda y tu zona de entrega. Puedes verlo:\n1. En el perfil de cada tienda (tarifas referenciales).\n2. En el resumen de tu carrito antes de pagar.\n\nAlgunas tiendas ofrecen *recojo en tienda* sin costo adicional. 🛵",
+        ],
+        'envio_gratis' => [
+            'keywords' => ['envio gratis', 'envio gratuito', 'sin costo de envio', 'despacho gratis', 'no cobran envio'],
+            'terms'    => ['envio gratis', 'envio gratuito', 'gratis envio'],
+            'response' => "Algunas tiendas ofrecen envío gratuito cuando superas un monto mínimo de compra. Revisa las condiciones en el perfil de la tienda o en la descripción del producto. También puedes buscar tiendas con la etiqueta 'Envío gratis' en la plataforma. 🎁🚚",
+        ],
+        'recojo_tienda' => [
+            'keywords' => ['recoger en tienda', 'recojo en tienda', 'retirar en tienda', 'pickup'],
+            'terms'    => ['recoger', 'recojo', 'retirar', 'pickup'],
+            'response' => "Sí, muchas tiendas ofrecen la opción de recojo en tienda sin costo de envío. Durante el checkout, si el vendedor lo habilita, verás la opción 'Recoger en tienda' con la dirección de la sucursal y el horario de atención. 🏪",
+        ],
+        'problema_entrega' => [
+            'keywords' => ['no llego el envio', 'paquete no entregado', 'no estaba en casa entrega', 'segundo intento entrega', 'fallo la entrega'],
+            'terms'    => ['no llego envio', 'paquete no llego', 'entrega fallida'],
+            'response' => "Si hubo un problema con la entrega, el transportista generalmente realiza hasta 2 intentos. Revisa si dejaron un aviso de visita. Si no recibes noticias en 24 horas, escribe al vendedor desde 'Mis pedidos' → 'Contactar vendedor', o abre un ticket de soporte desde tu panel. 📦❓",
+        ],
+
+        // ── EMPAQUE Y CUIDADO DEL PEDIDO ─────────────────────────────────────────
+        'empaque_cuidado' => [
+            'keywords' => ['como empacan', 'cuidado del empaque', 'como cuidan mi pedido', 'empaque seguro', 'como protegen el producto'],
+            'terms'    => ['empaque', 'empacar', 'embalaje'],
+            'response' => "En Lyrium el empaque es parte de nuestro compromiso con tu salud 🌿. Cada pedido se protege según el tipo de producto (frágil, líquido, perecible o delicado) para que llegue en perfecto estado. Además, fotografiamos cada pedido antes de cerrarlo como respaldo ante cualquier reclamo. 📦💚",
+        ],
+        'simbolos_caja' => [
+            'keywords' => ['que significan los simbolos', 'simbolos de la caja', 'que significa fragil en la caja', 'iconos de la caja', 'dibujos en la caja'],
+            'terms'    => ['simbolo caja', 'icono caja'],
+            'response' => "Los símbolos en tu caja te indican cómo manejarla:\n📦 *Frágil* (copa rota) — contenido delicado, manejo cuidadoso.\n⬆️ *Este lado arriba* (flechas) — no debe voltearse durante el viaje.\n☔ *Mantener seco* (paraguas) — evitar humedad.\nSon estándares internacionales para proteger tu pedido en el camino. 🌱",
+        ],
+        'evidencia_empaque' => [
+            'keywords' => ['prueba de que llego bien empacado', 'foto del pedido antes de enviar', 'tienen foto de mi pedido', 'como saben si llego dañado', 'como saben si llego danado'],
+            'terms'    => ['foto del pedido', 'evidencia empaque'],
+            'response' => "Antes de cerrar cada pedido, tomamos una foto del contenido ya embalado. Esto nos permite verificar el estado real con el que salió tu pedido si necesitas abrir una disputa por daños o faltantes. 📸🛡️ _Escribe \"disputa\" si necesitas reportar un problema con tu pedido._",
+        ],
+
+        // ── MI CUENTA ─────────────────────────────────────────────────────────────
+        'recuperar_contrasena' => [
+            'keywords' => ['olvide mi contrasena', 'recuperar contrasena', 'no recuerdo mi clave', 'restablecer contrasena', 'cambiar clave olvidada'],
+            'terms'    => ['olvide contrasena', 'recuperar contrasena', 'restablecer clave', 'clave olvidada'],
+            'response' => "Para recuperar tu contraseña: ve a la pantalla de inicio de sesión → haz clic en '¿Olvidaste tu contraseña?' → ingresa tu correo electrónico → recibirás un enlace de recuperación. Revisa también tu carpeta de spam si no lo ves en unos minutos. 🔑",
+        ],
+        'cambiar_contrasena' => [
+            'keywords' => ['cambiar contrasena', 'actualizar contrasena', 'nueva contrasena', 'modificar clave'],
+            'terms'    => ['cambiar contrasena', 'actualizar contrasena', 'nueva clave'],
+            'response' => "Para cambiar tu contraseña: ve a tu perfil de usuario → 'Configuración de cuenta' → 'Cambiar contraseña'. Ingresa tu contraseña actual y luego la nueva. Asegúrate de usar una contraseña segura (mínimo 8 caracteres, con números y letras). 🔐",
+        ],
+        'actualizar_perfil' => [
+            'keywords' => ['actualizar perfil', 'editar perfil', 'cambiar datos personales', 'cambiar nombre', 'cambiar telefono', 'cambiar foto'],
+            'terms'    => ['actualizar perfil', 'editar perfil', 'datos personales'],
+            'response' => "Para actualizar tus datos personales: ingresa a tu perfil → 'Editar perfil'. Puedes modificar tu nombre, teléfono, dirección y foto de perfil. Los cambios se guardan de inmediato. 👤✏️",
+        ],
+        'verificar_correo' => [
+            'keywords' => ['verificar correo', 'codigo de verificacion', 'no recibi el codigo', 'reenviar codigo', 'verificar cuenta'],
+            'terms'    => ['verificar correo', 'codigo verificacion', 'reenviar codigo'],
+            'response' => "Al registrarte, te enviamos un código OTP a tu correo para verificar tu cuenta. Si no lo recibiste:\n1. Revisa la carpeta de spam o no deseados.\n2. En la pantalla de verificación, haz clic en 'Reenviar código'.\n\nSi el problema persiste, escríbenos por WhatsApp: https://wa.me/51937093420 📧",
+        ],
+        'cuenta_google' => [
+            'keywords' => ['iniciar sesion con google', 'login google', 'registrarse con google', 'vincular google', 'cuenta google'],
+            'terms'    => ['google', 'oauth', 'iniciar google'],
+            'response' => "Puedes iniciar sesión en Lyrium con tu cuenta de Google. En la pantalla de login, haz clic en 'Continuar con Google' y autoriza el acceso. Es rápido, seguro y no necesitas crear una contraseña adicional. 🔵",
+        ],
+        'seguridad_cuenta' => [
+            'keywords' => ['me hackearon la cuenta', 'acceso no autorizado', 'alguien entro a mi cuenta', 'cuenta comprometida', 'cuenta robada'],
+            'terms'    => ['hackearon', 'acceso no autorizado', 'cuenta comprometida', 'robo cuenta'],
+            'response' => "⚠️ Si crees que alguien accedió a tu cuenta sin permiso:\n1. Cambia tu contraseña de inmediato desde 'Configuración de cuenta'.\n2. Revisa los pedidos recientes en busca de actividad desconocida.\n3. Contáctanos urgentemente por WhatsApp: https://wa.me/51937093420\n\nNuestro equipo bloqueará el acceso no autorizado y te ayudará a recuperar tu cuenta. 🛡️",
+        ],
+        'eliminar_cuenta' => [
+            'keywords' => ['eliminar cuenta', 'borrar cuenta', 'dar de baja', 'cerrar cuenta lyrium'],
+            'terms'    => ['eliminar cuenta', 'borrar cuenta', 'dar de baja'],
+            'response' => "Para eliminar tu cuenta, escríbenos por WhatsApp: https://wa.me/51937093420 o abre un ticket de soporte desde tu panel. Por seguridad, verificaremos tu identidad antes de proceder. Ten en cuenta que esta acción es irreversible y perderás tu historial de pedidos y puntos Lirios. 🗑️",
+        ],
+
+        // ── PROGRAMA DE PUNTOS LIRIOS ─────────────────────────────────────────────
+        'lirios_saldo' => [
+            'keywords' => [
+                'cuantos lirios tengo', 'saldo de lirios', 'mis puntos lirios', 'ver lirios', 'monedero lirios',
+                'mis lirios no aparecieron', 'mis lirios no aparecen', 'no me llegaron los lirios',
+                'no se acreditaron mis lirios', 'no se acreditaron lirios', 'no se agregaron mis lirios',
+                'lirios no se acreditaron', 'lirios no aparecen', 'lirios no llegaron',
+                'no recibi mis lirios', 'no tengo mis lirios', 'donde estan mis lirios',
+                'perdí mis lirios', 'perdi mis lirios', 'se perdieron mis lirios',
+                'mis lirios desaparecieron', 'no veo mis lirios',
+            ],
+            'terms'    => ['lirios', 'puntos lirios', 'saldo lirios', 'monedero'],
+            'response' => "Si tus puntos Lirios no aparecieron después de una compra, prueba esto:\n1. Ve a tu panel → sección '🌸 Lirios' y revisa el historial de transacciones.\n2. Verifica que la tienda donde compraste participa en el programa Lirios.\n3. Espera hasta 24 horas, ya que la acreditación puede tomar un momento.\n\nSi después de 24 horas siguen sin aparecer, escríbenos por WhatsApp: https://wa.me/51937093420 y lo revisamos. 💚🌿",
+        ],
+        'lirios_ganar' => [
+            'keywords' => [
+                'como gano lirios', 'ganar puntos lirios', 'acumular lirios', 'como funcionan los lirios',
+                'como se ganan lirios', 'como se ganan los lirios', 'como acumulo lirios',
+                'para que sirven los lirios', 'que son los lirios', 'que son lirios',
+                'como obtengo lirios', 'como consigo lirios',
+            ],
+            'terms'    => ['ganar lirios', 'acumular lirios', 'como lirios', 'para que lirios'],
+            'response' => "Ganas puntos Lirios al realizar compras en las tiendas participantes de Lyrium Biomarketplace. El monto acreditado puede variar según la tienda y el producto. También puedes ganar Lirios en promociones especiales dentro de la plataforma. ¡Entre más compras, más Lirios acumulas! 🌱✨",
+        ],
+        'lirios_canjear' => [
+            'keywords' => [
+                'como canjeo lirios', 'canjear lirios', 'usar lirios', 'como uso mis lirios', 'redimir lirios',
+                'como aplico mis lirios', 'aplicar lirios al pago', 'pagar con mis lirios',
+                'quiero usar mis lirios', 'quiero canjear mis lirios', 'no me deja usar lirios',
+                'no puedo usar lirios', 'no me aparece opcion lirios', 'no veo la opcion de lirios',
+            ],
+            'terms'    => ['canjear lirios', 'usar lirios', 'redimir lirios', 'aplicar lirios'],
+            'response' => "Para canjear tus Lirios:\n1. Agrega productos al carrito y ve al checkout.\n2. Si tienes saldo disponible y la tienda lo permite, verás la opción 'Aplicar Lirios'.\n3. El descuento se aplica automáticamente al total.\n\n💡 Si no ves la opción, es posible que la tienda no participe en el programa Lirios o hayas alcanzado el porcentaje máximo permitido. 🌿",
+        ],
+        'lirios_vencimiento' => [
+            'keywords' => [
+                'lirios vencen', 'expiran los lirios', 'caducidad lirios', 'fecha vencimiento lirios',
+                'hasta cuando puedo usar lirios', 'lirios tienen fecha', 'vencimiento de lirios',
+                'cuanto tiempo tengo para usar lirios',
+            ],
+            'terms'    => ['vencen lirios', 'expiran lirios', 'caducidad lirios', 'vencimiento lirios'],
+            'response' => "Actualmente los puntos Lirios no tienen fecha de vencimiento. Podrás usarlos cuando quieras. Te notificaremos con anticipación si esta política cambia en el futuro. 🌿♾️",
+        ],
+        'lirios_transferir' => [
+            'keywords' => [
+                'transferir lirios', 'pasar lirios a otro', 'compartir lirios', 'enviar lirios a amigo',
+                'regalar lirios', 'puedo dar lirios', 'puedo compartir lirios',
+                'lirios a otra persona', 'lirios a otra cuenta',
+            ],
+            'terms'    => ['transferir lirios', 'pasar lirios', 'compartir lirios', 'regalar lirios'],
+            'response' => "Por el momento, los puntos Lirios no son transferibles entre cuentas. Solo el titular de la cuenta puede usarlos en sus compras. 🌿",
+        ],
+
+        // ── PROMOCIONES ───────────────────────────────────────────────────────────
+        'promociones_disponibles' => [
+            'keywords' => ['que promociones hay', 'ofertas disponibles', 'descuentos lyrium', 'ver promociones', 'hay ofertas'],
+            'terms'    => ['promociones', 'ofertas', 'descuentos'],
+            'response' => "Las promociones y ofertas activas las puedes encontrar en:\n🏠 La página principal de Lyrium (sección 'Ofertas').\n🏪 El perfil de cada tienda.\n📧 Newsletter de Lyrium (suscríbete para recibir ofertas exclusivas).\n\nCada vendedor gestiona sus propios descuentos y promociones. ¡Revísalas antes de comprar! 🎉",
+        ],
+        'cupon_descuento' => [
+            'keywords' => ['como uso un cupon', 'codigo descuento', 'ingresar cupon', 'aplicar cupon', 'tengo un cupon'],
+            'terms'    => ['cupon', 'codigo descuento', 'codigo promo'],
+            'response' => "Para usar un cupón de descuento: en el paso de pago del checkout, busca el campo 'Código de descuento' o 'Cupón', ingresa tu código y haz clic en 'Aplicar'. El descuento se reflejará automáticamente en el total si el cupón es válido y aplica a los productos de tu carrito. 🎟️",
+        ],
+
+        // ── SOPORTE ───────────────────────────────────────────────────────────────
+        'abrir_ticket' => [
+            'keywords' => ['abrir ticket', 'crear ticket', 'ticket de soporte', 'solicitar ayuda soporte', 'como pido ayuda'],
+            'terms'    => ['ticket', 'crear ticket', 'abrir ticket'],
+            'response' => "Para abrir un ticket de soporte: ve a tu panel de usuario → 'Soporte' → 'Nuevo ticket'. Describe tu problema con el mayor detalle posible y adjunta capturas si aplica. Recibirás notificaciones sobre el estado de tu ticket. ⏱️ Respondemos en un máximo de 1 día hábil.",
+        ],
+        'horario_soporte' => [
+            'keywords' => ['horario de atencion', 'cuando atienden', 'horario soporte', 'dias de atencion'],
+            'terms'    => ['horario', 'atencion', 'dias atienden'],
+            'response' => "Nuestro equipo de soporte atiende:\n🕘 Lunes a viernes: 9:00 a 18:00 (hora Perú)\n📅 Sábados: 9:00 a 13:00\n\nFuera de ese horario puedes abrir un ticket o escribir por WhatsApp: https://wa.me/51937093420 y te responderemos al siguiente día hábil. 🌿",
+        ],
+        'reportar_vendedor' => [
+            'keywords' => ['reportar vendedor', 'denunciar tienda', 'reportar tienda', 'queja de vendedor'],
+            'terms'    => ['reportar vendedor', 'denunciar tienda', 'queja vendedor'],
+            'response' => "Para reportar un vendedor o tienda: ve al perfil de la tienda → haz clic en 'Reportar'. También puedes abrir un ticket de soporte desde tu panel → 'Soporte' → 'Nuevo ticket', indicando el nombre de la tienda y el motivo del reporte. Todos los reportes son revisados por nuestro equipo. 🚨",
+        ],
+        'dejar_resena' => [
+            'keywords' => ['dejar resena', 'calificar producto', 'poner resena', 'dar opinion', 'evaluar compra', 'dejar calificacion'],
+            'terms'    => ['resena', 'calificar', 'opinion producto', 'evaluar'],
+            'response' => "Para dejar una reseña: ve a 'Mis pedidos' → selecciona el pedido entregado → haz clic en 'Dejar reseña'. Puedes calificar con estrellas y escribir tu opinión. Solo los compradores que recibieron el producto pueden dejar reseñas para garantizar su autenticidad. ⭐",
+        ],
+
+        // ── USO DE LA PLATAFORMA ──────────────────────────────────────────────────
+        'buscar_producto' => [
+            'keywords' => ['como busco un producto', 'buscar producto', 'encontrar producto', 'buscar tienda', 'como encuentro'],
+            'terms'    => ['buscar producto', 'buscar tienda', 'encontrar producto'],
+            'response' => "Usa la barra de búsqueda en la parte superior de la plataforma para buscar productos o tiendas por nombre. También puedes navegar por las categorías del menú principal para explorar por tipo de producto (suplementos, alimentos, servicios de salud, etc.). 🔍🌱",
+        ],
+        'agregar_carrito' => [
+            'keywords' => ['agregar al carrito', 'anadir carrito', 'como compro varios productos', 'carrito de compras'],
+            'terms'    => ['carrito', 'agregar carrito', 'anadir carrito'],
+            'response' => "Para agregar un producto al carrito: abre la página del producto → selecciona la cantidad que deseas → haz clic en 'Agregar al carrito'. Puedes seguir comprando y agregar productos de diferentes tiendas. Al finalizar, revisa tu carrito y procede al pago. 🛒",
+        ],
+        'seguridad_datos' => [
+            'keywords' => ['son seguros mis datos', 'privacidad de datos', 'que hacen con mis datos', 'proteccion de datos', 'datos personales seguros'],
+            'terms'    => ['datos seguros', 'privacidad datos', 'proteccion datos'],
+            'response' => "En Lyrium protegemos tu información según la Ley de Protección de Datos Personales del Perú (Ley N° 29733). Tus datos de pago se procesan en pasarelas certificadas (Izipay/Culqi) y nunca los almacenamos directamente. No compartimos tu información personal con terceros sin tu consentimiento. 🔒🌿",
+        ],
+        'notificaciones' => [
+            'keywords' => ['activar notificaciones', 'configurar notificaciones', 'no recibo notificaciones', 'notificaciones de pedidos'],
+            'terms'    => ['notificaciones', 'activar notif', 'configurar notif'],
+            'response' => "Para gestionar tus notificaciones: ve a tu perfil → 'Configuración' → 'Notificaciones'. Puedes activar o desactivar notificaciones push (en tu navegador) y por correo electrónico para pedidos, mensajes y promociones. Asegúrate de permitir las notificaciones en tu navegador la primera vez que te lo solicite. 🔔",
+        ],
+        'agendar_servicio' => [
+            'keywords' => ['como agendo un servicio', 'reservar servicio', 'agendar cita', 'comprar servicio', 'reservar cita'],
+            'terms'    => ['agendar servicio', 'reservar servicio', 'agendar cita', 'cita servicio'],
+            'response' => "Para adquirir un servicio en Lyrium: busca el servicio que te interesa → haz clic en 'Reservar' → completa el pago. Una vez confirmado, la tienda se pondrá en contacto contigo para coordinar el horario y el especialista asignado según tu conveniencia. 🩺📅",
+        ],
+        'cancelar_servicio' => [
+            'keywords' => ['cancelar cita', 'cancelar servicio', 'anular reserva servicio', 'no puedo ir a cita'],
+            'terms'    => ['cancelar cita', 'cancelar servicio', 'anular reserva'],
+            'response' => "Para cancelar una reserva de servicio, comunícate directamente con la tienda a través de la plataforma (ve a 'Mis pedidos' → selecciona la reserva → 'Contactar tienda'). Cada tienda tiene su propia política de cancelación. Si tienes problemas, abre un ticket de soporte. 📅❌",
+        ],
+        'app_movil' => [
+            'keywords' => ['tienen app', 'app movil lyrium', 'descargar app', 'lyrium en celular', 'aplicacion lyrium'],
+            'terms'    => ['app movil', 'aplicacion', 'descargar app'],
+            'response' => "Por el momento Lyrium funciona como una plataforma web completamente optimizada para móviles. Puedes acceder desde cualquier navegador en tu celular sin necesidad de descargar nada. Próximamente lanzaremos nuestra app nativa. 📱🌱",
+        ],
     ];
+
+    public function isHandoffResponse(string $response): bool
+    {
+        return $response === self::ASESOR_RESPONSE;
+    }
 
     /**
      * @param array<int, array{role: string, content: string}> $history
@@ -120,7 +381,7 @@ final class ChatBotFaqService
     {
         $normalized = $this->normalize($message);
 
-        // 1. Lily menu intents — whole-word match, keywords normalized before compare
+        // 1. Lyrio menu intents — whole-word match, keywords normalized before compare
         foreach (self::LILY_INTENTS as $intent) {
             foreach ($intent['keywords'] as $keyword) {
                 if ($this->matchesWholeWord($normalized, $keyword)) {

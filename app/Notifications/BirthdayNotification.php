@@ -37,17 +37,7 @@ final class BirthdayNotification extends Notification implements ShouldQueue
             ->subject('¡Feliz cumpleaños de parte de Lyrium Biomarketplace! 🌱🎂')
             ->view('emails.notifications.birthday', [
                 'name' => $notifiable->name,
-            ])
-            ->withSymfonyMessage(function ($message): void {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
     }
 
     public function toPush(object $notifiable): array

@@ -11,11 +11,9 @@ final class VendedorListResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $activeSubscription = $this->subscriptions()
-            ->where('status', 'active')
-            ->where('ends_at', '>=', now())
-            ->with('plan')
-            ->latest()
+        $activeSubscription = $this->subscriptions
+            ->filter(fn ($s) => $s->ends_at && $s->ends_at->gte(now()))
+            ->sortByDesc('created_at')
             ->first();
 
         return [

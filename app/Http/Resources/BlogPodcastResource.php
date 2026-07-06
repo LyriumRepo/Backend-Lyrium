@@ -15,9 +15,14 @@ final class BlogPodcastResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'description' => $this->description ?? '',
-            'image' => $this->image,
+            'type' => $this->type ?? 'audio',
+            'platform' => $this->platform,
+            'url' => $this->url,
+            'cover_image' => $this->cover_image ?? $this->image,
+            'thumbnail' => $this->thumbnail,
             'audio_url' => $this->audio_url,
             'duration' => $this->duration,
+            'tags' => $this->tags,
             'published_at' => $this->published_at?->toDateString(),
         ];
     }

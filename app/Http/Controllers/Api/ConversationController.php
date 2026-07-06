@@ -113,6 +113,8 @@ final class ConversationController extends Controller
             }
         }
 
+        $this->notifyAdminsOfChatMessage($user, $message, $conversation);
+
         return response()->json([
             'success' => true,
             'data' => new ConversationResource($conversation),
@@ -192,6 +194,8 @@ final class ConversationController extends Controller
             }
         }
 
+        $this->notifyAdminsOfChatMessage($user, $message, $conversation);
+
         return response()->json([
             'success' => true,
             'data' => new ConversationMessageResource($message->load('sender')),
@@ -259,6 +263,8 @@ final class ConversationController extends Controller
                 $this->notifyRecipient($customer, $message, $conversation);
             }
         }
+
+        $this->notifyAdminsOfChatMessage($user, $message, $conversation);
 
         return response()->json([
             'success' => true,
@@ -459,6 +465,24 @@ final class ConversationController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function notifyAdminsOfChatMessage(User $sender, ConversationMessage $message, Conversation $conversation): void
+    {
+        User::role('administrator')
+            ->where('id', '!=', $sender->id)
+            ->get()
+            ->each(function (User $admin) use ($message, $conversation): void {
+                try {
+                    $admin->notify(new NewChatMessageNotification($message, $conversation));
+                } catch (\Throwable $e) {
+                    Log::error('[Chat] Error al notificar admin de mensaje de chat', [
+                        'admin_id' => $admin->id,
+                        'conversation_id' => $conversation->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            });
     }
 
     private function findConversation($user, int $id): ?Conversation

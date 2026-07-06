@@ -16,6 +16,7 @@ final class Contract extends Model
     use AuditableModel, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'parent_contract_id',
         'contract_number',
         'store_id',
         'company',
@@ -30,6 +31,7 @@ final class Contract extends Model
         'modality',
         'plan',
         'status',
+        'version',
         'start_date',
         'end_date',
         'file_path',

@@ -9,6 +9,7 @@ use App\Models\Ticket;
 use App\Models\TicketMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 final class TicketRepliedNotification extends Notification implements ShouldQueue
@@ -28,8 +29,26 @@ final class TicketRepliedNotification extends Notification implements ShouldQueu
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
         }
+        if (!app()->environment('local') && ($settings?->wantsEmailOrder() ?? true)) {
+            $channels[] = 'mail';
+        }
 
         return $channels;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $preview = mb_strimwidth($this->message->content, 0, 200, '…');
+        $senderName = $this->message->user->name;
+
+        return (new MailMessage)
+            ->subject("Re: [{$this->ticket->ticket_number}] {$this->ticket->subject}")
+            ->greeting('Hola, ' . $notifiable->name)
+            ->line("{$senderName} respondió tu ticket **{$this->ticket->ticket_number}**.")
+            ->line("**Asunto:** {$this->ticket->subject}")
+            ->line("**Respuesta:** \"{$preview}\"")
+            ->action('Ver ticket', config('app.frontend_url') . '/customer/support?id=' . $this->ticket->id)
+            ->line('Puedes responder directamente desde el portal de soporte.');
     }
 
     public function toPush(object $notifiable): array

@@ -23,7 +23,7 @@
 
     .confirmation-badge {
       display: inline-block;
-      background-color: #059669;
+      background-color: #15803D;
       color: #fff;
       font-size: 10px;
       font-weight: bold;
@@ -33,11 +33,11 @@
       border-radius: 3px;
     }
 
-    .divider { border: none; border-top: 2px solid #059669; margin: 0 0 14px 0; }
+    .divider { border: none; border-top: 2px solid #15803D; margin: 0 0 14px 0; }
 
     .section-title {
       font-size: 7.5px; font-weight: bold;
-      background-color: #059669; color: #fff;
+      background-color: #15803D; color: #fff;
       padding: 4px 8px; text-transform: uppercase;
       letter-spacing: 0.8px;
       margin-bottom: 0;
@@ -51,10 +51,10 @@
 
     .items-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
     .items-table th {
-      background-color: #059669; color: #fff;
+      background-color: #15803D; color: #fff;
       font-size: 7px; text-transform: uppercase;
       padding: 4px 6px; text-align: center;
-      border: 1px solid #059669;
+      border: 1px solid #15803D;
       letter-spacing: 0.3px;
     }
     .items-table td {
@@ -70,13 +70,13 @@
     .totals td { padding: 3px 8px; font-size: 8px; }
     .totals .label { text-align: right; color: #555; }
     .totals .value { text-align: right; font-weight: bold; color: #1a1a1a; }
-    .totals .grand td { border-top: 2px solid #059669; padding-top: 5px; }
+    .totals .grand td { border-top: 2px solid #15803D; padding-top: 5px; }
     .totals .grand .label { font-size: 10px; font-weight: bold; color: #1a1a1a; }
-    .totals .grand .value { font-size: 11px; font-weight: bold; color: #059669; }
+    .totals .grand .value { font-size: 11px; font-weight: bold; color: #15803D; }
 
     .status-box {
       text-align: center;
-      border: 2px solid #059669;
+      border: 2px solid #15803D;
       border-radius: 4px;
       padding: 10px 0;
       margin-bottom: 14px;
@@ -84,7 +84,7 @@
     .status-box .status-text {
       font-size: 14px;
       font-weight: bold;
-      color: #059669;
+      color: #15803D;
       text-transform: uppercase;
       letter-spacing: 2px;
     }

@@ -54,23 +54,12 @@ final class StoreStatusNotification extends Notification implements ShouldQueue
                 default => 'Actualizacion de tu tienda - Lyrium BioMarketplace',
             })
             ->view('emails.notifications.store-status', [
-                'greeting' => $greeting,
+                'name' => $notifiable->name,
                 'storeName' => $this->store->trade_name,
                 'status' => $this->newStatus,
                 'reason' => $this->reason,
                 'actionUrl' => config('app.frontend_url') . '/seller/settings',
-                'showTagline' => true,
-            ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
     }
 
     public function toPush(object $notifiable): array

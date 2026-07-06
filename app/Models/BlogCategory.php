@@ -31,4 +31,9 @@ final class BlogCategory extends Model
     {
         return $this->hasMany(BlogPost::class, 'blog_category_id');
     }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(BlogArticle::class, 'blog_category_id');
+    }
 }

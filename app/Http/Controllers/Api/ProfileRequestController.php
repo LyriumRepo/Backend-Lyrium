@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\ProfileRequestNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 final class ProfileRequestController extends Controller
 {
@@ -163,9 +164,15 @@ final class ProfileRequestController extends Controller
 
             // Notificar a todos los admins en tiempo real
             $profileRequest->load('store.owner');
-            User::role('administrator')->each(
-                fn (User $admin) => $admin->notify(new ProfileRequestNotification($profileRequest))
-            );
+            User::role('administrator')->each(function (User $admin) use ($profileRequest): void {
+                try {
+                    $admin->notify(new ProfileRequestNotification($profileRequest));
+                } catch (\Throwable $e) {
+                    Log::error('[ProfileRequest] Error notificando al admin', [
+                        'profile_request_id' => $profileRequest->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                    ]);
+                }
+            });
 
             return response()->json([
                 'message' => 'Solicitud enviada para revisión',

@@ -26,6 +26,8 @@ final class PlanResource extends JsonResource
             'badge' => $this->badge,
             'description' => $this->description,
             'requires_payment' => $this->requires_payment,
+            'css_color' => $this->css_color,
+            'accent_color' => $this->accent_color,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

@@ -14,12 +14,20 @@ final class BlogComment extends Model
     use AuditableModel, HasFactory;
 
     protected $fillable = [
+        'user_id',
         'blog_post_id',
+        'commentable_id',
+        'commentable_type',
         'author_name',
         'author_email',
         'content',
         'is_approved',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 
     protected function casts(): array
     {
@@ -31,5 +39,10 @@ final class BlogComment extends Model
     public function post(): BelongsTo
     {
         return $this->belongsTo(BlogPost::class, 'blog_post_id');
+    }
+
+    public function commentable()
+    {
+        return $this->morphTo();
     }
 }

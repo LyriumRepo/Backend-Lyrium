@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\BlogArticle;
 use App\Models\Store;
+use App\Services\ContentLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -39,9 +40,13 @@ final class BlogArticleController extends Controller
         return response()->json(['success' => true, 'data' => BlogArticle::findOrFail($id)]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ContentLimitService $contentLimit): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+
+        if ($error = $contentLimit->checkBioblogLimit($store, BlogArticle::class, 'bioblog_articles_per_week', 'artículos')) {
+            return response()->json(['success' => false, 'message' => $error, 'upgrade_required' => true], 403);
+        }
 
         $data = $request->validate([
             'blog_category_id' => ['nullable', 'integer', 'exists:blog_categories,id'],

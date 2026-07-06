@@ -31,31 +31,29 @@ final class CartResource extends JsonResource
                     'quantity'  => $quantity,
                     'unitPrice' => round($price, 2),
                     'lineTotal' => round($price * $quantity, 2),
-                    'name'  => $product?->name ?? '',
-                    'product' => [
-                        'id'    => $product?->id,
-                        'name'  => $product?->name ?? '',
-                        'slug'  => $product?->slug ?? '',
-                        'price' => round($price, 2),
+                    'name'      => $product?->name ?? '',
+                    'product'   => [
+                        'id'            => $product?->id,
+                        'name'          => $product?->name ?? '',
+                        'slug'          => $product?->slug ?? '',
+                        'price'         => round($price, 2),
                         'regular_price' => $product?->regular_price
                             ? round((float) $product->regular_price, 2)
                             : ($product?->price ? round((float) $product->price, 2) : null),
 
                         'stock' => (int) ($product?->stock ?? 0),
                         'image' => $product?->getFirstMediaUrl('images')
-                            ?? $product?->image
-                            ?? null,
+                                    ?? $product?->image
+                                    ?? null,
                     ],
-
-                    'peso'  => (float) ($product?->weight ?? 0.5),
-                    'largo' => $dims['largo'],
-                    'ancho' => $dims['ancho'],
-                    'alto'  => $dims['alto'],
-
-                    'store_id'   => $store?->id   ?? 0,
+                    // Campos de logística
+                    'store_id'   => $product?->store_id ?? $store?->id,
                     'store_name' => $store?->store_name ?? 'Tienda',
                     'store_slug' => $store?->slug ?? null,
-
+                    'peso'  => max(0.001, (float) ($product?->weight ?? 0.5)),
+                    'largo' => max(0.5, $dims['largo']),
+                    'ancho' => max(0.5, $dims['ancho']),
+                    'alto'  => max(0.5, $dims['alto']),
                     'origen' => $origen,
                 ];
             })->all();
@@ -92,7 +90,7 @@ final class CartResource extends JsonResource
             ];
         }
 
-        $parts = preg_split('/[xX×*]/u', trim($raw));
+        $parts = preg_split('/[xX×*\s]+/u', trim($raw));
         if (count($parts) >= 3) {
             return [
                 'largo' => (float) ($parts[0] ?? 30),
