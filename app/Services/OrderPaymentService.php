@@ -52,24 +52,29 @@ final class OrderPaymentService
                 'payment_method' => $paymentMethod,
             ]);
 
-            $order->load(['items.product.store', 'user']);
+            $order->load(['items.product.store', 'serviceItems.service.store', 'user']);
 
-            $storesInvolved = $order->items->pluck('store_id')->unique()->values();
+            $productStoreIds = $order->items->pluck('store_id')->unique()->values();
+            $serviceStoreIds = $order->serviceItems->pluck('store_id')->unique()->values();
+            $storesInvolved = $productStoreIds->merge($serviceStoreIds)->unique()->values();
+
             $totalShipping = (float) ($order->shipping_cost ?? 0);
             $totalProductsSubtotal = (float) $order->items->sum('line_total');
 
-            // Pre-calcular envío proporcional por tienda (último store absorbe el resto del redondeo)
+            // Pre-calcular envío proporcional por tienda con productos (último absorbe el
+            // resto del redondeo). Las tiendas que solo venden servicios nunca reciben
+            // envío, ya que no hay nada físico que despachar.
             $storeShippings = [];
             $allocatedShipping = 0.0;
-            $storesArray = $storesInvolved->all();
-            $lastStoreId = end($storesArray);
-            foreach ($storesArray as $sid) {
+            $productStoresArray = $productStoreIds->all();
+            $lastProductStoreId = end($productStoresArray);
+            foreach ($productStoresArray as $sid) {
                 if ($totalShipping <= 0 || $totalProductsSubtotal <= 0) {
                     $storeShippings[$sid] = 0.0;
                     continue;
                 }
                 $storeSubtotal = (float) $order->items->where('store_id', $sid)->sum('line_total');
-                if ($sid === $lastStoreId) {
+                if ($sid === $lastProductStoreId) {
                     $storeShippings[$sid] = round($totalShipping - $allocatedShipping, 2);
                 } else {
                     $portion = round($totalShipping * ($storeSubtotal / $totalProductsSubtotal), 2);
@@ -86,7 +91,8 @@ final class OrderPaymentService
                 }
 
                 $storeItems = $order->items->where('store_id', $storeId);
-                $subtotalConIgv = (float) $storeItems->sum('line_total');
+                $storeServiceItems = $order->serviceItems->where('store_id', $storeId);
+                $subtotalConIgv = (float) $storeItems->sum('line_total') + (float) $storeServiceItems->sum('line_total');
 
                 if ($subtotalConIgv <= 0) {
                     continue;
@@ -95,7 +101,7 @@ final class OrderPaymentService
                 $storeShipping = $storeShippings[$storeId] ?? 0.0;
 
                 try {
-                    $this->emitInvoiceForStore($order, $store, $storeItems, $subtotalConIgv, $storeShipping);
+                    $this->emitInvoiceForStore($order, $store, $storeItems, $storeServiceItems, $subtotalConIgv, $storeShipping);
                 } catch (\Throwable $e) {
                     Log::error('OrderPaymentService: error al emitir factura para tienda', [
                         'store_id' => $storeId,
@@ -129,7 +135,7 @@ final class OrderPaymentService
         );
     }
 
-    private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, float $subtotalConIgv, float $shippingCost = 0.0): void
+    private function emitInvoiceForStore(Order $order, Store $store, iterable $storeItems, iterable $storeServiceItems, float $subtotalConIgv, float $shippingCost = 0.0): void
     {
         // Nombre visible: nombre_comercial > store_name (accessor) > razon_social > trade_name
         $customerName = $store->nombre_comercial
@@ -201,6 +207,27 @@ final class OrderPaymentService
             $customItems[] = [
                 'unidad_de_medida' => 'NIU',
                 'descripcion' => $item->product_name,
+                'cantidad' => (string) $qty,
+                'valor_unitario' => $unitPrice,
+                'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
+                'subtotal' => $lineNetTotal,
+                'tipo_de_igv' => '1',
+                'igv' => $igv,
+                'total' => $itemTotal,
+            ];
+        }
+
+        foreach ($storeServiceItems as $item) {
+            $lineTotal = (float) $item->line_total; // CON IGV
+            $qty = max((int) ($item->quantity ?? 1), 1);
+            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
+            $unitPrice = round($lineNetTotal / $qty, 2);
+            $igv = round($lineNetTotal * self::IGV_RATE, 2);
+            $itemTotal = $lineTotal; // precio con IGV = base + igv
+
+            $customItems[] = [
+                'unidad_de_medida' => 'ZZ',
+                'descripcion' => $item->service_name,
                 'cantidad' => (string) $qty,
                 'valor_unitario' => $unitPrice,
                 'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
@@ -354,12 +381,14 @@ final class OrderPaymentService
 
     private function scheduleCommissionForStore(Order $order, Store $store, float $subtotalConIgv): void
     {
-        // Usar la tasa y monto escalonados ya calculados por CommissionService en los order_items
+        // Usar la tasa y monto escalonados ya calculados por CommissionService
+        // en los order_items y order_service_items.
         $storeItems = $order->items->where('store_id', $store->id);
+        $storeServiceItems = $order->serviceItems->where('store_id', $store->id);
 
-        $commissionAmount = (float) $storeItems->sum('commission_amount');
+        $commissionAmount = (float) $storeItems->sum('commission_amount') + (float) $storeServiceItems->sum('commission_amount');
         // commission_rate viene como entero (ej: 15) desde CommissionTier
-        $commissionRate   = (float) ($storeItems->first()?->commission_rate ?? 0);
+        $commissionRate   = (float) ($storeItems->first()?->commission_rate ?? $storeServiceItems->first()?->commission_rate ?? 0);
 
         $baseGravada = round($subtotalConIgv / (1 + self::IGV_RATE), 2);
 

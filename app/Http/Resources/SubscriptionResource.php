@@ -19,6 +19,8 @@ final class SubscriptionResource extends JsonResource
             'starts_at' => $this->starts_at?->toIso8601String(),
             'ends_at' => $this->ends_at?->toIso8601String(),
             'is_active' => $this->isActive(),
+            'auto_renew' => (bool) $this->auto_renew,
+            'payment_method_id' => $this->payment_method_id,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'plan' => $this->whenLoaded('plan', fn () => new PlanResource($this->plan)),

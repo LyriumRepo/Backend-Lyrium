@@ -256,6 +256,9 @@ final class Store extends Model implements HasMedia
         $this->addMediaCollection('banner2')
             ->useDisk('public');
 
+        $this->addMediaCollection('banner3')
+            ->useDisk('public');
+
         $this->addMediaCollection('gallery')
             ->useDisk('public');
 

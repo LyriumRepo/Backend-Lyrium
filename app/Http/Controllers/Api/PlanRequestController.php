@@ -18,7 +18,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 final class PlanRequestController extends Controller
 {
@@ -103,7 +102,7 @@ final class PlanRequestController extends Controller
         $user = $request->user();
         $store = Store::where('owner_id', $user->id)->first();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'No tienes una tienda registrada'], 404);
         }
 
@@ -323,9 +322,9 @@ final class PlanRequestController extends Controller
                 'seller_name' => $req->store->owner?->name,
                 'seller_email' => $req->store->owner?->email,
                 'plan' => [
-                    'id'          => $req->plan->id,
-                    'name'        => $req->plan->name,
-                    'slug'        => $req->plan->slug,
+                    'id' => $req->plan->id,
+                    'name' => $req->plan->name,
+                    'slug' => $req->plan->slug,
                     'monthly_fee' => $req->plan->monthly_fee,
                 ],
                 'months' => $req->months,
@@ -424,7 +423,7 @@ final class PlanRequestController extends Controller
         }
 
         $planRequest->update([
-            'status'      => PlanRequest::STATUS_REJECTED,
+            'status' => PlanRequest::STATUS_REJECTED,
             'admin_notes' => $notes,
             'reviewed_by' => $request->user()->id,
         ]);
@@ -444,8 +443,8 @@ final class PlanRequestController extends Controller
             'success' => true,
             'message' => 'Solicitud rechazada',
             'request' => [
-                'id'          => $planRequest->id,
-                'status'      => $planRequest->status,
+                'id' => $planRequest->id,
+                'status' => $planRequest->status,
                 'admin_notes' => $planRequest->admin_notes,
                 'reviewed_at' => $planRequest->updated_at->toIso8601String(),
             ],
@@ -478,45 +477,45 @@ final class PlanRequestController extends Controller
             $sub = $store?->activeSubscription;
 
             $transacciones = $storeRequests->map(fn ($req) => [
-                'id'          => $req->id,
-                'estado'      => $req->payment_status,
-                'monto'       => (float) $req->total_amount,
-                'meses'       => $req->months,
-                'fecha'       => $req->created_at->toIso8601String(),
+                'id' => $req->id,
+                'estado' => $req->payment_status,
+                'monto' => (float) $req->total_amount,
+                'meses' => $req->months,
+                'fecha' => $req->created_at->toIso8601String(),
                 'procesadoEn' => $req->updated_at?->toIso8601String(),
-                'metodoPago'  => strtoupper($req->payment_method ?? ''),
-                'planId'      => $req->plan?->slug ?? '',
-                'planNombre'  => $req->plan?->name ?? '',
-                'planColor'   => $req->plan?->css_color ?? '#10b981',
+                'metodoPago' => strtoupper($req->payment_method ?? ''),
+                'planId' => $req->plan?->slug ?? '',
+                'planNombre' => $req->plan?->name ?? '',
+                'planColor' => $req->plan?->css_color ?? '#10b981',
             ])->values()->all();
 
             return [
-                'usuario_id'      => (string) $storeId,
-                'username'        => $store?->trade_name ?? 'Tienda',
-                'email'           => $store?->owner?->email ?? '',
-                'correo'          => $store?->owner?->email ?? '',
-                'plan_actual'     => $sub?->plan?->slug ?? 'basic',
-                'nombre_plan'     => $sub?->plan?->name ?? 'Sin plan',
-                'css_color'       => $sub?->plan?->css_color ?? '#10b981',
-                'fecha_expiracion'=> $sub?->ends_at?->toIso8601String() ?? '',
-                'total_monto'     => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
-                'pagos_exitosos'  => $storeRequests->where('payment_status', 'paid')->count(),
-                'transacciones'   => $transacciones,
-                'historial'       => [],
+                'usuario_id' => (string) $storeId,
+                'username' => $store?->trade_name ?? 'Tienda',
+                'email' => $store?->owner?->email ?? '',
+                'correo' => $store?->owner?->email ?? '',
+                'plan_actual' => $sub?->plan?->slug ?? 'basic',
+                'nombre_plan' => $sub?->plan?->name ?? 'Sin plan',
+                'css_color' => $sub?->plan?->css_color ?? '#10b981',
+                'fecha_expiracion' => $sub?->ends_at?->toIso8601String() ?? '',
+                'total_monto' => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
+                'pagos_exitosos' => $storeRequests->where('payment_status', 'paid')->count(),
+                'transacciones' => $transacciones,
+                'historial' => [],
             ];
         })->values()->all();
 
         $totales = [
-            'total_monto'    => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
+            'total_monto' => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
             'pagos_exitosos' => PlanRequest::where('payment_status', 'paid')->count(),
             'pagos_fallidos' => PlanRequest::where('payment_status', 'failed')->count(),
-            'pagos_pending'  => PlanRequest::where('payment_status', 'pending')->count(),
+            'pagos_pending' => PlanRequest::where('payment_status', 'pending')->count(),
         ];
 
         return response()->json([
-            'success'  => true,
-            'data'     => $vendedores,
-            'totales'  => $totales,
+            'success' => true,
+            'data' => $vendedores,
+            'totales' => $totales,
         ]);
     }
 
@@ -641,9 +640,9 @@ final class PlanRequestController extends Controller
     public function approvePlanRequest(PlanRequest $planRequest, ?int $reviewedBy): void
     {
         $planRequest->update([
-            'status'         => PlanRequest::STATUS_APPROVED,
+            'status' => PlanRequest::STATUS_APPROVED,
             'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
-            'reviewed_by'    => $reviewedBy,
+            'reviewed_by' => $reviewedBy,
         ]);
 
         $endsAt = now()->addMonths($planRequest->months);
@@ -658,6 +657,7 @@ final class PlanRequestController extends Controller
                 'starts_at' => now(),
                 'ends_at' => $endsAt,
                 'status' => 'active',
+                'plan_request_id' => $planRequest->id,
             ]
         );
 

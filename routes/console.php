@@ -38,6 +38,10 @@ Schedule::command('birthday:advance')->dailyAt('08:00')->name('birthday-advance-
 // Recordatorios del panel de cliente: días 7, 30 y 90 tras la primera compra
 Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer-panel-reminders');
 
+// Renovación automática de planes vencidos hoy con auto_renew activado
+// (corre antes del recordatorio de las 09:00 para no avisar dos veces si ya se renovó solo)
+Schedule::command('app:process-plan-auto-renewals')->dailyAt('07:00')->name('process-plan-auto-renewals')->withoutOverlapping();
+
 // Recordatorios de plan por vencer (7, 3 y 1 día antes)
 Schedule::command('app:send-plan-expiring-reminders')->dailyAt('09:00')->name('plan-expiring-reminders');
 

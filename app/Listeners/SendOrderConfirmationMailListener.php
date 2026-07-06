@@ -17,7 +17,7 @@ final class SendOrderConfirmationMailListener implements ShouldQueue
     {
         $order = $event->order;
 
-        if (!$order->items()->exists()) {
+        if (!$order->items()->exists() && !$order->serviceItems()->exists()) {
             return;
         }
 

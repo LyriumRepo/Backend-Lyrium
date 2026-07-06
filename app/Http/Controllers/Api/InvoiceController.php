@@ -260,7 +260,7 @@ final class InvoiceController extends Controller
     {
         $store = $this->getStore($request->user());
 
-        $query = Invoice::with(['order.user', 'order.items', 'store.owner'])
+        $query = Invoice::with(['order.user', 'order.items', 'order.serviceItems', 'store.owner'])
             ->where('store_id', $store->id)
             ->where(function ($q) {
                 $q->whereNull('source')->orWhere('source', '!=', 'plan_subscription');

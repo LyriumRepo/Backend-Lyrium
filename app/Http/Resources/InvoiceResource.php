@@ -52,6 +52,9 @@ final class InvoiceResource extends JsonResource
             'commissionRate'       => $this->resolveCommissionRate(),
             'commissionAmount'     => $this->resolveCommissionAmount(),
 
+            // Tipo de pedido: Producto / Servicio / Producto y Servicio
+            'orderType'            => $this->resolveOrderTypeLabel(),
+
             // Vendedor (para panel de admin)
             'sellerName'           => $this->whenLoaded('store', fn () => $this->store?->owner?->name ?? ''),
 
@@ -77,23 +80,18 @@ final class InvoiceResource extends JsonResource
                 'orderNumber' => $this->order->order_number,
                 'total'       => (float) $this->order->total,
                 'status'      => $this->order->status,
-                // Filtrar por store_id de la factura para no exponer productos
-                // de otras tiendas en pedidos multi-vendor.
-                'items'       => ($this->store_id
-                    ? $this->order->items->where('store_id', $this->store_id)
-                    : $this->order->items
-                )->map(fn ($item) => [
-                    'productName' => $item->product?->name ?? $item->product_name ?? '',
+                // Filtrar por store_id de la factura para no exponer productos/servicios
+                // de otras tiendas en pedidos multi-vendor. Incluye tanto order_items
+                // (productos) como order_service_items (servicios).
+                'items'       => $this->combinedOrderItems()->map(fn ($item) => [
+                    'productName' => $item->product?->name ?? $item->product_name ?? $item->service_name ?? '',
                     'quantity'    => (int) $item->quantity,
                     'unitPrice'   => (float) $item->unit_price,
                     'lineTotal'   => (float) $item->line_total,
                     'storeName'   => $item->store?->store_name ?? $item->store?->nombre_comercial ?? null,
                     'storeSlug'   => $item->store?->slug ?? null,
                 ]),
-                'stores' => ($this->store_id
-                    ? $this->order->items->where('store_id', $this->store_id)
-                    : $this->order->items
-                )
+                'stores' => $this->combinedOrderItems()
                     ->pluck('store')
                     ->filter()
                     ->unique('id')
@@ -110,14 +108,48 @@ final class InvoiceResource extends JsonResource
         ];
     }
 
+    /**
+     * Ítems (order_items + order_service_items) de la tienda de esta factura.
+     */
+    private function combinedOrderItems()
+    {
+        if (! $this->relationLoaded('order') || ! $this->order) {
+            return collect();
+        }
+
+        $products = $this->order->relationLoaded('items')
+            ? ($this->store_id ? $this->order->items->where('store_id', $this->store_id) : $this->order->items)
+            : collect();
+
+        $services = $this->order->relationLoaded('serviceItems')
+            ? ($this->store_id ? $this->order->serviceItems->where('store_id', $this->store_id) : $this->order->serviceItems)
+            : collect();
+
+        return $products->concat($services);
+    }
+
+    private function resolveOrderTypeLabel(): ?string
+    {
+        $items = $this->combinedOrderItems();
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        $hasProducts = $items->contains(fn ($item) => $item instanceof \App\Models\OrderItem);
+        $hasServices = $items->contains(fn ($item) => $item instanceof \App\Models\OrderServiceItem);
+
+        return match (true) {
+            $hasProducts && $hasServices => 'Producto y Servicio',
+            $hasServices => 'Servicio',
+            default => 'Producto',
+        };
+    }
+
     private function resolveCommissionRate(): ?float
     {
-        // 1. Desde order_items (pedidos nuevos desde jun-2026)
-        if ($this->relationLoaded('order') && $this->order?->relationLoaded('items')) {
-            $items = $this->store_id
-                ? $this->order->items->where('store_id', $this->store_id)
-                : $this->order->items;
-
+        // 1. Desde order_items / order_service_items (pedidos nuevos desde jun-2026)
+        $items = $this->combinedOrderItems();
+        if ($items->isNotEmpty()) {
             $rate = $items->first()?->commission_rate;
             if ($rate !== null) {
                 return (float) $rate;
@@ -134,12 +166,9 @@ final class InvoiceResource extends JsonResource
 
     private function resolveCommissionAmount(): ?float
     {
-        // 1. Desde order_items (pedidos nuevos desde jun-2026)
-        if ($this->relationLoaded('order') && $this->order?->relationLoaded('items')) {
-            $items = $this->store_id
-                ? $this->order->items->where('store_id', $this->store_id)
-                : $this->order->items;
-
+        // 1. Desde order_items / order_service_items (pedidos nuevos desde jun-2026)
+        $items = $this->combinedOrderItems();
+        if ($items->isNotEmpty()) {
             $stored = (float) $items->sum('commission_amount');
             if ($stored > 0) {
                 return $stored;

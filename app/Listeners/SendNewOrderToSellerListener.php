@@ -33,7 +33,7 @@ final class SendNewOrderToSellerListener
             return;
         }
 
-        $order = $event->order->loadMissing(['items', 'user']);
+        $order = $event->order->loadMissing(['items', 'serviceItems', 'user']);
 
         try {
             $owner->notify(new NewOrderSellerNotification(

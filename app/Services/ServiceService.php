@@ -798,7 +798,7 @@ final class ServiceService
 
         return ServiceBooking::query()
             ->where('user_id', $userId)
-            ->with(['service', 'service.store', 'schedule', 'specialist'])
+            ->with(['service', 'service.store', 'schedule', 'specialist', 'review'])
             ->latest()
             ->paginate($perPage);
     }

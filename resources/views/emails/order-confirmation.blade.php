@@ -22,13 +22,17 @@
                     <th colspan="3" style="padding:12px 16px;font-size:13px;font-weight:900;
                         color:#ffffff;text-transform:uppercase;letter-spacing:1.5px;text-align:left;">
                         Detalle de su pedido
+                        <span style="margin-left:8px;font-size:10px;font-weight:800;text-transform:uppercase;
+                            letter-spacing:0.8px;background:rgba(255,255,255,0.25);padding:2px 8px;border-radius:10px;">
+                            {{ $orderType }}
+                        </span>
                     </th>
                 </tr>
                 {{-- Cabeceras columnas --}}
                 <tr style="background:#1a9d96;">
                     <td width="55%" style="padding:9px 10px;font-size:11px;font-weight:800;
                         color:#e0faf8;text-transform:uppercase;letter-spacing:0.8px;text-align:left;">
-                        Producto
+                        Producto / Servicio
                     </td>
                     <td width="15%" style="padding:9px 4px;font-size:11px;font-weight:800;
                         color:#e0faf8;text-transform:uppercase;letter-spacing:0.8px;text-align:center;">

@@ -38,6 +38,9 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
         if (!$order->relationLoaded('items')) {
             $order->load('items');
         }
+        if (!$order->relationLoaded('serviceItems')) {
+            $order->load('serviceItems');
+        }
 
         try {
             $user->notify(new OrderStatusTrackingNotification($order));

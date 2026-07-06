@@ -33,7 +33,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ServiceBooking;
-use App\Models\ServiceSlotHold;
+use App\Models\ServiceHold;
 use App\Services\AuditService;
 use App\Services\CommissionService;
 use App\Services\LiriosService;
@@ -149,7 +149,7 @@ final class OrderController extends Controller
         $cartToken = $request->header('X-Session-ID');
         $serviceHolds = collect();
         if ($cartToken) {
-            $serviceHolds = ServiceSlotHold::where('cart_token', $cartToken)
+            $serviceHolds = ServiceHold::where('cart_token', $cartToken)
                 ->active()
                 ->with(['service.store', 'specialist'])
                 ->get();
@@ -328,6 +328,8 @@ final class OrderController extends Controller
                     'unit_price'                => $price,
                     'line_total'                => $price,
                     'status'                    => 'pending',
+                    'modality'                  => $service?->is_home_service ? 'home' : 'in_person',
+                    'duration_minutes'          => $service?->duration_minutes,
                     'service_snapshot'          => $service ? $service->only(['id', 'name', 'price', 'description']) : null,
                     'store_name_snapshot'       => $service?->store?->name,
                     'specialist_name_snapshot'  => $hold->specialist?->name,

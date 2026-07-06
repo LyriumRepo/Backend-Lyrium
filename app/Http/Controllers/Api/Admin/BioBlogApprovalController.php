@@ -19,25 +19,25 @@ final class BioBlogApprovalController extends Controller
     public function pending(): JsonResponse
     {
         $articles = BlogArticle::with('store')
-            ->where('status', 'pending_review')
+            ->where('status', 'review')
             ->orderByDesc('updated_at')
             ->get()
            ->map(fn ($a) => [...$a->toArray(), 'content_type' => 'article']);
 
         $podcasts = BlogPodcast::with('store')
-            ->where('status', 'pending_review')
+            ->where('status', 'review')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn ($p) => [...$p->toArray(), 'content_type' => 'podcast']);
 
         $videos = BlogVideo::with('store')
-            ->where('status', 'pending_review')
+            ->where('status', 'review')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn ($v) => [...$v->toArray(), 'content_type' => 'video']);
 
         $shorts = BlogShort::with('store')
-            ->where('status', 'pending_review')
+            ->where('status', 'review')
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn ($s) => [...$s->toArray(), 'content_type' => 'short']);
@@ -56,14 +56,14 @@ final class BioBlogApprovalController extends Controller
     public function stats(): JsonResponse
     {
         return response()->json(['success' => true, 'data' => [
-            'pending_articles' => BlogArticle::where('status', 'pending_review')->count(),
-            'pending_podcasts' => BlogPodcast::where('status', 'pending_review')->count(),
-            'pending_videos' => BlogVideo::where('status', 'pending_review')->count(),
-            'pending_shorts' => BlogShort::where('status', 'pending_review')->count(),
-            'total_pending' => BlogArticle::where('status', 'pending_review')->count()
-                + BlogPodcast::where('status', 'pending_review')->count()
-                + BlogVideo::where('status', 'pending_review')->count()
-                + BlogShort::where('status', 'pending_review')->count(),
+            'pending_articles' => BlogArticle::where('status', 'review')->count(),
+            'pending_podcasts' => BlogPodcast::where('status', 'review')->count(),
+            'pending_videos' => BlogVideo::where('status', 'review')->count(),
+            'pending_shorts' => BlogShort::where('status', 'review')->count(),
+            'total_pending' => BlogArticle::where('status', 'review')->count()
+                + BlogPodcast::where('status', 'review')->count()
+                + BlogVideo::where('status', 'review')->count()
+                + BlogShort::where('status', 'review')->count(),
         ]]);
     }
 
@@ -74,7 +74,10 @@ final class BioBlogApprovalController extends Controller
             return response()->json(['error' => 'Contenido no encontrado'], 404);
         }
 
-        $model->status = 'approved';
+        $model->status = 'published';
+        if (! $model->published_at) {
+            $model->published_at = now();
+        }
         $model->save();
 
         $this->notifySeller($model, 'approved', $request->input('note'));

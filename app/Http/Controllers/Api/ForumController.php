@@ -30,7 +30,7 @@ final class ForumController extends Controller
     public function topics(Request $request): JsonResponse
     {
         $query = ForumTopic::with('category')
-            ->where('status', 'active');
+            ->whereIn('status', ['active', 'published']);
 
         if ($categoryId = $request->query('forum')) {
             $query->where('forum_category_id', $categoryId);
@@ -207,7 +207,7 @@ final class ForumController extends Controller
     public function stats(): JsonResponse
     {
         return $this->success([
-            'totalTopics' => ForumTopic::where('status', 'active')->count(),
+            'totalTopics' => ForumTopic::whereIn('status', ['active', 'published'])->count(),
             'totalReplies' => ForumPost::where('status', 'active')->count(),
             'onlineUsers' => 0,
         ]);

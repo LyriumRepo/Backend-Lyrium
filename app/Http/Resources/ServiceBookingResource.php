@@ -93,6 +93,12 @@ final class ServiceBookingResource extends JsonResource
             // ── Estado ───────────────────────────────────────────────────────
             'status' => $this->status, // 'pending'|'confirmed'|'completed'|'cancelled'|'no_show'|'on_the_way'
 
+            // ── Calificación (si el cliente ya calificó esta reserva) ─────────
+            'review' => $this->whenLoaded('review', fn () => $this->review ? [
+                'rating' => $this->review->rating,
+                'comment' => $this->review->comment,
+            ] : null),
+
             // ── Tipo de atención ─────────────────────────────────────────────
             'is_home_service' => (bool) ($this->service?->is_home_service ?? false),
 

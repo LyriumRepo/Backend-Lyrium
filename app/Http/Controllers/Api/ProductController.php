@@ -12,8 +12,10 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Store;
 use App\Notifications\ProductPendingReviewNotification;
 use App\Notifications\ProductStatusNotification;
+use App\Services\PlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -159,6 +161,10 @@ final class ProductController extends Controller
 
         $type = $data['type'] ?? 'physical';
 
+        if ($stickerError = $this->validateStickerAllowed($store, $data['sticker'] ?? null)) {
+            return response()->json(['message' => $stickerError, 'upgrade_required' => true], 403);
+        }
+
         $productData = [
             'store_id' => $store->id,
             'type' => $type,
@@ -226,6 +232,12 @@ final class ProductController extends Controller
         Gate::authorize('update', $product);
 
         $data    = $request->validated();
+
+        if (array_key_exists('sticker', $data)) {
+            if ($stickerError = $this->validateStickerAllowed($product->store, $data['sticker'])) {
+                return response()->json(['message' => $stickerError, 'upgrade_required' => true], 403);
+            }
+        }
 
         $updateData = $this->buildUpdateData($data, $product->type);
         $product->update($updateData);
@@ -501,6 +513,25 @@ final class ProductController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Verifica que el sticker elegido esté permitido por el plan de la tienda.
+     * Devuelve un mensaje de error si no lo está, o null si es válido.
+     */
+    private function validateStickerAllowed(Store $store, ?string $sticker): ?string
+    {
+        if (! $sticker) {
+            return null;
+        }
+
+        $allowed = app(PlanService::class)->storeCapabilities($store)['sticker_types'] ?? [];
+
+        if (! in_array($sticker, $allowed, true)) {
+            return "Tu plan actual no permite el sticker '{$sticker}'. Actualiza tu plan para usar todos los stickers.";
+        }
+
+        return null;
     }
 
     /**
