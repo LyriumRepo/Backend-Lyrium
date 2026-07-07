@@ -704,6 +704,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
         Route::delete('/stores/{id}/media/gallery/{mediaId}', [MediaController::class, 'deleteStoreGallery']);
 
+        // Productos del vendedor autenticado (usa store_id del user)
+        Route::get('/seller/products', [ProductController::class, 'myProducts']);
+
         // Rutas que requieren contrato activo para operar
         Route::middleware('contract.active')->group(function () {
             // Products CRUD

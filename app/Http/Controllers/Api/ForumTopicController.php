@@ -52,6 +52,7 @@ final class ForumTopicController extends Controller
             'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'string', 'max:2048'],
             'status' => ['nullable', 'string', 'in:draft,published,closed'],
         ]);
 
@@ -77,6 +78,7 @@ final class ForumTopicController extends Controller
             'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'string', 'max:2048'],
             'status' => ['nullable', 'string', 'in:draft,published,closed'],
         ]);
 

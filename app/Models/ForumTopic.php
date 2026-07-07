@@ -20,6 +20,7 @@ final class ForumTopic extends Model
         'anonymous_name',
         'title',
         'content',
+        'image',
         'status',
         'likes_count',
         'love_count',

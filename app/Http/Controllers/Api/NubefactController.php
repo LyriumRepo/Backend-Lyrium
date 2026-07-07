@@ -66,6 +66,23 @@ final class NubefactController extends Controller
 
                 $nubefactResponse = $this->nubefact->emitInvoice($nubefactData);
 
+                $storeCommissions = null;
+                if ($orderId = $data['order_id'] ?? null) {
+                    $order = \App\Models\Order::with('items.store')->find($orderId);
+                    if ($order) {
+                        $storeCommissions = $order->items->groupBy('store_id')->map(fn ($items) => [
+                            'storeId' => (string) $items->first()->store_id,
+                            'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
+                            'storeSlug' => $items->first()->store?->slug ?? '',
+                            'subtotal' => round($items->sum('line_total'), 2),
+                            'commissionRate' => (float) ($items->first()->commission_rate ?? 0),
+                            'commissionAmount' => round($items->sum('commission_amount'), 2),
+                            'commissionIgv' => round($items->sum('commission_amount') * 0.18 / 1.18, 2),
+                            'commissionTotal' => round($items->sum('commission_amount'), 2),
+                        ])->values()->toArray();
+                    }
+                }
+
                 $invoice->update([
                     'status' => $nubefactResponse['status'],
                     'provider_invoice_id' => $nubefactResponse['provider_invoice_id'],
@@ -74,6 +91,7 @@ final class NubefactController extends Controller
                     'pdf_url' => url('/api/invoices/'.$invoice->id.'/pdf'),
                     'nubefact_response' => $nubefactResponse['raw'],
                     'items' => $data['items'],
+                    'store_commissions' => $storeCommissions,
                 ]);
 
                 return $invoice->fresh();
@@ -205,6 +223,7 @@ final class NubefactController extends Controller
         $invoices = $query->orderBy('created_at', 'desc')->get();
 
         $pdf = Pdf::loadView('pdf.comprobantes', ['invoices' => $invoices]);
+
         return $pdf->download('reporte-comprobantes.pdf');
     }
 }

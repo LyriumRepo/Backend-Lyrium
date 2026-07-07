@@ -32,6 +32,7 @@ final class Invoice extends Model
         'status',
         'nubefact_response',
         'items',
+        'store_commissions',
     ];
 
     protected function casts(): array
@@ -40,6 +41,7 @@ final class Invoice extends Model
             'total' => 'decimal:2',
             'nubefact_response' => 'array',
             'items' => 'array',
+            'store_commissions' => 'array',
         ];
     }
 

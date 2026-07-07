@@ -18,6 +18,21 @@ final class InvoiceResource extends JsonResource
             '4' => 'N.DEBITO',
         ];
 
+        $storeCommissions = $this->store_commissions;
+
+        if (! $storeCommissions && $this->relationLoaded('order') && $this->order) {
+            $storeCommissions = $this->order->items->groupBy('store_id')->map(fn ($items) => [
+                'storeId' => (string) $items->first()->store_id,
+                'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
+                'storeSlug' => $items->first()->store?->slug ?? '',
+                'subtotal' => round($items->sum('line_total'), 2),
+                'commissionRate' => (float) ($items->first()->commission_rate ?? 0),
+                'commissionAmount' => round($items->sum('commission_amount'), 2),
+                'commissionIgv' => round($items->sum('commission_amount') * 0.18 / 1.18, 2),
+                'commissionTotal' => round($items->sum('commission_amount'), 2),
+            ])->values()->toArray();
+        }
+
         return [
             'id' => (string) $this->id,
             'orderId' => $this->order_id,
@@ -39,6 +54,7 @@ final class InvoiceResource extends JsonResource
             'total' => (float) $this->total,
             'status' => $this->status,
             'items' => $this->items,
+            'storeCommissions' => $storeCommissions,
             'order' => $this->whenLoaded('order', fn () => [
                 'id' => (string) $this->order->id,
                 'orderNumber' => $this->order->order_number,
@@ -49,6 +65,8 @@ final class InvoiceResource extends JsonResource
                     'quantity' => $item->quantity,
                     'unitPrice' => (float) $item->unit_price,
                     'lineTotal' => (float) $item->line_total,
+                    'commissionAmount' => (float) ($item->commission_amount ?? 0),
+                    'commissionRate' => (float) ($item->commission_rate ?? 0),
                     'storeName' => $item->store?->trade_name ?? $item->store?->store_name ?? null,
                     'storeSlug' => $item->store?->slug ?? null,
                 ]),

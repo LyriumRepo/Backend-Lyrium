@@ -4,16 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
+use App\Http\Controllers\Controller;
 use App\Models\BlogShort;
 use App\Models\Store;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 final class BlogShortController extends Controller
 {
     use BlogReviewNotifier;
+
     public function index(Request $request): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
@@ -85,6 +88,8 @@ final class BlogShortController extends Controller
         $data['store_id'] = $store->id;
         $short = BlogShort::create($data);
 
+        $this->storeThumbnailLocally($short, $data['thumbnail'] ?? null);
+
         $this->notifyAdminsOnPendingReview($short, 'short');
 
         return response()->json(['success' => true, 'data' => $short], 201);
@@ -112,6 +117,7 @@ final class BlogShortController extends Controller
         $short->update($data);
 
         $short->refresh();
+        $this->storeThumbnailLocally($short, $data['thumbnail'] ?? null);
         $this->notifyAdminsOnPendingReview($short, 'short');
 
         return response()->json(['success' => true, 'data' => $short]);
@@ -123,5 +129,54 @@ final class BlogShortController extends Controller
         BlogShort::where('store_id', $store->id)->findOrFail($id)->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    private function storeThumbnailLocally(BlogShort $short, ?string $thumbnailUrl): void
+    {
+        if (! $thumbnailUrl || ! preg_match('/tiktokcdn\.com/', $thumbnailUrl)) {
+            return;
+        }
+
+        try {
+            $freshUrl = $this->getFreshTikTokThumbnail($short->url);
+            $downloadUrl = $freshUrl ?: $thumbnailUrl;
+
+            $response = Http::timeout(15)
+                ->withHeaders(['Referer' => 'https://www.tiktok.com/'])
+                ->get($downloadUrl);
+
+            if ($response->failed()) {
+                return;
+            }
+
+            $ext = 'jpg';
+            $filename = 'shorts/'.$short->id.'_'.time().'.'.$ext;
+            Storage::disk('public')->put($filename, $response->body());
+
+            $short->updateQuietly(['thumbnail' => Storage::disk('public')->url($filename)]);
+        } catch (\Throwable) {
+            // Silently fail — keep the original URL as fallback
+        }
+    }
+
+    private function getFreshTikTokThumbnail(string $videoUrl): ?string
+    {
+        try {
+            $oembedUrl = 'https://www.tiktok.com/oembed?url='.urlencode($videoUrl);
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'Referer' => 'https://www.tiktok.com/',
+                ])
+                ->get($oembedUrl);
+
+            if ($response->failed()) {
+                return null;
+            }
+
+            return $response->json('thumbnail_url');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
