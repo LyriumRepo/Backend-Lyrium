@@ -15,10 +15,88 @@ use App\Notifications\ContractStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Str;
 
 final class ContractController extends Controller
 {
+    /**
+     * POST /api/contracts/preview
+     * Vista previa del acuerdo comercial con datos del seller (público).
+     */
+    public function preview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'storeName'       => ['required', 'string', 'max:255'],
+            'contacto'        => ['required', 'string', 'max:255'],
+            'domicilio_legal' => ['required', 'string', 'max:255'],
+            'ruc'             => ['required', 'string', 'max:11'],
+            'dni'             => ['required', 'string', 'max:8'],
+            'phone'           => ['required', 'string', 'max:20'],
+            'email'           => ['required', 'email', 'max:255'],
+        ]);
+
+        $year = date('Y');
+        $random = strtoupper(Str::random(6));
+
+        $viewData = [
+            'nombre_comercial' => $data['storeName'],
+            'ruc'              => $data['ruc'],
+            'domicilio_legal'  => $data['domicilio_legal'],
+            'contacto'         => $data['contacto'],
+            'dni'              => $data['dni'],
+            'telefono'         => $data['phone'],
+            'email'            => $data['email'],
+            'fecha'            => now()->format('d/m/Y'),
+            'numero_contrato'  => "LYR-{$year}-{$random}",
+        ];
+
+        $html = View::make('contratos.preview', $viewData)->render();
+
+        return response()->json([
+            'success' => true,
+            'html'    => $html,
+        ]);
+    }
+
+    /**
+     * POST /api/internal/rpa/generate-contract-doc
+     * Genera el Word del acuerdo comercial usando el template acuerdo_comercial.docx
+     * y lo asigna al contrato. Llamado por el RPA tras crear el contrato.
+     */
+    public function generateDocument(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
+        ]);
+
+        $contract = Contract::with('store')->findOrFail($data['contract_id']);
+
+        if (! $contract->store) {
+            return response()->json(['error' => 'El contrato no tiene tienda asociada.'], 422);
+        }
+
+        $path = app(ContractDocumentService::class)->generateFromContract($contract);
+
+        if (empty($path)) {
+            return response()->json([
+                'warning' => 'No se encontró la plantilla de acuerdo comercial.',
+                'contract_id' => $contract->id,
+                'file_path' => null,
+            ]);
+        }
+
+        $contract->update(['file_path' => $path]);
+
+        return response()->json([
+            'success' => true,
+            'contract_id' => $contract->id,
+            'file_path' => $path,
+        ]);
+    }
+
     /**
      * GET /api/contracts
      */

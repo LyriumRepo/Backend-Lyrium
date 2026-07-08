@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRpaAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailVerified::class,
             'contract.active' => \App\Http\Middleware\EnsureContractActive::class,
             'track.session' => \App\Http\Middleware\TrackAdminSession::class,
+            'auth.rpa' => EnsureRpaAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

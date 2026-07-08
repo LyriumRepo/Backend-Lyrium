@@ -15,12 +15,14 @@ use App\Http\Resources\UserResource;
 use App\Models\LoginAttempt;
 use App\Models\SellerApplication;
 use App\Models\User;
+use App\Notifications\RpaDiagnosticoNotification;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class AuthController extends Controller
@@ -426,6 +428,46 @@ final class AuthController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * POST /api/auth/send-diagnostico
+     * Envía el diagnóstico de una solicitud al correo del vendedor.
+     */
+    public function sendDiagnostico(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'application_id' => ['required', 'integer'],
+            'email' => ['required', 'email'],
+        ]);
+
+        try {
+            $application = SellerApplication::where('id', $data['application_id'])
+                ->where('correo', $data['email'])
+                ->first();
+
+            if (! $application) {
+                return response()->json(['error' => 'Solicitud no encontrada.'], 404);
+            }
+
+            $user = User::where('email', $data['email'])->first();
+
+            if ($user) {
+                $user->notify(new RpaDiagnosticoNotification($application));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Diagnóstico enviado a tu correo.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al enviar diagnóstico RPA', [
+                'application_id' => $data['application_id'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'No se pudo enviar el diagnóstico.'], 500);
+        }
     }
 
     /**

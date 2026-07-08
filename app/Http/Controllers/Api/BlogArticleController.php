@@ -56,6 +56,7 @@ final class BlogArticleController extends Controller
             'keywords' => ['nullable', 'array'],
             'keywords.*' => ['string', 'max:50'],
             'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
+            'is_featured' => ['nullable', 'boolean'],
             'published_at' => ['nullable', 'date'],
         ]);
 
@@ -85,6 +86,7 @@ final class BlogArticleController extends Controller
             'keywords' => ['nullable', 'array'],
             'keywords.*' => ['string', 'max:50'],
             'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
+            'is_featured' => ['nullable', 'boolean'],
             'published_at' => ['nullable', 'date'],
         ]);
 

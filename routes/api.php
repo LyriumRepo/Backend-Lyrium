@@ -80,11 +80,19 @@ Route::prefix('auth')->group(function () {
         Route::get('/validate', [AuthController::class, 'validateToken']);
         Route::post('/refresh', [AuthController::class, 'refreshToken']);
     });
-
 });
 
 // Endpoint interno usado por el servicio RPA para disparar el OTP
 Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
+
+// Envío de diagnóstico RPA por correo (público, sin auth — solo requiere application_id + email)
+Route::post('/auth/send-diagnostico', [AuthController::class, 'sendDiagnostico']);
+
+// Vista previa del acuerdo comercial (público, usado en registro de vendedor)
+Route::post('/contracts/preview', [ContractController::class, 'preview']);
+
+// Endpoint interno para el RPA — genera el Word del acuerdo comercial
+Route::post('/internal/rpa/generate-contract-doc', [ContractController::class, 'generateDocument'])->middleware('auth.rpa');
 
 Route::prefix('cart')->group(function () {
     // Obtener el carrito (R19/R20)
@@ -670,6 +678,26 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::delete('/sessions/{id}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'revokeSession']);
         Route::get('/activity', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'activity']);
         Route::get('/login-attempts', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'loginAttempts']);
+
+        // ── Cloudflare v4 Integration ───────────────────────────────────
+        Route::prefix('cloudflare')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\Api\CloudflareController::class, 'status']);
+            Route::get('/zone', [\App\Http\Controllers\Api\CloudflareController::class, 'zone']);
+            Route::get('/analytics', [\App\Http\Controllers\Api\CloudflareController::class, 'analytics']);
+            Route::get('/security', [\App\Http\Controllers\Api\CloudflareController::class, 'securityAnalytics']);
+            Route::get('/firewall-events', [\App\Http\Controllers\Api\CloudflareController::class, 'firewallEvents']);
+            Route::get('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'dnsRecords']);
+            Route::post('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'createDnsRecord']);
+            Route::patch('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateDnsRecord']);
+            Route::delete('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'deleteDnsRecord']);
+            Route::post('/purge-cache', [\App\Http\Controllers\Api\CloudflareController::class, 'purgeCache']);
+            Route::get('/settings', [\App\Http\Controllers\Api\CloudflareController::class, 'zoneSettings']);
+            Route::patch('/settings/{settingName}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateZoneSetting']);
+            Route::get('/waf', [\App\Http\Controllers\Api\CloudflareController::class, 'waf']);
+            Route::get('/tunnels', [\App\Http\Controllers\Api\CloudflareController::class, 'tunnels']);
+            Route::get('/rate-limits', [\App\Http\Controllers\Api\CloudflareController::class, 'rateLimits']);
+            Route::get('/ip-lists', [\App\Http\Controllers\Api\CloudflareController::class, 'ipLists']);
+        });
     });
 
     /*
