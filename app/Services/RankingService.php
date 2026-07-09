@@ -11,12 +11,19 @@ use Illuminate\Database\Eloquent\Collection;
 
 final class RankingService
 {
-    public function getTopProducts(int $limit = 100, int $minReviews = 1): Collection
+    public function getTopProducts(int $limit = 100, int $minReviews = 1, int $minSales = 3): Collection
     {
         return Product::with(['store:id,store_name,slug,logo', 'categories:id,name,slug', 'media'])
             ->where('status', 'approved')
             ->where('rating_count', '>=', $minReviews)
+            ->select('products.*')
+            ->selectSub(
+                'SELECT COUNT(*) FROM order_items oi WHERE oi.product_id = products.id AND oi.status = "delivered"',
+                'sales_count',
+            )
+            ->havingRaw('sales_count >= ?', [$minSales])
             ->orderByDesc('rating_promedio')
+            ->orderByDesc('sales_count')
             ->orderByDesc('rating_count')
             ->limit($limit)
             ->get();
@@ -33,7 +40,7 @@ final class RankingService
             ->get();
     }
 
-    public function getTopServices(int $limit = 100): Collection
+    public function getTopServices(int $limit = 100, int $minReviews = 1, int $minSales = 3): Collection
     {
         return Service::with('store:id,store_name,slug,logo')
             ->where('status', Service::STATUS_ACTIVE)
@@ -50,8 +57,14 @@ final class RankingService
                 .'WHERE sb.service_id = services.id',
                 'rating_count',
             )
-            ->havingRaw('rating_count >= 1')
+            ->selectSub(
+                'SELECT COUNT(*) FROM service_bookings sb2 '
+                .'WHERE sb2.service_id = services.id AND sb2.status = "completed"',
+                'sales_count',
+            )
+            ->havingRaw('rating_count >= ? AND sales_count >= ?', [$minReviews, $minSales])
             ->orderByDesc('rating_average')
+            ->orderByDesc('sales_count')
             ->orderByDesc('rating_count')
             ->limit($limit)
             ->get();

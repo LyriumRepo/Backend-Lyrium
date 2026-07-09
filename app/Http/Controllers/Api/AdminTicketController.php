@@ -27,7 +27,7 @@ final class AdminTicketController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Ticket::with(['user', 'store', 'assignedAdmin', 'latestMessage'])
+        $query = Ticket::with(['user', 'store.subscription.plan', 'assignedAdmin', 'latestMessage'])
             ->withCount('messages');
 
         if ($status = $request->query('status')) {

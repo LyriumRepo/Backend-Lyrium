@@ -12,6 +12,15 @@ use Illuminate\Support\Facades\DB;
 
 final class LiriosService
 {
+    /** Lirios otorgados por cada sol (redondeado) pagado en una compra. */
+    private const LIRIOS_PER_SOL_EARNED = 10;
+
+    /** Valor en soles de 1 Lirio al canjearlo (1000 Lirios = S/ 1.00). */
+    private const SOLES_PER_LIRIO_REDEEMED = 0.001;
+
+    /** Tope absoluto del porcentaje de descuento por Lirios, sin importar la config. de la tienda. */
+    private const MAX_LIRIOS_PERCENT = 3.00;
+
     public function getOrCreateAccount(int $userId): LiriosAccount
     {
         return LiriosAccount::firstOrCreate(
@@ -47,7 +56,9 @@ final class LiriosService
             'eligible' => $eligible,
             'lirios_percent' => $liriosPercent,
             'valor_venta' => round($valorVenta, 2),
-            'max_lirios_usables' => $eligible ? (int) floor(min($balance, $maxDiscount)) : 0,
+            'max_lirios_usables' => $eligible
+                ? (int) floor(min($balance, $maxDiscount / self::SOLES_PER_LIRIO_REDEEMED))
+                : 0,
         ];
     }
 
@@ -86,7 +97,8 @@ final class LiriosService
     public function accrue(int $userId, float $totalPaid, Order $order): LiriosTransaction
     {
         $account = $this->getOrCreateAccount($userId);
-        $points = (int) floor($totalPaid);
+        $roundedAmount = round($totalPaid);
+        $points = (int) ($roundedAmount * self::LIRIOS_PER_SOL_EARNED);
         $balanceBefore = $account->balance;
 
         if ($points <= 0) {
@@ -115,13 +127,13 @@ final class LiriosService
     private function getEffectivePercent(array $storeIds): float
     {
         if (empty($storeIds)) {
-            return 3.00;
+            return self::MAX_LIRIOS_PERCENT;
         }
 
         $minPercent = Store::whereIn('id', $storeIds)
             ->min('lirios_percent');
 
-        return (float) ($minPercent ?? 3.00);
+        return min((float) ($minPercent ?? self::MAX_LIRIOS_PERCENT), self::MAX_LIRIOS_PERCENT);
     }
 
     /**
@@ -150,7 +162,7 @@ final class LiriosService
 
         return [
             'lirios_used' => $liriosToUse,
-            'lirios_discount' => (float) $liriosToUse,
+            'lirios_discount' => round($liriosToUse * self::SOLES_PER_LIRIO_REDEEMED, 2),
         ];
     }
 }

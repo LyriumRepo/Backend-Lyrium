@@ -151,7 +151,7 @@ final class ForumTopicController extends Controller
         return response()->json(['success' => true, 'data' => $post], 201);
     }
 
-    public function hideReply(int $topicId, int $postId): JsonResponse
+    public function hideReply(Request $request, int $topicId, int $postId): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
         ForumTopic::where('store_id', $store->id)->findOrFail($topicId);
@@ -165,7 +165,7 @@ final class ForumTopicController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function deleteReply(int $topicId, int $postId): JsonResponse
+    public function deleteReply(Request $request, int $topicId, int $postId): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
         ForumTopic::where('store_id', $store->id)->findOrFail($topicId);

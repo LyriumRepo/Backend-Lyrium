@@ -22,13 +22,14 @@ final class RankingController extends Controller
     {
         $limit = min((int) $request->query('limit', 100), 100);
         $minReviews = max((int) $request->query('min_reviews', 1), 1);
+        $minSales = max((int) $request->query('min_sales', 3), 0);
 
-        $products = $this->rankingService->getTopProducts($limit, $minReviews);
+        $products = $this->rankingService->getTopProducts($limit, $minReviews, $minSales);
 
         return response()->json([
             'success' => true,
             'data' => ProductRankingResource::collection($products),
-            'meta' => ['total' => $products->count(), 'min_reviews' => $minReviews],
+            'meta' => ['total' => $products->count(), 'min_reviews' => $minReviews, 'min_sales' => $minSales],
         ]);
     }
 
@@ -47,12 +48,15 @@ final class RankingController extends Controller
     public function services(Request $request): JsonResponse
     {
         $limit = min((int) $request->query('limit', 20), 100);
+        $minReviews = max((int) $request->query('min_reviews', 1), 1);
+        $minSales = max((int) $request->query('min_sales', 3), 0);
 
-        $services = $this->rankingService->getTopServices($limit);
+        $services = $this->rankingService->getTopServices($limit, $minReviews, $minSales);
 
         return response()->json([
             'success' => true,
             'data' => ServiceRankingResource::collection($services),
+            'meta' => ['total' => $services->count(), 'min_reviews' => $minReviews, 'min_sales' => $minSales],
         ]);
     }
 }

@@ -55,7 +55,10 @@ final class ChatBotController extends Controller
         $message = trim($validated['message']);
         $history = $validated['history'] ?? [];
 
-        $faqResponse = $this->faqService->find($message, $history);
+        $user = $request->user('sanctum');
+        $role = $user?->getRoleNames()->first();
+
+        $faqResponse = $this->faqService->find($message, $history, $role);
 
         if ($faqResponse !== null) {
             $this->trackRequest($sessionId);
@@ -74,7 +77,7 @@ final class ChatBotController extends Controller
             ]);
         }
 
-        $aiResponse = $this->gemini->ask($message, $history);
+        $aiResponse = $this->gemini->ask($message, $history, $role);
 
         if ($aiResponse === null) {
             $this->trackRequest($sessionId);

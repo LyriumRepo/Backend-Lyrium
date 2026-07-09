@@ -32,6 +32,7 @@ final class AdminTicketResource extends JsonResource
                 'id' => $vendor->id,
                 'nombre' => $vendor->name,
                 'empresa' => $this->store?->trade_name,
+                'plan' => $this->store?->subscription?->plan?->name,
             ],
             'admin_asignado' => $admin ? [
                 'id' => $admin->id,

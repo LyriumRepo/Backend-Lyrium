@@ -58,7 +58,7 @@ final class BlogMediaController extends Controller
         return response()->json(['success' => true, 'data' => $media], 201);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
         $media = BlogMedium::where('store_id', $store->id)->findOrFail($id);

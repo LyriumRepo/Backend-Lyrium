@@ -99,6 +99,7 @@ final class ChatBotFaqService
         'comisiones' => [
             'keywords' => ['comisiones', 'cuanto cobra lyrium', 'tarifas vendedor', 'porcentaje comision', 'costo vender'],
             'terms'    => ['comision', 'tarifa', 'costo', 'cobro', 'porcentaje'],
+            'audience' => ['seller', 'administrator'],
             'response' => 'Lyrium ofrece planes de suscripción con diferentes porcentajes de comisión: 1. Plan Emprende: 5% de comisión por venta. 2. Plan Crece: 10% de comisión por venta. 3. Plan Especial: 15% de comisión por venta. Cada plan incluye beneficios adicionales como mayor visibilidad, herramientas de gestión y soporte prioritario. Puedes consultar los detalles de cada plan en la sección de Planes de nuestra web o desde tu panel de vendedor.',
         ],
         'registro_usuario' => [
@@ -377,7 +378,7 @@ final class ChatBotFaqService
     /**
      * @param array<int, array{role: string, content: string}> $history
      */
-    public function find(string $message, array $history = []): ?string
+    public function find(string $message, array $history = [], ?string $role = null): ?string
     {
         $normalized = $this->normalize($message);
 
@@ -405,7 +406,7 @@ final class ChatBotFaqService
         }
 
         // 3. Static FAQs — falls through to Gemini if nothing matches
-        return $this->findInFaqs($normalized);
+        return $this->findInFaqs($normalized, $role);
     }
 
     private function matchesWholeWord(string $text, string $keyword): bool
@@ -442,12 +443,16 @@ final class ChatBotFaqService
         return str_contains($lastBotNormalized, 'quisiera saber como funcionan los envios');
     }
 
-    private function findInFaqs(string $normalized): ?string
+    private function findInFaqs(string $normalized, ?string $role = null): ?string
     {
         $bestMatch = null;
         $bestScore = 0;
 
         foreach (self::FAQS as $faq) {
+            if (isset($faq['audience']) && ($role === null || !in_array($role, $faq['audience'], true))) {
+                continue;
+            }
+
             $score = $this->matchScore($normalized, $faq);
 
             if ($score > $bestScore) {
