@@ -11,6 +11,21 @@ final class InvoiceResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $storeCommissions = $this->store_commissions;
+
+        if (! $storeCommissions && $this->relationLoaded('order') && $this->order) {
+            $storeCommissions = $this->order->items->groupBy('store_id')->map(fn ($items) => [
+                'storeId' => (string) $items->first()->store_id,
+                'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
+                'storeSlug' => $items->first()->store?->slug ?? '',
+                'subtotal' => round($items->sum('line_total'), 2),
+                'commissionRate' => (float) ($items->first()->commission_rate ?? 0),
+                'commissionAmount' => round($items->sum('commission_amount'), 2),
+                'commissionIgv' => round($items->sum('commission_amount') * 0.18 / 1.18, 2),
+                'commissionTotal' => round($items->sum('commission_amount'), 2),
+            ])->values()->toArray();
+        }
+
         return [
             'id'                   => (string) $this->id,
             'series'               => $this->series ?? '',
@@ -58,7 +73,7 @@ final class InvoiceResource extends JsonResource
             // Vendedor (para panel de admin)
             'sellerName'           => $this->whenLoaded('store', fn () => $this->store?->owner?->name ?? ''),
 
-            // Estado
+            // Estado SUNAT
             'status'               => $this->sunat_status ?? 'DRAFT',
 
             // Documentos
@@ -73,6 +88,9 @@ final class InvoiceResource extends JsonResource
             'items'                => $this->items,
             'history'              => $this->history ?? [],
 
+            // Comisiones por tienda
+            'storeCommissions'     => $storeCommissions,
+
             // Orden
             'orderId'              => (string) $this->order_id,
             'order'                => $this->whenLoaded('order', fn () => [
@@ -84,12 +102,14 @@ final class InvoiceResource extends JsonResource
                 // de otras tiendas en pedidos multi-vendor. Incluye tanto order_items
                 // (productos) como order_service_items (servicios).
                 'items'       => $this->combinedOrderItems()->map(fn ($item) => [
-                    'productName' => $item->product?->name ?? $item->product_name ?? $item->service_name ?? '',
-                    'quantity'    => (int) $item->quantity,
-                    'unitPrice'   => (float) $item->unit_price,
-                    'lineTotal'   => (float) $item->line_total,
-                    'storeName'   => $item->store?->store_name ?? $item->store?->nombre_comercial ?? null,
-                    'storeSlug'   => $item->store?->slug ?? null,
+                    'productName'      => $item->product?->name ?? $item->product_name ?? $item->service_name ?? '',
+                    'quantity'         => (int) $item->quantity,
+                    'unitPrice'        => (float) $item->unit_price,
+                    'lineTotal'        => (float) $item->line_total,
+                    'commissionAmount' => (float) ($item->commission_amount ?? 0),
+                    'commissionRate'   => (float) ($item->commission_rate ?? 0),
+                    'storeName'        => $item->store?->store_name ?? $item->store?->nombre_comercial ?? null,
+                    'storeSlug'        => $item->store?->slug ?? null,
                 ]),
                 'stores' => $this->combinedOrderItems()
                     ->pluck('store')

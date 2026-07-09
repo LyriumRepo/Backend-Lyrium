@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRpaAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'plan.module' => \App\Http\Middleware\EnsurePlanModule::class,
             'audit.auth' => \App\Http\Middleware\AuditAuthMiddleware::class,
             'audit.security' => \App\Http\Middleware\AuditSecurityMiddleware::class,
+            'auth.rpa' => EnsureRpaAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

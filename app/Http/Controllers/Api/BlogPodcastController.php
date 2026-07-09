@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
 use App\Models\BlogPodcast;
 use App\Models\Store;
 use App\Services\ContentLimitService;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 
 final class BlogPodcastController extends Controller
 {
+    use BlogReviewNotifier;
     public function index(Request $request): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
@@ -58,11 +60,13 @@ final class BlogPodcastController extends Controller
             'metadata' => ['nullable', 'array'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
         ]);
 
         $data['store_id'] = $store->id;
         $podcast = BlogPodcast::create($data);
+
+        $this->notifyAdminsOnPendingReview($podcast, 'podcast');
 
         return response()->json(['success' => true, 'data' => $podcast], 201);
     }
@@ -73,10 +77,10 @@ final class BlogPodcastController extends Controller
         $podcast = BlogPodcast::where('store_id', $store->id)->findOrFail($id);
 
         $data = $request->validate([
-            'type' => ['required', 'string', 'in:audio,video'],
-            'platform' => ['required', 'string', 'max:30'],
-            'url' => ['required', 'url', 'max:500'],
-            'title' => ['required', 'string', 'max:255'],
+            'type' => ['sometimes', 'required', 'string', 'in:audio,video'],
+            'platform' => ['sometimes', 'required', 'string', 'max:30'],
+            'url' => ['sometimes', 'required', 'url', 'max:500'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
             'cover_image' => ['nullable', 'string', 'max:500'],
             'thumbnail' => ['nullable', 'string', 'max:500'],
@@ -84,10 +88,13 @@ final class BlogPodcastController extends Controller
             'metadata' => ['nullable', 'array'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:50'],
-            'status' => ['nullable', 'string', 'in:draft,review,published,archived'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,approved,rejected,published,archived'],
         ]);
 
         $podcast->update($data);
+
+        $podcast->refresh();
+        $this->notifyAdminsOnPendingReview($podcast, 'podcast');
 
         return response()->json(['success' => true, 'data' => $podcast]);
     }

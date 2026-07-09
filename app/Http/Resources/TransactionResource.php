@@ -21,11 +21,20 @@ final class TransactionResource extends JsonResource
 
         $stores = $items->groupBy('store_id')->map(function ($storeItems) {
             $first = $storeItems->first();
+            $storeId = (string) $first->store_id;
+            $storeName = $first->store?->trade_name ?? $first->store?->store_name ?? '—';
+
+            $commTotal = $storeItems->sum('commission_amount');
+            $commIgv = round($commTotal * 0.18 / 1.18, 2);
+            $commBase = round($commTotal - $commIgv, 2);
 
             return [
-                'id' => (string) $first->store_id,
-                'name' => $first->store?->trade_name ?? $first->store?->store_name ?? '—',
+                'id' => $storeId,
+                'name' => $storeName,
                 'slug' => $first->store?->slug ?? '',
+                'commissionAmount' => $commBase,
+                'commissionIgv' => $commIgv,
+                'commissionTotal' => $commTotal,
             ];
         })->values();
 
@@ -33,9 +42,9 @@ final class TransactionResource extends JsonResource
         $hasService = $items->contains(fn ($i) => $i->product?->type === 'service');
         $tipo = $hasProduct && $hasService ? 'ambos' : ($hasService ? 'servicio' : 'producto');
 
-        $commissionBase = $items->sum('commission_amount');
-        $commissionIgv = round($commissionBase * 0.18, 2);
-        $commissionTotal = round($commissionBase + $commissionIgv, 2);
+        $commissionTotal = $items->sum('commission_amount');
+        $commissionIgv = round($commissionTotal * 0.18 / 1.18, 2);
+        $commissionAmount = round($commissionTotal - $commissionIgv, 2);
 
         return [
             'id' => (string) $this->id,
@@ -54,7 +63,7 @@ final class TransactionResource extends JsonResource
             'discountAmount' => (float) $this->discount_amount,
             'total' => (float) $this->total,
             'tipo' => $tipo,
-            'commissionAmount' => $commissionBase,
+            'commissionAmount' => $commissionAmount,
             'commissionIgv' => $commissionIgv,
             'commissionTotal' => $commissionTotal,
             'paymentMethod' => $izipayTxn?->payment_method_type ?? $this->payment_method,

@@ -12,8 +12,11 @@ use PhpOffice\PhpWord\TemplateProcessor;
 
 final class ContractDocumentService
 {
-    /** Path relativo al disco 'local' donde se guarda el template subido por el admin */
+    /** Path relativo al disco 'private' donde se guarda el template subido por el admin */
     public const TEMPLATE_PATH = 'templates/convenio_template.docx';
+
+    /** Path relativo al acuerdo comercial RPA */
+    public const ACUERDO_PATH = 'templates/acuerdo_comercial.docx';
 
     /**
      * Genera el documento Word del convenio y lo guarda en storage.
@@ -310,6 +313,67 @@ final class ContractDocumentService
         $filename = "convenio_{$contractNumber}.docx";
 
         return [$absDir, $relDir, $filename];
+    }
+
+    /**
+     * Genera el documento Word del acuerdo comercial desde el contrato
+     * usando el template acuerdo_comercial.docx (inyectado por RPA).
+     * Retorna el path relativo para guardar en Contract::file_path.
+     */
+    public function generateFromContract(Contract $contract): string
+    {
+        $templateAbs = storage_path('app/private/'.self::ACUERDO_PATH);
+
+        $store = $contract->store;
+        $contractNumber = $contract->contract_number;
+
+        $vars = [
+            'contract_number' => $contractNumber,
+            'company' => $contract->company ?? $store?->razon_social ?? 'Sin razón social',
+            'ruc' => $contract->ruc ?? $store?->ruc ?? '—',
+            'rep_nombre' => $contract->representative ?? $store?->rep_legal_nombre ?? '—',
+            'rep_dni' => $contract->dni ?? $store?->rep_legal_dni ?? '—',
+            'direccion' => $contract->direccion ?? $store?->direccion_fiscal ?? $store?->address ?? '—',
+            'email' => $store?->corporate_email ?? $contract->admin_email ?? '—',
+            'telefono' => $store?->phone ?? $contract->admin_phone ?? '—',
+            'plan' => $store?->subscription?->plan?->name ?? 'EMPRENDE',
+            'commission' => $store?->subscription?->plan?->commission_rate
+                ? number_format((float) $store->subscription->plan->commission_rate * 100, 0).'%'
+                : '5%',
+            'fecha_inicio' => $contract->start_date?->format('d/m/Y') ?? now()->format('d/m/Y'),
+            'ciudad' => 'Lima',
+            'year' => (string) now()->year,
+            'fecha' => now()->format('d/m/Y'),
+            'numero_contrato' => $contractNumber,
+            'nombre_comercial' => $store?->trade_name ?? $contract->company ?? '—',
+            'contacto' => $contract->representative ?? '—',
+            'domicilio_legal' => $contract->direccion ?? '—',
+            'dni' => $contract->dni ?? '—',
+        ];
+
+        if (file_exists($templateAbs)) {
+            $processor = new \PhpOffice\PhpWord\TemplateProcessor($templateAbs);
+
+            foreach ($vars as $key => $value) {
+                $processor->setValue($key, htmlspecialchars($value));
+            }
+
+            $companySlug = preg_replace('/[^a-zA-Z0-9_]/', '_', $vars['company']);
+            $year = now()->year;
+            $relDir = "contracts/{$companySlug}/{$year}";
+            $absDir = storage_path("app/private/{$relDir}");
+            $filename = "convenio_{$contractNumber}.docx";
+
+            if (! is_dir($absDir)) {
+                mkdir($absDir, 0755, true);
+            }
+
+            $processor->saveAs("{$absDir}/{$filename}");
+
+            return "{$relDir}/{$filename}";
+        }
+
+        return '';
     }
 
     /**
