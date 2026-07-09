@@ -17,7 +17,9 @@ namespace App\Http\Controllers\Api;
  */
 
 use App\Http\Controllers\Controller;
+use App\Models\IzipayPlanTransaction;
 use App\Models\Order;
+use App\Models\PlanRequest;
 use App\Services\IzipayBookingService;
 use App\Services\IzipayService;
 use Illuminate\Http\JsonResponse;
@@ -98,7 +100,13 @@ final class IzipayController extends Controller
         $rawKrAnswer = $request->input('kr-answer', '');
         $payload = $request->all();
 
-        // Detectar si es booking o order
+        // 1. Detectar si es plan
+        if ($this->isPlanWebhook($rawKrAnswer, $payload)) {
+            Log::info('IzipayController: webhook enrutado como plan');
+            return $this->processPlanWebhook($rawKrAnswer, $payload);
+        }
+
+        // 2. Detectar si es booking u order
         $isBooking = $this->isBookingWebhook($rawKrAnswer, $payload);
 
         Log::info('IzipayController: webhook enrutado', [
@@ -123,6 +131,132 @@ final class IzipayController extends Controller
                 'message' => 'Error interno procesando el webhook',
             ], 200);
         }
+    }
+
+    private function isPlanWebhook(string $rawKrAnswer, array $payload): bool
+    {
+        $answer = $this->decodeKrAnswer($rawKrAnswer ?: ($payload['kr-answer'] ?? ''));
+        if (! $answer) {
+            return false;
+        }
+
+        // Estrategia 1: metadata contiene plan_request_id
+        $metadata = $answer['transactions'][0]['metadata']
+            ?? $answer['metadata']
+            ?? [];
+
+        if (isset($metadata['plan_request_id'])) {
+            return true;
+        }
+
+        // Estrategia 2: orderId empieza con 'PLAN-'
+        $izipayOrderId = $answer['orderDetails']['orderId']
+            ?? $answer['orderId']
+            ?? '';
+
+        if (str_starts_with($izipayOrderId, 'PLAN-')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function processPlanWebhook(string $rawKrAnswer, array $payload): JsonResponse
+    {
+        $answer = $this->decodeKrAnswer($rawKrAnswer ?: ($payload['kr-answer'] ?? ''));
+        if (! $answer) {
+            return response()->json(['success' => false, 'message' => 'kr-answer inválido'], 200);
+        }
+
+        $orderInfo = $answer['orderDetails'] ?? [];
+        $izipayOrderId = $orderInfo['orderId'] ?? $answer['orderId'] ?? '';
+        $orderStatus = $answer['orderStatus'] ?? '';
+
+        if (empty($izipayOrderId)) {
+            return response()->json(['success' => false, 'message' => 'orderId no encontrado'], 200);
+        }
+
+        $transaction = IzipayPlanTransaction::where('izipay_order_id', $izipayOrderId)->first();
+        if (! $transaction) {
+            Log::warning('IzipayController: IzipayPlanTransaction no encontrada', [
+                'izipay_order_id' => $izipayOrderId,
+            ]);
+        }
+
+        $planRequest = $transaction
+            ? $transaction->planRequest
+            : PlanRequest::where('izipay_order_id', $izipayOrderId)
+                ->where('status', PlanRequest::STATUS_PENDING)
+                ->first();
+
+        if (! $planRequest) {
+            Log::warning('IzipayController: PlanRequest no encontrado', [
+                'izipay_order_id' => $izipayOrderId,
+            ]);
+            return response()->json(['success' => false, 'message' => 'Solicitud no encontrada'], 200);
+        }
+
+        $txStatus = in_array($orderStatus, ['PAID', 'AUTHORISED', 'CAPTURED', 'ACCEPTED'], true)
+            ? 'paid'
+            : (in_array($orderStatus, ['FAILED', 'EXPIRED'], true) ? 'failed' : null);
+
+        $transactionData = [
+            'transaction_status' => $orderStatus,
+            'izipay_response' => $answer,
+            'kr_hash' => $payload['kr-hash'] ?? null,
+        ];
+
+        if ($txStatus === 'paid') {
+            $txFirstTransaction = $answer['transactions'][0] ?? [];
+            $transactionData['status'] = 'paid';
+            $transactionData['transaction_uuid'] = $txFirstTransaction['uuid'] ?? null;
+            $transactionData['payment_method_type'] = $txFirstTransaction['paymentMethodType'] ?? null;
+            $transactionData['card_brand'] = $txFirstTransaction['cardDetails']['brand'] ?? null;
+            $transactionData['card_last4'] = $txFirstTransaction['cardDetails']['pan'] ?? null;
+        } elseif ($txStatus === 'failed') {
+            $transactionData['status'] = 'failed';
+            $transactionData['error_code'] = $answer['errorCode'] ?? 'PAYMENT_FAILED';
+            $transactionData['error_message'] = $answer['errorMessage'] ?? 'Pago rechazado';
+        }
+
+        if ($transaction) {
+            $transaction->update($transactionData);
+        }
+
+        if ($txStatus === 'paid') {
+            $planRequest->update([
+                'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
+            ]);
+
+            $planRequestController = app(PlanRequestController::class);
+            $planRequestController->approvePlanRequest($planRequest, null);
+
+            Log::info('IzipayController: plan activado por webhook', [
+                'plan_request_id' => $planRequest->id,
+                'izipay_order_id' => $izipayOrderId,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pago confirmado y plan activado',
+            ]);
+        }
+
+        if ($txStatus === 'failed') {
+            $planRequest->update([
+                'payment_status' => PlanRequest::PAYMENT_STATUS_FAILED,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Pago fallido',
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado de pago actualizado',
+        ]);
     }
 
     /**

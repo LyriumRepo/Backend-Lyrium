@@ -19,8 +19,10 @@ final class AdminVendedorController extends Controller
         $query = Store::query()
             ->whereIn('owner_id', User::role('seller')->pluck('id'))
             ->whereNull('deleted_at')
-            ->with(['owner:id,name,email'])
-            ->withCount('strikes as strikes_count');
+            ->with([
+                'owner:id,name,email',
+                'subscriptions' => fn ($q) => $q->with('plan')->where('status', 'active'),
+            ]);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -66,7 +68,7 @@ final class AdminVendedorController extends Controller
             ->get();
 
         $planRequests = $store->planRequests()
-            ->with(['plan:id,name,monthly_fee', 'reviewer:id,name'])
+            ->with(['plan:id,name,monthly_fee', 'currentPlan:id,name', 'reviewer:id,name'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
@@ -85,6 +87,7 @@ final class AdminVendedorController extends Controller
                 'plan_requests' => $planRequests->map(fn ($r) => [
                     'id' => $r->id,
                     'plan_name' => $r->plan->name,
+                    'current_plan_name' => $r->currentPlan?->name,
                     'status' => $r->status,
                     'payment_method' => $r->payment_method,
                     'payment_status' => $r->payment_status,
@@ -101,22 +104,21 @@ final class AdminVendedorController extends Controller
     {
         $sellerUserIds = User::role('seller')->pluck('id');
 
-        $storeQuery = Store::whereIn('owner_id', $sellerUserIds)->whereNull('deleted_at');
-
-        $total = $storeQuery->count();
-        $active = (clone $storeQuery)->where('status', 'approved')->count();
-        $pending = (clone $storeQuery)->where('status', 'pending')->count();
-
-        $conPlan = (clone $storeQuery)->whereHas('subscriptions', fn ($s) => $s->where('status', 'active')->where('ends_at', '>=', now()))->count();
-        $sinPlan = $total - $conPlan;
+        $stats = Store::whereIn('owner_id', $sellerUserIds)
+            ->whereNull('deleted_at')
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) as active', ['approved'])
+            ->selectRaw('COALESCE(SUM(CASE WHEN status = ? THEN 1 ELSE 0 END), 0) as pending', ['pending'])
+            ->selectRaw('COALESCE(SUM(CASE WHEN EXISTS (SELECT 1 FROM subscriptions WHERE store_id = stores.id AND status = ? AND ends_at >= NOW()) THEN 1 ELSE 0 END), 0) as con_plan', ['active'])
+            ->first();
 
         return response()->json([
             'data' => [
-                'total' => $total,
-                'active' => $active,
-                'pending' => $pending,
-                'con_plan' => $conPlan,
-                'sin_plan' => $sinPlan,
+                'total' => (int) ($stats->total ?? 0),
+                'active' => (int) ($stats->active ?? 0),
+                'pending' => (int) ($stats->pending ?? 0),
+                'con_plan' => (int) ($stats->con_plan ?? 0),
+                'sin_plan' => ((int) ($stats->total ?? 0)) - ((int) ($stats->con_plan ?? 0)),
             ],
         ]);
     }

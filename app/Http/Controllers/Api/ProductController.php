@@ -12,7 +12,7 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
-use App\Notifications\ProductPendingReviewNotification;
+use App\Notifications\ProductStatusNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +56,38 @@ final class ProductController extends Controller
             $query->where('status', 'approved');
         }
 
+        $this->applyFilters($query, $request);
+
+        $perPage = min((int) $request->query('per_page', 15), 100);
+        $products = $query->orderByDesc('created_at')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'total_pages' => $products->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * GET /api/seller/products (auth required — seller's own products)
+     */
+    public function myProducts(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $store = $user?->store;
+
+        if (! $store) {
+            return response()->json(['success' => true, 'data' => [], 'meta' => [
+                'current_page' => 1, 'per_page' => 100, 'total' => 0, 'total_pages' => 1,
+            ]]);
+        }
+
+        $query = Product::with(self::RELATIONS_LIST)->where('store_id', $store->id);
         $this->applyFilters($query, $request);
 
         $perPage = min((int) $request->query('per_page', 15), 100);
@@ -201,10 +233,11 @@ final class ProductController extends Controller
 
         $product->load(self::RELATIONS_DETAIL);
 
-        // Notificar a administradores: producto pendiente de revisión
+        // Notificar a administradores sobre nuevo producto pendiente
         $admins = User::role('administrator')->get();
+        $notification = new ProductStatusNotification($product, 'pending_review');
         foreach ($admins as $admin) {
-            $admin->notify(new ProductPendingReviewNotification($product));
+            $admin->notify($notification);
         }
 
         return response()->json(new ProductResource($product), 201);
@@ -300,6 +333,16 @@ final class ProductController extends Controller
         $product->load(self::RELATIONS_DETAIL);
 
         broadcast(new ProductStatusChanged($product));
+
+        // Notificar al vendedor sobre cambio de estado
+        $product->load('store.owner');
+        if ($product->store && $product->store->owner) {
+            $product->store->owner->notify(new ProductStatusNotification(
+                $product,
+                $validated['status'],
+                $validated['reason'] ?? null,
+            ));
+        }
 
         return response()->json(new ProductResource($product));
     }

@@ -9,6 +9,7 @@ use App\Http\Requests\EmitInvoiceRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Services\NubefactService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,23 @@ final class NubefactController extends Controller
                 // emitInvoice espera Invoice model + items explícitos
                 $nubefactResponse = $this->nubefact->emitInvoice($invoice, $data['items']);
 
+                $storeCommissions = null;
+                if ($orderId = $data['order_id'] ?? null) {
+                    $order = \App\Models\Order::with('items.store')->find($orderId);
+                    if ($order) {
+                        $storeCommissions = $order->items->groupBy('store_id')->map(fn ($items) => [
+                            'storeId' => (string) $items->first()->store_id,
+                            'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
+                            'storeSlug' => $items->first()->store?->slug ?? '',
+                            'subtotal' => round($items->sum('line_total'), 2),
+                            'commissionRate' => (float) ($items->first()->commission_rate ?? 0),
+                            'commissionAmount' => round($items->sum('commission_amount'), 2),
+                            'commissionIgv' => round($items->sum('commission_amount') * 0.18 / 1.18, 2),
+                            'commissionTotal' => round($items->sum('commission_amount'), 2),
+                        ])->values()->toArray();
+                    }
+                }
+
                 $invoice->update([
                     'sunat_status'       => $nubefactResponse['sunat_status'],
                     'status'             => $nubefactResponse['sunat_status'],
@@ -68,6 +86,7 @@ final class NubefactController extends Controller
                     'cdr_url'            => $nubefactResponse['cdr_url'],
                     'nubefact_response'  => $nubefactResponse['raw'],
                     'items'              => $data['items'],
+                    'store_commissions'  => $storeCommissions,
                 ]);
 
                 return $invoice->fresh();
@@ -185,5 +204,53 @@ final class NubefactController extends Controller
                 'totalVendido' => (float) $s->total_vendido,
             ]),
         ]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $user = $request->user();
+        $query = Invoice::where('provider', 'nubefact')->with(['order.items.store']);
+        if (! $user->hasRole('administrator')) {
+            $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
+        }
+        $invoices = $query->orderBy('created_at', 'desc')->get();
+
+        $callback = function () use ($invoices) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['#', 'Tipo', 'Serie', 'Nro', 'Cliente', 'RUC/DNI', 'Monto', 'Estado SUNAT', 'Fecha Emision']);
+            foreach ($invoices as $i => $inv) {
+                fputcsv($file, [
+                    $i + 1,
+                    $inv->document_type ?? '—',
+                    $inv->series,
+                    $inv->number,
+                    $inv->business_name ?? $inv->customer_name ?? '—',
+                    $inv->nit ?? $inv->customer_ruc ?? '—',
+                    number_format($inv->total ?? $inv->amount ?? 0, 2),
+                    $inv->status ?? '—',
+                    optional($inv->emission_date ?? $inv->created_at)->format('d/m/Y'),
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="reporte-comprobantes.csv"',
+        ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $user = $request->user();
+        $query = Invoice::where('provider', 'nubefact')->with(['order.items.store']);
+        if (! $user->hasRole('administrator')) {
+            $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
+        }
+        $invoices = $query->orderBy('created_at', 'desc')->get();
+
+        $pdf = Pdf::loadView('pdf.comprobantes', ['invoices' => $invoices]);
+
+        return $pdf->download('reporte-comprobantes.pdf');
     }
 }

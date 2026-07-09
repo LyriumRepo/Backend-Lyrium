@@ -10,15 +10,95 @@ use App\Http\Requests\UpdateContractRequest;
 use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\ContractStatusNotification;
 use App\Services\ContractDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use App\Services\AuditService;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Str;
 
 final class ContractController extends Controller
 {
     public function __construct(private readonly AuditService $auditService) {}
+    /**
+     * POST /api/contracts/preview
+     * Vista previa del acuerdo comercial con datos del seller (público).
+     */
+    public function preview(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'storeName'       => ['required', 'string', 'max:255'],
+            'contacto'        => ['required', 'string', 'max:255'],
+            'domicilio_legal' => ['required', 'string', 'max:255'],
+            'ruc'             => ['required', 'string', 'max:11'],
+            'dni'             => ['required', 'string', 'max:8'],
+            'phone'           => ['required', 'string', 'max:20'],
+            'email'           => ['required', 'email', 'max:255'],
+        ]);
+
+        $year = date('Y');
+        $random = strtoupper(Str::random(6));
+
+        $viewData = [
+            'nombre_comercial' => $data['storeName'],
+            'ruc'              => $data['ruc'],
+            'domicilio_legal'  => $data['domicilio_legal'],
+            'contacto'         => $data['contacto'],
+            'dni'              => $data['dni'],
+            'telefono'         => $data['phone'],
+            'email'            => $data['email'],
+            'fecha'            => now()->format('d/m/Y'),
+            'numero_contrato'  => "LYR-{$year}-{$random}",
+        ];
+
+        $html = View::make('contratos.preview', $viewData)->render();
+
+        return response()->json([
+            'success' => true,
+            'html'    => $html,
+        ]);
+    }
+
+    /**
+     * POST /api/internal/rpa/generate-contract-doc
+     * Genera el Word del acuerdo comercial usando el template acuerdo_comercial.docx
+     * y lo asigna al contrato. Llamado por el RPA tras crear el contrato.
+     */
+    public function generateDocument(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
+        ]);
+
+        $contract = Contract::with('store')->findOrFail($data['contract_id']);
+
+        if (! $contract->store) {
+            return response()->json(['error' => 'El contrato no tiene tienda asociada.'], 422);
+        }
+
+        $path = app(ContractDocumentService::class)->generateFromContract($contract);
+
+        if (empty($path)) {
+            return response()->json([
+                'warning' => 'No se encontró la plantilla de acuerdo comercial.',
+                'contract_id' => $contract->id,
+                'file_path' => null,
+            ]);
+        }
+
+        $contract->update(['file_path' => $path]);
+
+        return response()->json([
+            'success' => true,
+            'contract_id' => $contract->id,
+            'file_path' => $path,
+        ]);
+    }
+
     /**
      * GET /api/contracts
      */
@@ -133,6 +213,10 @@ final class ContractController extends Controller
             source: AuditService::SOURCE_WEB,
             metadata: ['contract_number' => $contractNumber],
         );
+
+        User::role('administrator')->each(function (User $admin) use ($contract): void {
+            $admin->notify(new ContractStatusNotification($contract, 'created'));
+        });
 
         $contract->load(['auditTrails', 'store']);
 
@@ -267,6 +351,19 @@ final class ContractController extends Controller
             );
         }
 
+        $action = match ($data['status']) {
+            'ACTIVE' => 'activated',
+            'EXPIRED' => 'expired',
+            default => 'updated',
+        };
+
+        if ($contract->store && $contract->store->owner) {
+            $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
+        }
+
+        User::role('administrator')->each(function (User $admin) use ($contract, $action): void {
+            $admin->notify(new ContractStatusNotification($contract, $action));
+        });
         $contract->load(['auditTrails', 'store']);
 
         return response()->json(['data' => new ContractResource($contract)]);
@@ -428,6 +525,17 @@ final class ContractController extends Controller
     {
         $contract = Contract::where('contract_number', $id)->firstOrFail();
         $contractData = $contract->toArray();
+        $user = request()->user();
+
+        $contract->addAuditEntry(
+            'Contrato Eliminado',
+            $user->name ?? 'Admin'
+        );
+
+        User::role('administrator')->each(function (User $admin) use ($contract): void {
+            $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+        });
+
         $contract->delete();
 
         $this->auditService->record(
@@ -541,5 +649,88 @@ final class ContractController extends Controller
         );
 
         return response()->json(['data' => new ContractResource($contract->fresh()->load('auditTrails'))]);
+    }
+
+    /**
+     * POST /api/contracts/{id}/renew
+     * Renueva un contrato creando una nueva versión (V+1).
+     * Accesible por admin y por el dueño de la tienda.
+     */
+    public function renew(Request $request, string $id): JsonResponse
+    {
+        $contract = Contract::findOrFail($id);
+        $user = $request->user();
+
+        // Seller must own the contract's store
+        if ($user->hasRole('seller')) {
+            $store = Store::where('owner_id', $user->id)->first();
+            if (! $store || $contract->store_id !== $store->id) {
+                return response()->json(['error' => 'No tienes permiso para renovar este contrato.'], 403);
+            }
+        }
+
+        $parentId = $contract->parent_contract_id ?? $contract->id;
+        $newVersion = $contract->version + 1;
+
+        $year = now()->year;
+        $lastContract = Contract::where('contract_number', 'like', "CTR-{$year}-%")
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+        if ($lastContract) {
+            $parts = explode('-', $lastContract->contract_number);
+            $nextNumber = ((int) end($parts)) + 1;
+        }
+
+        $contractNumber = sprintf('CTR-%d-%03d', $year, $nextNumber);
+
+        $duration = $contract->start_date && $contract->end_date
+            ? $contract->start_date->diffInDays($contract->end_date)
+            : 365;
+
+        $renewed = Contract::create([
+            'parent_contract_id' => $parentId,
+            'contract_number' => $contractNumber,
+            'store_id' => $contract->store_id,
+            'company' => $contract->company,
+            'ruc' => $contract->ruc,
+            'representative' => $contract->representative,
+            'dni' => $contract->dni,
+            'direccion' => $contract->direccion,
+            'admin_name' => $contract->admin_name,
+            'admin_phone' => $contract->admin_phone,
+            'admin_email' => $contract->admin_email,
+            'type' => $contract->type,
+            'modality' => $contract->modality,
+            'plan' => $contract->plan,
+            'status' => 'ACTIVE',
+            'version' => $newVersion,
+            'start_date' => now(),
+            'end_date' => now()->addDays($duration),
+            'notes' => $contract->notes,
+        ]);
+
+        $renewed->addAuditEntry(
+            "Contrato Renovado a V{$newVersion} (desde V{$contract->version})",
+            $user->name ?? 'Admin'
+        );
+
+        $contract->addAuditEntry(
+            "Renovado a contrato #{$renewed->contract_number} (V{$newVersion})",
+            $user->name ?? 'Admin'
+        );
+
+        $renewed->load(['auditTrails', 'store']);
+
+        if ($renewed->store && $renewed->store->owner) {
+            $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+        }
+
+        User::role('administrator')->each(function (User $admin) use ($renewed): void {
+            $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+        });
+
+        return response()->json(['data' => new ContractResource($renewed)], 201);
     }
 }

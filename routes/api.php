@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileRequestController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SellerApplicationController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\StoreController;
@@ -79,6 +80,7 @@ Route::prefix('auth')->middleware('audit.auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/verify-otp-reset', [AuthController::class, 'verifyOtpReset']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/register-seller-fallback', [AuthController::class, 'registerSellerFallback']);
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -92,6 +94,18 @@ Route::prefix('auth')->middleware('audit.auth')->group(function () {
 | Logística (públicos: geo + shalom | calcular usa carrito auth implícito)
 |--------------------------------------------------------------------------
 */
+
+// Endpoint interno usado por el servicio RPA para disparar el OTP
+Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
+
+// Envío de diagnóstico RPA por correo (público, sin auth — solo requiere application_id + email)
+Route::post('/auth/send-diagnostico', [AuthController::class, 'sendDiagnostico']);
+
+// Vista previa del acuerdo comercial (público, usado en registro de vendedor)
+Route::post('/contracts/preview', [ContractController::class, 'preview']);
+
+// Endpoint interno para el RPA — genera el Word del acuerdo comercial
+Route::post('/internal/rpa/generate-contract-doc', [ContractController::class, 'generateDocument'])->middleware('auth.rpa');
 
 Route::prefix('logistics')->group(function () {
     // Geo — alimentan los selects de destino en checkout (siempre públicos)
@@ -198,9 +212,18 @@ Route::get('/blog/posts/recent', [BlogController::class, 'recent']);
 Route::get('/blog/posts/featured', [BlogController::class, 'featured']);
 Route::get('/blog/posts/{slug}', [BlogController::class, 'show']);
 Route::get('/blog/comments', [BlogController::class, 'comments']);
-Route::post('/blog/comments', [BlogController::class, 'storeComment']);
-Route::get('/blog/podcasts', [BlogController::class, 'podcasts']);
-Route::get('/blog/videos', [BlogController::class, 'videos']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/blog/comments', [BlogController::class, 'storeComment']);
+    Route::put('/blog/comments/{id}', [BlogController::class, 'updateComment']);
+    Route::delete('/blog/comments/{id}', [BlogController::class, 'deleteComment']);
+});
+Route::get('/blog/published-podcasts', [BlogController::class, 'podcasts']);
+Route::get('/blog/published-podcasts/{id}', [BlogController::class, 'showPodcast']);
+Route::get('/blog/published-videos', [BlogController::class, 'videos']);
+Route::get('/blog/published-videos/{id}', [BlogController::class, 'showVideo']);
+Route::get('/blog/published-shorts', [BlogController::class, 'shorts']);
+Route::get('/blog/published-shorts/{id}', [BlogController::class, 'showShort']);
+Route::get('/blog/tiktok-video/{id}', [BlogController::class, 'tiktokVideo']);
 
 /*
 |--------------------------------------------------------------------------
@@ -213,6 +236,8 @@ Route::get('/foro/temas/{id}', [ForumController::class, 'topic']);
 Route::post('/foro/temas', [ForumController::class, 'createTopic']);
 Route::get('/foro/temas/{id}/respuestas', [ForumController::class, 'posts']);
 Route::post('/foro/respuestas', [ForumController::class, 'createPost']);
+Route::put('/foro/respuestas/{postId}', [ForumController::class, 'updatePost']);
+Route::delete('/foro/respuestas/{postId}', [ForumController::class, 'deletePost']);
 Route::post('/foro/votos', [ForumController::class, 'vote']);
 Route::get('/foro/estadisticas', [ForumController::class, 'stats']);
 
@@ -239,7 +264,7 @@ Route::get('/invoices/{id}/pdf', [\App\Http\Controllers\Api\InvoicePdfController
 | Autenticado (cualquier rol)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     Route::prefix('payments/culqi')->group(function () {
         Route::post('/charge', [CulqiController::class, 'charge']);
@@ -267,6 +292,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/expenses/scan', [ExpenseController::class, 'scan']);
     Route::post('/expenses/scan/batch-store', [ExpenseController::class, 'scanBatchStore']);
     Route::apiResource('expenses', ExpenseController::class);
+    Route::get('/expenses/export/csv', [ExpenseController::class, 'exportCsv']);
+    Route::get('/expenses/export/pdf', [ExpenseController::class, 'exportPdf']);
 
     // ── Roles Operativos ──────────────────────────────────────────────────
     // Sólo administrators pueden crear/modificar roles
@@ -322,14 +349,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stores/me/profile-request', [ProfileRequestController::class, 'me']);
     Route::post('/stores/me/profile-request', [ProfileRequestController::class, 'store']);
 
-    // Contratos - Vendedor (ver, descargar y subir firmado)
+    // Contratos - Vendedor (ver, descargar, subir firmado y renovar)
     Route::get('/contracts/me', [ContractController::class, 'myContract']);
     Route::get('/contracts/me/download', [ContractController::class, 'downloadMyContract']);
     Route::post('/contracts/me/upload-signed', [ContractController::class, 'uploadSigned']);
+    Route::post('/contracts/{id}/renew', [ContractController::class, 'renew']);
 
     // Plan Requests - Seller
     Route::post('/plans/requests', [PlanRequestController::class, 'store']);
     Route::get('/stores/me/plan-request', [PlanRequestController::class, 'me']);
+    Route::post('/plans/izipay/init', [PlanRequestController::class, 'createIzipaySession']);
 
     // Tickets — Mesa de Ayuda (customer, seller, cualquier usuario autenticado)
     Route::prefix('tickets')->group(function () {
@@ -403,8 +432,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
     Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
+
     Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
     Route::get('/customer/payment-confirmations', [OrderController::class, 'customerPaymentConfirmations']);
+
+    // Nubefact
+    Route::post('/nubefact/emitir', [NubefactController::class, 'emitir']);
+    Route::get('/nubefact/comprobantes', [NubefactController::class, 'listar']);
+    Route::get('/nubefact/comprobantes/{id}', [NubefactController::class, 'mostrar']);
+    Route::get('/nubefact/kpis', [NubefactController::class, 'kpis']);
+    Route::get('/nubefact/export/csv', [NubefactController::class, 'exportCsv']);
+    Route::get('/nubefact/export/pdf', [NubefactController::class, 'exportPdf']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -479,14 +517,6 @@ Route::middleware('auth:sanctum')->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:administrator')->group(function () {
-        // Nubefact / Facturación Electrónica
-        Route::prefix('nubefact')->group(function () {
-            Route::get('/comprobantes', [NubefactController::class, 'listar']);
-            Route::get('/comprobantes/{id}', [NubefactController::class, 'mostrar']);
-            Route::get('/kpis', [NubefactController::class, 'kpis']);
-            Route::post('/emitir', [NubefactController::class, 'emitir']);
-        });
-
         // Users management
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/role/{role}', [UserController::class, 'byRole']);
@@ -527,6 +557,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{storeId}/store-status', [AdminSellerController::class, 'updateStoreStatus']);
         });
 
+        Route::prefix('admin/seller-applications')->group(function () {
+            Route::get('/', [SellerApplicationController::class, 'index']);
+            Route::get('/{id}', [SellerApplicationController::class, 'show']);
+            Route::put('/{id}/estado', [SellerApplicationController::class, 'updateEstado']);
+        });
 
         // Stores management
         Route::get('/stores', [StoreController::class, 'index']);
@@ -541,6 +576,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Products: aprobar/rechazar
         Route::put('/products/{id}/status', [ProductController::class, 'updateStatus']);
+
+        // Services: aprobar/rechazar
+        Route::get('/admin/services', [ServiceController::class, 'adminIndex']);
+        Route::put('/services/{id}/status', [ServiceController::class, 'updateStatus']);
 
         // Products: Admin - obtener todos los productos incluyendo pendientes
         Route::get('/admin/products', [ProductController::class, 'adminIndex']);
@@ -654,6 +693,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('admin/transactions')->group(function () {
             Route::get('/', [TransactionController::class, 'index']);
             Route::get('/stats', [TransactionController::class, 'stats']);
+            Route::get('/export/csv', [TransactionController::class, 'exportCsv']);
+            Route::get('/export/pdf', [TransactionController::class, 'exportPdf']);
             Route::get('/{id}', [TransactionController::class, 'show']);
         });
 
@@ -679,6 +720,60 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/pending/{id}/approve', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'approvePending']);
             Route::post('/pending/{id}/dismiss', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissPending']);
             Route::post('/pending/dismiss-all', [\App\Http\Controllers\Api\GlossaryEntryController::class, 'dismissAllPending']);
+        });
+
+        // Reportes — Admin
+        Route::prefix('admin/reportes')->group(function () {
+            Route::get('/ventas', [\App\Http\Controllers\Api\AdminReporteController::class, 'ventas']);
+            Route::get('/vendedores', [\App\Http\Controllers\Api\AdminReporteController::class, 'vendedores']);
+            Route::get('/financiero', [\App\Http\Controllers\Api\AdminReporteController::class, 'financiero']);
+            Route::get('/productos', [\App\Http\Controllers\Api\AdminReporteController::class, 'productos']);
+        });
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Admin BioBlog Approval
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('admin/bioblog')->group(function () {
+        Route::get('/pending', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'pending']);
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'stats']);
+        Route::post('/{type}/{id}/approve', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'approve']);
+        Route::post('/{type}/{id}/reject', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'reject']);
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Security Admin (administrator + security_admin)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware(['role:administrator,security_admin', 'track.session'])->prefix('admin/security')->group(function () {
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'stats']);
+        Route::get('/chart-data', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'chartData']);
+        Route::get('/sessions', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'sessions']);
+        Route::delete('/sessions/{id}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'revokeSession']);
+        Route::get('/activity', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'activity']);
+        Route::get('/login-attempts', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'loginAttempts']);
+
+        // ── Cloudflare v4 Integration ───────────────────────────────────
+        Route::prefix('cloudflare')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\Api\CloudflareController::class, 'status']);
+            Route::get('/zone', [\App\Http\Controllers\Api\CloudflareController::class, 'zone']);
+            Route::get('/analytics', [\App\Http\Controllers\Api\CloudflareController::class, 'analytics']);
+            Route::get('/security', [\App\Http\Controllers\Api\CloudflareController::class, 'securityAnalytics']);
+            Route::get('/firewall-events', [\App\Http\Controllers\Api\CloudflareController::class, 'firewallEvents']);
+            Route::get('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'dnsRecords']);
+            Route::post('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'createDnsRecord']);
+            Route::patch('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateDnsRecord']);
+            Route::delete('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'deleteDnsRecord']);
+            Route::post('/purge-cache', [\App\Http\Controllers\Api\CloudflareController::class, 'purgeCache']);
+            Route::get('/settings', [\App\Http\Controllers\Api\CloudflareController::class, 'zoneSettings']);
+            Route::patch('/settings/{settingName}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateZoneSetting']);
+            Route::get('/waf', [\App\Http\Controllers\Api\CloudflareController::class, 'waf']);
+            Route::get('/tunnels', [\App\Http\Controllers\Api\CloudflareController::class, 'tunnels']);
+            Route::get('/rate-limits', [\App\Http\Controllers\Api\CloudflareController::class, 'rateLimits']);
+            Route::get('/ip-lists', [\App\Http\Controllers\Api\CloudflareController::class, 'ipLists']);
         });
     });
 
@@ -722,6 +817,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // Store gallery
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
         Route::delete('/stores/{id}/media/gallery/{mediaId}', [MediaController::class, 'deleteStoreGallery']);
+
+        // Productos del vendedor autenticado (usa store_id del user)
+        Route::get('/seller/products', [ProductController::class, 'myProducts']);
 
         // Rutas que requieren contrato activo para operar
         Route::middleware('auth:sanctum', 'contract.active')->group(function () {

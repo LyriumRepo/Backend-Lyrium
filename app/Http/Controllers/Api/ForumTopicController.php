@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Store;
+use App\Services\ContentModerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -51,8 +52,14 @@ final class ForumTopicController extends Controller
             'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'string', 'max:2048'],
             'status' => ['nullable', 'string', 'in:draft,published,closed'],
         ]);
+
+        $moderation = app(ContentModerationService::class)->check($data['title'].' '.$data['content']);
+        if ($moderation) {
+            return response()->json(['success' => false, 'message' => $moderation['message']], 422);
+        }
 
         $data['store_id'] = $store->id;
         $data['user_id'] = $request->user()->id;
@@ -71,6 +78,7 @@ final class ForumTopicController extends Controller
             'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
+            'image' => ['nullable', 'string', 'max:2048'],
             'status' => ['nullable', 'string', 'in:draft,published,closed'],
         ]);
 
@@ -118,6 +126,11 @@ final class ForumTopicController extends Controller
             'content' => ['required', 'string', 'max:2000'],
             'reply_to_id' => ['nullable', 'integer', 'exists:forum_posts,id'],
         ]);
+
+        $moderation = app(ContentModerationService::class)->check($data['content']);
+        if ($moderation) {
+            return response()->json(['success' => false, 'message' => $moderation['message']], 422);
+        }
 
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
 
