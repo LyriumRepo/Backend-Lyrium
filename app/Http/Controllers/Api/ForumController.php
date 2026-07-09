@@ -11,6 +11,7 @@ use App\Http\Resources\ForumTopicResource;
 use App\Models\ForumCategory;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
+use App\Services\ContentModerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +29,8 @@ final class ForumController extends Controller
 
     public function topics(Request $request): JsonResponse
     {
-        $query = ForumTopic::with('category')
-            ->where('status', 'active');
+        $query = ForumTopic::with(['category', 'user'])
+            ->whereIn('status', ['active', 'published']);
 
         if ($categoryId = $request->query('forum')) {
             $query->where('forum_category_id', $categoryId);
@@ -42,7 +43,7 @@ final class ForumController extends Controller
 
     public function topic(int $id): JsonResponse
     {
-        $topic = ForumTopic::with('category')->find($id);
+        $topic = ForumTopic::with(['category', 'user'])->find($id);
 
         if (! $topic) {
             return $this->notFound('Tema no encontrado.');
@@ -61,10 +62,15 @@ final class ForumController extends Controller
             'content' => 'required|string|max:2000',
         ]);
 
+        $moderation = app(ContentModerationService::class)->check($validated['title'].' '.$validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
         $topic = ForumTopic::create([
             'forum_category_id' => $validated['forumid'],
-            'user_id' => $request->user()?->id,
-            'anonymous_name' => $request->user() ? null : 'Anónimo',
+            'user_id' => $request->user('sanctum')?->id,
+            'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'title' => $validated['title'],
             'content' => $validated['content'],
         ]);
@@ -98,10 +104,15 @@ final class ForumController extends Controller
             'reply_to' => 'nullable|exists:forum_posts,id',
         ]);
 
+        $moderation = app(ContentModerationService::class)->check($validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
         $post = ForumPost::create([
             'forum_topic_id' => $validated['topicid'],
-            'user_id' => $request->user()?->id,
-            'anonymous_name' => $request->user() ? null : 'Anónimo',
+            'user_id' => $request->user('sanctum')?->id,
+            'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'content' => $validated['content'],
             'reply_to_id' => $validated['reply_to'] ?? null,
         ]);
@@ -112,6 +123,43 @@ final class ForumController extends Controller
         ForumCategory::where('id', $categoryId)->increment('post_count');
 
         return $this->created(['success' => true]);
+    }
+
+    public function updatePost(Request $request, int $postId): JsonResponse
+    {
+        $post = ForumPost::findOrFail($postId);
+
+        if ($post->user_id !== $request->user('sanctum')?->id) {
+            return response()->json(['success' => false, 'error' => 'No puedes editar esta respuesta.'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $moderation = app(ContentModerationService::class)->check($validated['content']);
+        if ($moderation) {
+            return $this->error($moderation['message'], 422);
+        }
+
+        $post->update(['content' => $validated['content']]);
+
+        return $this->success(['success' => true]);
+    }
+
+    public function deletePost(Request $request, int $postId): JsonResponse
+    {
+        $post = ForumPost::findOrFail($postId);
+
+        if ($post->user_id !== $request->user('sanctum')?->id) {
+            return response()->json(['success' => false, 'error' => 'No puedes eliminar esta respuesta.'], 403);
+        }
+
+        $post->update(['status' => 'hidden']);
+
+        ForumTopic::where('id', $post->forum_topic_id)->decrement('reply_count');
+
+        return $this->success(['success' => true]);
     }
 
     public function vote(Request $request): JsonResponse
@@ -153,7 +201,7 @@ final class ForumController extends Controller
     public function stats(): JsonResponse
     {
         return $this->success([
-            'totalTopics' => ForumTopic::where('status', 'active')->count(),
+            'totalTopics' => ForumTopic::whereIn('status', ['active', 'published'])->count(),
             'totalReplies' => ForumPost::where('status', 'active')->count(),
             'onlineUsers' => 0,
         ]);

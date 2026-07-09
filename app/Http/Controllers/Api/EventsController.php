@@ -39,11 +39,17 @@ final class EventsController extends Controller
             ob_flush();
         }
 
-        $maxDuration = 300;
+        // Liberar sesión para evitar que el SSE bloquee otras peticiones del mismo usuario
+        session()->save();
+
+        $maxDuration = 60;
         $startTime = time();
         $lastHeartbeat = time();
 
         while ((time() - $startTime) < $maxDuration) {
+            echo ":\n\n";
+            flush();
+
             if (connection_aborted()) {
                 break;
             }
@@ -53,7 +59,7 @@ final class EventsController extends Controller
                 $lastHeartbeat = time();
                 flush();
             }
-            usleep(100000);
+            usleep(200000);
         }
 
         return $response;

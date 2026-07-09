@@ -343,7 +343,8 @@
                 </table>
             </div>
             <p class="commission-note">
-                Comisión calculada sobre Valor Venta ÷ 1.18 × tasa vigente (sin envío).<br>
+                Comisión calculada sobre Valor Venta ÷ 1.18 según tasa de comisión vigente.<br>
+                El envío no se incluye porque el vendedor lo traslada al carrier.
                 No modifica los importes fiscales del comprobante.
             </p>
             @endif
