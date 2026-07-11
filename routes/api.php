@@ -62,6 +62,8 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\TrainingController;
+use App\Http\Controllers\Api\SellerTrainingController;
 use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WishlistController;
@@ -731,6 +733,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/financiero', [\App\Http\Controllers\Api\AdminReporteController::class, 'financiero']);
             Route::get('/productos', [\App\Http\Controllers\Api\AdminReporteController::class, 'productos']);
         });
+
+        // Capacitaciones — Admin CRUD
+        Route::prefix('admin/trainings')->group(function () {
+            Route::get('/', [TrainingController::class, 'index']);
+            Route::get('/progress', [TrainingController::class, 'progress']);
+            Route::post('/thumbnail', [TrainingController::class, 'uploadThumbnail']);
+            Route::get('/{id}', [TrainingController::class, 'show']);
+            Route::post('/', [TrainingController::class, 'store']);
+            Route::put('/{id}', [TrainingController::class, 'update']);
+            Route::delete('/{id}', [TrainingController::class, 'destroy']);
+        });
     });
 
     /*
@@ -880,6 +893,14 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::post('/url-metadata', [\App\Http\Controllers\Api\UrlMetadataController::class, 'preview']);
+
+        // Capacitaciones — Vendedor
+        Route::prefix('seller/trainings')->group(function () {
+            Route::get('/', [SellerTrainingController::class, 'index']);
+            Route::get('/stats', [SellerTrainingController::class, 'stats']);
+            Route::put('/{id}/complete', [SellerTrainingController::class, 'markCompleted']);
+            Route::put('/{id}/incomplete', [SellerTrainingController::class, 'markIncomplete']);
+        });
 
         // ── BioBlog ──────────────────────────────────────────────────
         Route::prefix('blog')->group(function () {
