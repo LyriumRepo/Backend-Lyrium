@@ -107,10 +107,12 @@ final class InvoiceController extends Controller
             return $this->forbidden('No tienes acceso a esta orden.');
         }
 
-        $existingInvoice = Invoice::where('order_id', $order->id)->first();
-        if ($existingInvoice) {
+        $existingRequested = Invoice::where('order_id', $order->id)
+            ->whereNull('store_id')
+            ->first();
+        if ($existingRequested) {
             return $this->error('Esta orden ya tiene una factura generada.', 400, [
-                'invoice' => new InvoiceResource($existingInvoice),
+                'invoice' => new InvoiceResource($existingRequested),
             ]);
         }
 
@@ -258,8 +260,11 @@ final class InvoiceController extends Controller
     {
         $store = $this->getStore($request->user());
 
-        $query = Invoice::with(['order.user', 'store'])
-            ->where('store_id', $store->id);
+        $query = Invoice::with(['order.user', 'order.items', 'order.serviceItems', 'store.owner'])
+            ->where('store_id', $store->id)
+            ->where(function ($q) {
+                $q->whereNull('source')->orWhere('source', '!=', 'plan_subscription');
+            });
 
         if ($request->filled('status')) {
             $query->where('sunat_status', $request->query('status'));

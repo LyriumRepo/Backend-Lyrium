@@ -12,11 +12,15 @@ use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Store;
+use App\Notifications\ProductPendingReviewNotification;
 use App\Notifications\ProductStatusNotification;
+use App\Services\PlanService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class ProductController extends Controller
@@ -48,11 +52,14 @@ final class ProductController extends Controller
     {
         $query = Product::with(self::RELATIONS_LIST);
         $user  = $request->user() ?? $request->user('sanctum');
-        // If user has a store, show all products from that store (including pending)
 
-        if ($user?->store) {
+        if ($user?->hasRole('administrator')) {
+            // Admin ve todo
+        } elseif ($user?->store && $request->query('store_slug') === null && $request->query('store_id') === null) {
+            // Vendedor viendo SUS propios productos (panel /seller/products) — ve todos los estados
             $query->where('store_id', $user->store->id);
-        } elseif (! $user?->hasRole('administrator')) {
+        } else {
+            // Cualquier otra solicitud pública (incluso vendedor viendo otra tienda o la propia vía slug) — solo aprobados
             $query->where('status', 'approved');
         }
 
@@ -186,6 +193,10 @@ final class ProductController extends Controller
 
         $type = $data['type'] ?? 'physical';
 
+        if ($stickerError = $this->validateStickerAllowed($store, $data['sticker'] ?? null)) {
+            return response()->json(['message' => $stickerError, 'upgrade_required' => true], 403);
+        }
+
         $productData = [
             'store_id' => $store->id,
             'type' => $type,
@@ -233,9 +244,9 @@ final class ProductController extends Controller
 
         $product->load(self::RELATIONS_DETAIL);
 
-        // Notificar a administradores sobre nuevo producto pendiente
+        // Notificar a administradores: producto pendiente de revisión
         $admins = User::role('administrator')->get();
-        $notification = new ProductStatusNotification($product, 'pending_review');
+        $notification = new ProductPendingReviewNotification($product);
         foreach ($admins as $admin) {
             $admin->notify($notification);
         }
@@ -253,6 +264,12 @@ final class ProductController extends Controller
         Gate::authorize('update', $product);
 
         $data    = $request->validated();
+
+        if (array_key_exists('sticker', $data)) {
+            if ($stickerError = $this->validateStickerAllowed($product->store, $data['sticker'])) {
+                return response()->json(['message' => $stickerError, 'upgrade_required' => true], 403);
+            }
+        }
 
         $updateData = $this->buildUpdateData($data, $product->type);
         $product->update($updateData);
@@ -332,16 +349,27 @@ final class ProductController extends Controller
 
         $product->load(self::RELATIONS_DETAIL);
 
-        broadcast(new ProductStatusChanged($product));
+        try {
+            broadcast(new ProductStatusChanged($product));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         // Notificar al vendedor sobre cambio de estado
         $product->load('store.owner');
-        if ($product->store && $product->store->owner) {
-            $product->store->owner->notify(new ProductStatusNotification(
-                $product,
-                $validated['status'],
-                $validated['reason'] ?? null,
-            ));
+        $owner = $product->store?->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new ProductStatusNotification(
+                    product: $product,
+                    newStatus: $validated['status'],
+                    reason: $validated['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[Product] Error notificando ProductStatus al vendedor', [
+                    'product_id' => $product->id, 'owner_id' => $owner->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return response()->json(new ProductResource($product));
@@ -419,7 +447,10 @@ final class ProductController extends Controller
         }
 
         if ($status = $request->query('status')) {
-            $query->where('status', $status);
+            $user = $request->user() ?? $request->user('sanctum');
+            if ($user?->hasRole('administrator') || $user?->hasRole('seller') || $status === 'approved') {
+                $query->where('status', $status);
+            }
         }
 
         if ($type = $request->query('type')) {
@@ -437,6 +468,9 @@ final class ProductController extends Controller
         if ($storeId = $request->query('store_id')) {
             $query->where('store_id', (int) $storeId);
         }
+
+        // Protección: status filter en applyFilters solo acepta 'approved' para no-admins
+        // (el filtro de status en adminIndex es independiente y seguro)
     }
 
     private function syncCategory(Product $product, ?string $categorySlug): void
@@ -511,6 +545,25 @@ final class ProductController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * Verifica que el sticker elegido esté permitido por el plan de la tienda.
+     * Devuelve un mensaje de error si no lo está, o null si es válido.
+     */
+    private function validateStickerAllowed(Store $store, ?string $sticker): ?string
+    {
+        if (! $sticker) {
+            return null;
+        }
+
+        $allowed = app(PlanService::class)->storeCapabilities($store)['sticker_types'] ?? [];
+
+        if (! in_array($sticker, $allowed, true)) {
+            return "Tu plan actual no permite el sticker '{$sticker}'. Actualiza tu plan para usar todos los stickers.";
+        }
+
+        return null;
     }
 
     /**

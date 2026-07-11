@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\CommissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Illuminate\Http\Request;
 
 final class InvoicePdfController extends Controller
@@ -30,7 +32,14 @@ final class InvoicePdfController extends Controller
         $order = $invoice->order;
         $items = $invoice->items;
         if (empty($items) && $order) {
-            $items = $order->items->map(fn ($oi) => [
+            // Filtrar por store_id de la factura para no incluir productos de otras tiendas
+            // en pedidos multi-vendor. Si la factura no tiene store_id (caso manual/legacy),
+            // se usan todos los ítems como fallback seguro.
+            $sourceItems = $invoice->store_id
+                ? $order->items->where('store_id', $invoice->store_id)
+                : $order->items;
+
+            $items = $sourceItems->map(fn ($oi) => [
                 'cantidad' => $oi->quantity,
                 'descripcion' => $oi->product_name,
                 'valor_unitario' => round($oi->unit_price / 1.18, 2),
@@ -70,22 +79,31 @@ final class InvoicePdfController extends Controller
             ];
         }
 
-        $shippingCost = (float) ($order?->shipping_cost ?? 0);
+        // Shipping proporcional por tienda: dividir entre nº de tiendas únicas del pedido.
+        // No hay shipping_cost por tienda en BD, pero cada tienda tiene su propio envío.
+        $totalShipping  = (float) ($order?->shipping_cost ?? 0);
+        $storeCount     = $order
+            ? max(1, $order->items->pluck('store_id')->filter()->unique()->count())
+            : 1;
+        $shippingCost   = $invoice->store_id && $storeCount > 1
+            ? round($totalShipping / $storeCount, 2)
+            : $totalShipping;
 
-        // Los precios al consumidor incluyen IGV — se extrae (no se agrega encima)
-        $baseGravada = round($rawLineTotal / 1.18, 2); // "Valor de Venta" SUNAT (sin IGV)
-        $igv = round($baseGravada * 0.18, 2);
-        $invoiceTotal = (float) $invoice->total;
-        $total = $invoiceTotal > 0 ? $invoiceTotal : ($rawLineTotal + $shippingCost);
+        // Siempre recalcular desde ítems reales (ignorar total guardado en invoice,
+        // que puede estar mal por el bug pre-fix del doble IGV)
+        $baseGravada = round($rawLineTotal / 1.18, 2); // valor venta sin IGV
+        $igv         = round($baseGravada * 0.18, 2);
+        $total       = round($rawLineTotal + $shippingCost, 2);
 
         $showCommission = true;
-        // Base de cálculo de comisión = valor venta sin IGV, sin envío (fórmula Lyrium)
-        $commissionBase = $baseGravada;
+        // Base visible de comisión = subtotal de productos CON IGV (lo que el cliente pagó).
+        // La tasa se aplica internamente sobre valor sin IGV, pero se muestra el precio real.
+        $commissionBase = $rawLineTotal;
 
         $commissionSummary = [];
         if ($order) {
             try {
-                $commissionSummary = app(CommissionService::class)->getCommissionSummary($order);
+                $commissionSummary = app(CommissionService::class)->getCommissionSummary($order, $invoice->store_id ? (int) $invoice->store_id : null);
             } catch (\Throwable $e) {
                 $commissionSummary = [];
             }
@@ -132,6 +150,7 @@ final class InvoicePdfController extends Controller
             'commissionRate' => $commissionRate,
             'amountInWords' => $this->numberToWords($total),
             'authorizationCode' => $invoice->authorization_code ?? '—',
+            'qrImage' => $this->generateQrBase64($invoice->qr_data),
             'generatedAt' => now()->locale('es')->isoFormat('DD/MM/YYYY HH:mm:ss'),
         ];
 
@@ -139,6 +158,18 @@ final class InvoicePdfController extends Controller
         $pdf->setPaper('A4', 'portrait');
 
         return $pdf->stream("factura-{$invoice->series}-{$invoice->number}.pdf");
+    }
+
+    private function generateQrBase64(?string $qrData): ?string
+    {
+        if (! $qrData) return null;
+        try {
+            $options = new QROptions(['outputType' => 'png', 'eccLevel' => 'L', 'scale' => 4]);
+            $qr = new QRCode($options);
+            return 'data:image/png;base64,' . base64_encode($qr->render($qrData));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function numberToWords(float $number): string

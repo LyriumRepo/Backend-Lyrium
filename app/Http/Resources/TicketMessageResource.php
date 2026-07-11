@@ -16,6 +16,7 @@ final class TicketMessageResource extends JsonResource
             'user' => $this->user->name,
             'role' => $this->user->frontend_role === 'administrator' ? 'Admin' : 'Vendedor',
             'timestamp' => $this->created_at->format('H:i'),
+            'created_at' => $this->created_at?->toIso8601String(),
             'texto' => $this->content,
             'isUser' => $this->user_id === $request->user()?->id,
             'hora' => $this->created_at->format('H:i'),

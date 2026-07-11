@@ -96,11 +96,11 @@ final class AdminReporteController extends Controller
     public function vendedores(Request $request)
     {
         $stores = Store::query()
-            ->with(['user', 'subscriptions.plan'])
+            ->with(['owner', 'subscriptions.plan'])
             ->withCount(['products', 'services'])
             ->get()
             ->map(function ($store) {
-                $totalSold = Order::whereHas('items', fn ($q) => $q->where('store_id', $store->id))
+                $totalSold = (float) Order::whereHas('items', fn ($q) => $q->where('store_id', $store->id))
                     ->where('payment_status', Order::PAYMENT_STATUS_PAID)
                     ->sum('total');
 
@@ -111,8 +111,8 @@ final class AdminReporteController extends Controller
 
                 return [
                     'store_name' => $store->store_name,
-                    'owner' => $store->user?->name ?? 'N/A',
-                    'email' => $store->user?->email ?? 'N/A',
+                    'owner' => $store->owner?->name ?? 'N/A',
+                    'email' => $store->owner?->email ?? 'N/A',
                     'status' => $store->status,
                     'products_count' => $store->products_count,
                     'services_count' => $store->services_count,

@@ -243,6 +243,7 @@ final class MediaController extends Controller
             $store = Store::findOrFail($storeId);
 
             Gate::authorize('update', $store);
+            $this->validateMainBannerSlot($store, 2);
 
             $file = $request->file('file');
 
@@ -262,10 +263,62 @@ final class MediaController extends Controller
             );
 
             return $this->created(['banner2' => $url, 'id' => $media->id]);
+        } catch (\OverflowException $e) {
+            return response()->json(['message' => $e->getMessage(), 'upgrade_required' => true], 403);
         } catch (\Exception $e) {
             \Log::error('Error uploading banner2: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al subir banner2', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Upload store banner3.
+     * POST /api/stores/{storeId}/media/banner3
+     */
+    public function uploadStoreBanner3(StoreMediaRequest $request, int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+            $this->validateMainBannerSlot($store, 3);
+
+            $file = $request->file('file');
+
+            $store->clearMediaCollection('banner3');
+            $media = $store->addMedia($file)
+                ->preservingOriginal()
+                ->toMediaCollection('banner3');
+
+            $url = $store->getMedia('banner3')->first()?->getUrl() ?? $store->getFirstMediaUrl('banner3');
+
+            $this->auditService->record(
+                event: 'media.uploaded',
+                module: 'media',
+                description: 'Banner 3 subido para tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+            );
+
+            return $this->created(['banner3' => $url, 'id' => $media->id]);
+        } catch (\OverflowException $e) {
+            return response()->json(['message' => $e->getMessage(), 'upgrade_required' => true], 403);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading banner3: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al subir banner3', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Validate that the store's plan allows uploading to this main banner slot (1-indexed).
+     */
+    private function validateMainBannerSlot(Store $store, int $slotNumber): void
+    {
+        $max = app(\App\Services\PlanService::class)->limit($store, 'max_main_banners');
+        if ($max !== -1 && $slotNumber > $max) {
+            throw new \OverflowException("Tu plan actual solo permite {$max} banner(s) principal(es). Actualiza tu plan para agregar más.");
         }
     }
 
@@ -431,6 +484,43 @@ final class MediaController extends Controller
             \Log::error('Error deleting banner2: '.$e->getMessage());
 
             return response()->json(['message' => 'Error al eliminar banner de oferta'], 500);
+        }
+    }
+
+    /**
+     * Delete store banner3.
+     * DELETE /api/stores/{storeId}/media/banner3
+     */
+    public function deleteStoreBanner3(int $storeId): JsonResponse
+    {
+        try {
+            $store = Store::findOrFail($storeId);
+
+            Gate::authorize('update', $store);
+
+            $media = $store->media()
+                ->where('collection_name', 'banner3')
+                ->first();
+
+            if (! $media) {
+                return $this->notFound('Banner 3 no encontrado.');
+            }
+
+            $media->delete();
+
+            $this->auditService->record(
+                event: 'media.deleted',
+                module: 'media',
+                description: 'Banner 3 eliminado de tienda ID ' . $storeId,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id],
+            );
+
+            return $this->success();
+        } catch (\Exception $e) {
+            \Log::error('Error deleting banner3: '.$e->getMessage());
+
+            return response()->json(['message' => 'Error al eliminar banner3'], 500);
         }
     }
 

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
 use App\Models\BlogVideo;
 use App\Models\Store;
+use App\Services\ContentLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -39,9 +40,13 @@ final class BlogVideoController extends Controller
         return response()->json(['success' => true, 'data' => BlogVideo::findOrFail($id)]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ContentLimitService $contentLimit): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+
+        if ($error = $contentLimit->checkBioblogLimit($store, BlogVideo::class, 'bioblog_videos_per_week', 'videos')) {
+            return response()->json(['success' => false, 'message' => $error, 'upgrade_required' => true], 403);
+        }
 
         $data = $request->validate([
             'platform' => ['required', 'string', 'max:30', 'in:youtube,vimeo,tiktok'],

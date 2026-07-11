@@ -105,6 +105,14 @@ final class NubefactProvider implements InvoiceProviderInterface
 
             if ($status === 400) {
                 $codigo = $json['codigo'] ?? null;
+
+                if ($codigo === 23) {
+                    throw NubefactException::duplicateDocument(
+                        "Este documento ya existe en NubeFact (código 23). {$errorMsg}",
+                        ['status' => $status, 'body' => $json, 'url' => $url, 'codigo' => $codigo],
+                    );
+                }
+
                 throw NubefactException::validationError(
                     "NubeFact — {$errorMsg}" . ($codigo ? " (código {$codigo})" : ''),
                     ['status' => $status, 'body' => $json, 'url' => $url, 'codigo' => $codigo],

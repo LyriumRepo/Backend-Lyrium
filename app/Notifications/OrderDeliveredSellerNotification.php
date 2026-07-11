@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Store;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 final class OrderDeliveredSellerNotification extends Notification implements ShouldQueue
@@ -25,11 +26,37 @@ final class OrderDeliveredSellerNotification extends Notification implements Sho
         $channels = ['database'];
 
         $settings = $notifiable->notificationSetting;
+        if ($settings?->wantsEmailOrder() ?? true) {
+            $channels[] = 'mail';
+        }
         if ($settings?->wantsPush() ?? true) {
             $channels[] = PushChannel::class;
         }
 
         return $channels;
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        $customerName = $this->order->shipping_name ?: ($this->order->user?->name ?? 'El cliente');
+        $storeItems   = $this->order->items->where('store_id', $this->store->id);
+        $total        = (float) $storeItems->sum('line_total');
+
+        return (new MailMessage)
+            ->subject('✅ Pedido #' . $this->order->order_number . ' entregado — Lyrium BioMarketplace')
+            ->view('emails.notifications.order-delivered-seller', [
+                'name'         => $notifiable->name,
+                'storeName'    => $this->store->trade_name,
+                'orderNumber'  => $this->order->order_number,
+                'customerName' => $customerName,
+                'total'        => $total,
+                'items'        => $storeItems->map(fn($item) => [
+                    'name'       => $item->product_name,
+                    'quantity'   => $item->quantity,
+                    'line_total' => (float) $item->line_total,
+                ])->toArray(),
+                'actionUrl'    => config('app.frontend_url') . '/seller/orders',
+            ]);
     }
 
     public function toPush(object $notifiable): array

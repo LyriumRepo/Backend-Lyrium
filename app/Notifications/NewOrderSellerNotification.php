@@ -11,6 +11,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Collection;
 
 final class NewOrderSellerNotification extends Notification implements ShouldQueue
 {
@@ -38,15 +39,42 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
         return $channels;
     }
 
+    /**
+     * Ítems (productos + servicios) de esta tienda dentro de la orden.
+     */
+    private function storeItems(): Collection
+    {
+        $products = $this->order->items->where('store_id', $this->store->id)
+            ->map(fn ($item) => [
+                'name' => $item->product_name,
+                'quantity' => $item->quantity,
+                'line_total' => (float) $item->line_total,
+            ]);
+
+        $services = $this->order->serviceItems->where('store_id', $this->store->id)
+            ->map(fn ($item) => [
+                'name' => $item->service_name,
+                'quantity' => $item->quantity,
+                'line_total' => (float) $item->line_total,
+            ]);
+
+        return $products->concat($services)->values();
+    }
+
+    private function orderTypeLabel(bool $hasProducts, bool $hasServices): string
+    {
+        return match (true) {
+            $hasProducts && $hasServices => 'producto(s) y servicio(s)',
+            $hasServices => 'servicio(s)',
+            default => 'producto(s)',
+        };
+    }
+
     public function toMail(object $notifiable): MailMessage
     {
-        $storeItems = $this->order->items->where('store_id', $this->store->id);
-
-        $items = $storeItems->map(fn($item) => [
-            'name' => $item->product_name,
-            'quantity' => $item->quantity,
-            'line_total' => (float) $item->line_total,
-        ])->toArray();
+        $items = $this->storeItems();
+        $hasProducts = $this->order->items->where('store_id', $this->store->id)->isNotEmpty();
+        $hasServices = $this->order->serviceItems->where('store_id', $this->store->id)->isNotEmpty();
 
         return (new MailMessage)
             ->subject('🆕 Nuevo pedido recibido - Lyrium BioMarketplace')
@@ -55,33 +83,25 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
                 'storeName' => $this->store->trade_name,
                 'orderNumber' => $this->order->order_number,
                 'customerName' => $this->order->shipping_name ?: $this->order->user->name,
-                'itemsCount' => $storeItems->count(),
-                'total' => (float) $storeItems->sum('line_total'),
-                'items' => $items,
+                'itemsCount' => $items->count(),
+                'total' => (float) $items->sum('line_total'),
+                'items' => $items->toArray(),
+                'orderTypeLabel' => $this->orderTypeLabel($hasProducts, $hasServices),
                 'shippingAddress' => $this->order->shipping_address,
                 'actionUrl' => config('app.frontend_url') . '/seller/orders/' . $this->order->id,
-                'showTagline' => true,
-            ])
-            ->withSymfonyMessage(function ($message) {
-                $iconPath = public_path('images/iconologo.png');
-                $textPath = public_path('images/nombrelogo.png');
-                if (file_exists($iconPath)) {
-                    $message->embedFromPath($iconPath, 'logo-icon');
-                }
-                if (file_exists($textPath)) {
-                    $message->embedFromPath($textPath, 'logo-text');
-                }
-            });
+            ]);
     }
 
     public function toPush(object $notifiable): array
     {
-        $storeItems = $this->order->items->where('store_id', $this->store->id);
-        $count = $storeItems->count();
+        $items = $this->storeItems();
+        $hasProducts = $this->order->items->where('store_id', $this->store->id)->isNotEmpty();
+        $hasServices = $this->order->serviceItems->where('store_id', $this->store->id)->isNotEmpty();
+        $label = $this->orderTypeLabel($hasProducts, $hasServices);
 
         return [
             'title' => '¡Nuevo pedido recibido!',
-            'body' => "{$count} producto(s) en {$this->store->trade_name} por S/ " . number_format((float) $storeItems->sum('line_total'), 2),
+            'body' => "{$items->count()} {$label} en {$this->store->trade_name} por S/ " . number_format((float) $items->sum('line_total'), 2),
             'data' => [
                 'type' => 'new_order',
                 'order_id' => $this->order->id,
@@ -92,9 +112,12 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
 
     public function toArray(object $notifiable): array
     {
-        $storeItems = $this->order->items->where('store_id', $this->store->id);
-        $total = (float) $storeItems->sum('line_total');
-        $count = $storeItems->count();
+        $items = $this->storeItems();
+        $hasProducts = $this->order->items->where('store_id', $this->store->id)->isNotEmpty();
+        $hasServices = $this->order->serviceItems->where('store_id', $this->store->id)->isNotEmpty();
+        $label = $this->orderTypeLabel($hasProducts, $hasServices);
+        $total = (float) $items->sum('line_total');
+        $count = $items->count();
 
         return [
             'type' => 'new_order',
@@ -105,7 +128,7 @@ final class NewOrderSellerNotification extends Notification implements ShouldQue
             'total' => $total,
             'items_count' => $count,
             'customer_name' => $this->order->shipping_name ?: $this->order->user->name,
-            'subject' => "Nuevo pedido #{$this->order->order_number} en {$this->store->trade_name} — S/ {$total} ({$count} producto(s))",
+            'subject' => "Nuevo pedido #{$this->order->order_number} en {$this->store->trade_name} — S/ {$total} ({$count} {$label})",
         ];
     }
 }

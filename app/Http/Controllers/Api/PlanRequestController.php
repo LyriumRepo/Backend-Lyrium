@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\PlanStatusChanged;
 use App\Http\Controllers\Controller;
+use App\Jobs\GeneratePlanInvoiceJob;
 use App\Models\IzipayPlanTransaction;
 use App\Models\Plan;
 use App\Models\PlanRequest;
 use App\Models\Store;
 use App\Models\Subscription;
+use App\Notifications\PlanActivatedNotification;
+use App\Notifications\PlanRejectedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 final class PlanRequestController extends Controller
 {
@@ -99,7 +102,7 @@ final class PlanRequestController extends Controller
         $user = $request->user();
         $store = Store::where('owner_id', $user->id)->first();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json(['message' => 'No tienes una tienda registrada'], 404);
         }
 
@@ -298,7 +301,7 @@ final class PlanRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = PlanRequest::query()
-            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,monthly_fee'])
+            ->with(['store.owner:id,name,email', 'store.activeSubscription.plan:id,slug', 'plan:id,name,slug,monthly_fee'])
             ->orderBy('created_at', 'desc');
 
         if ($status = $request->query('status')) {
@@ -321,6 +324,7 @@ final class PlanRequestController extends Controller
                 'plan' => [
                     'id' => $req->plan->id,
                     'name' => $req->plan->name,
+                    'slug' => $req->plan->slug,
                     'monthly_fee' => $req->plan->monthly_fee,
                 ],
                 'months' => $req->months,
@@ -424,6 +428,17 @@ final class PlanRequestController extends Controller
             'reviewed_by' => $request->user()->id,
         ]);
 
+        // Notificar al vendedor (campanita + email)
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store?->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new PlanRejectedNotification($planRequest));
+            } catch (\Throwable) {
+                // No crítico — el rechazo ya quedó guardado
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Solicitud rechazada',
@@ -462,45 +477,45 @@ final class PlanRequestController extends Controller
             $sub = $store?->activeSubscription;
 
             $transacciones = $storeRequests->map(fn ($req) => [
-                'id'          => $req->id,
-                'estado'      => $req->payment_status,
-                'monto'       => (float) $req->total_amount,
-                'meses'       => $req->months,
-                'fecha'       => $req->created_at->toIso8601String(),
+                'id' => $req->id,
+                'estado' => $req->payment_status,
+                'monto' => (float) $req->total_amount,
+                'meses' => $req->months,
+                'fecha' => $req->created_at->toIso8601String(),
                 'procesadoEn' => $req->updated_at?->toIso8601String(),
-                'metodoPago'  => strtoupper($req->payment_method ?? ''),
-                'planId'      => $req->plan?->slug ?? '',
-                'planNombre'  => $req->plan?->name ?? '',
-                'planColor'   => $req->plan?->css_color ?? '#10b981',
+                'metodoPago' => strtoupper($req->payment_method ?? ''),
+                'planId' => $req->plan?->slug ?? '',
+                'planNombre' => $req->plan?->name ?? '',
+                'planColor' => $req->plan?->css_color ?? '#10b981',
             ])->values()->all();
 
             return [
-                'usuario_id'      => (string) $storeId,
-                'username'        => $store?->trade_name ?? 'Tienda',
-                'email'           => $store?->owner?->email ?? '',
-                'correo'          => $store?->owner?->email ?? '',
-                'plan_actual'     => $sub?->plan?->slug ?? 'basic',
-                'nombre_plan'     => $sub?->plan?->name ?? 'Sin plan',
-                'css_color'       => $sub?->plan?->css_color ?? '#10b981',
-                'fecha_expiracion'=> $sub?->ends_at?->toIso8601String() ?? '',
-                'total_monto'     => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
-                'pagos_exitosos'  => $storeRequests->where('payment_status', 'paid')->count(),
-                'transacciones'   => $transacciones,
-                'historial'       => [],
+                'usuario_id' => (string) $storeId,
+                'username' => $store?->trade_name ?? 'Tienda',
+                'email' => $store?->owner?->email ?? '',
+                'correo' => $store?->owner?->email ?? '',
+                'plan_actual' => $sub?->plan?->slug ?? 'basic',
+                'nombre_plan' => $sub?->plan?->name ?? 'Sin plan',
+                'css_color' => $sub?->plan?->css_color ?? '#10b981',
+                'fecha_expiracion' => $sub?->ends_at?->toIso8601String() ?? '',
+                'total_monto' => (float) $storeRequests->where('payment_status', 'paid')->sum('total_amount'),
+                'pagos_exitosos' => $storeRequests->where('payment_status', 'paid')->count(),
+                'transacciones' => $transacciones,
+                'historial' => [],
             ];
         })->values()->all();
 
         $totales = [
-            'total_monto'    => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
+            'total_monto' => (float) PlanRequest::where('payment_status', 'paid')->sum('total_amount'),
             'pagos_exitosos' => PlanRequest::where('payment_status', 'paid')->count(),
             'pagos_fallidos' => PlanRequest::where('payment_status', 'failed')->count(),
-            'pagos_pending'  => PlanRequest::where('payment_status', 'pending')->count(),
+            'pagos_pending' => PlanRequest::where('payment_status', 'pending')->count(),
         ];
 
         return response()->json([
-            'success'  => true,
-            'data'     => $vendedores,
-            'totales'  => $totales,
+            'success' => true,
+            'data' => $vendedores,
+            'totales' => $totales,
         ]);
     }
 
@@ -626,12 +641,13 @@ final class PlanRequestController extends Controller
     {
         $planRequest->update([
             'status' => PlanRequest::STATUS_APPROVED,
+            'payment_status' => PlanRequest::PAYMENT_STATUS_PAID,
             'reviewed_by' => $reviewedBy,
         ]);
 
         $endsAt = now()->addMonths($planRequest->months);
 
-        Subscription::updateOrCreate(
+        $subscription = Subscription::updateOrCreate(
             [
                 'store_id' => $planRequest->store_id,
                 'status' => 'active',
@@ -641,6 +657,7 @@ final class PlanRequestController extends Controller
                 'starts_at' => now(),
                 'ends_at' => $endsAt,
                 'status' => 'active',
+                'plan_request_id' => $planRequest->id,
             ]
         );
 
@@ -660,6 +677,30 @@ final class PlanRequestController extends Controller
                 "Vigencia del contrato actualizada por activación del plan {$planRequest->plan->name}",
                 'Sistema'
             );
+        }
+
+        $subscription->load('plan');
+        try {
+            broadcast(new PlanStatusChanged($subscription));
+        } catch (\Throwable) {
+            // Reverb no disponible; suscripción activada correctamente en DB
+        }
+
+        $planRequest->loadMissing(['store.owner', 'plan']);
+        $owner = $planRequest->store->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest));
+            } catch (\Throwable $e) {
+                Log::error('[PlanRequest] Error notificando PlanActivated', [
+                    'plan_request_id' => $planRequest->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        // Generar factura electrónica solo para pagos reales (no trials)
+        if (! $planRequest->isTrial()) {
+            GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
         }
     }
 

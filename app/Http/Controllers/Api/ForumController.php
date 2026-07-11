@@ -125,12 +125,13 @@ final class ForumController extends Controller
         return $this->created(['success' => true]);
     }
 
-    public function updatePost(Request $request, int $postId): JsonResponse
+    public function updatePost(Request $request, int $id): JsonResponse
     {
-        $post = ForumPost::findOrFail($postId);
+        $post = ForumPost::findOrFail($id);
+        $user = $request->user();
 
-        if ($post->user_id !== $request->user('sanctum')?->id) {
-            return response()->json(['success' => false, 'error' => 'No puedes editar esta respuesta.'], 403);
+        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
+            return $this->error('No tienes permiso para editar esta respuesta', 403);
         }
 
         $validated = $request->validate([
@@ -147,19 +148,24 @@ final class ForumController extends Controller
         return $this->success(['success' => true]);
     }
 
-    public function deletePost(Request $request, int $postId): JsonResponse
+    public function deletePost(Request $request, int $id): JsonResponse
     {
-        $post = ForumPost::findOrFail($postId);
+        $post = ForumPost::findOrFail($id);
+        $user = $request->user();
 
-        if ($post->user_id !== $request->user('sanctum')?->id) {
-            return response()->json(['success' => false, 'error' => 'No puedes eliminar esta respuesta.'], 403);
+        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
+            return $this->error('No tienes permiso para eliminar esta respuesta', 403);
         }
+
+        $topicId = $post->forum_topic_id;
+        $categoryId = ForumTopic::where('id', $topicId)->value('forum_category_id');
 
         $post->update(['status' => 'hidden']);
 
-        ForumTopic::where('id', $post->forum_topic_id)->decrement('reply_count');
+        ForumTopic::where('id', $topicId)->decrement('reply_count');
+        ForumCategory::where('id', $categoryId)->decrement('post_count');
 
-        return $this->success(['success' => true]);
+        return $this->success(['message' => 'Respuesta eliminada']);
     }
 
     public function vote(Request $request): JsonResponse

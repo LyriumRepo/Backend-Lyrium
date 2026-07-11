@@ -8,6 +8,7 @@ use App\Events\OrderStatusChanged;
 use App\Models\Order;
 use App\Notifications\OrderStatusTrackingNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Log;
 
 final class SendOrderTrackingEmailListener implements ShouldQueue
 {
@@ -15,6 +16,7 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
         Order::STATUS_CONFIRMED,
         Order::STATUS_PROCESSING,
         Order::STATUS_SHIPPED,
+        Order::STATUS_ON_THE_WAY,
         Order::STATUS_DELIVERED,
         Order::STATUS_CANCELLED,
     ];
@@ -36,12 +38,18 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
         if (!$order->relationLoaded('items')) {
             $order->load('items');
         }
-
-        // Solo enviar tracking email si la orden tiene items de producto
-        if ($order->items->isEmpty()) {
-            return;
+        if (!$order->relationLoaded('serviceItems')) {
+            $order->load('serviceItems');
         }
 
-        $user->notify(new OrderStatusTrackingNotification($order));
+        try {
+            $user->notify(new OrderStatusTrackingNotification($order));
+        } catch (\Throwable $e) {
+            Log::error('SendOrderTrackingEmailListener: error al notificar', [
+                'order_id' => $order->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

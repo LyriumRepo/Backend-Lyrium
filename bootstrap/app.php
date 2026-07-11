@@ -20,15 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
-            'role'              => \App\Http\Middleware\EnsureRole::class,
-            'store.approved'    => \App\Http\Middleware\EnsureStoreApproved::class,
-            'verified'          => \App\Http\Middleware\EnsureEmailVerified::class,
-            'contract.active'   => \App\Http\Middleware\EnsureContractActive::class,
-            'plan.module'       => \App\Http\Middleware\EnsurePlanModule::class,
-            'audit.auth'        => \App\Http\Middleware\AuditAuthMiddleware::class,
-            'audit.security'    => \App\Http\Middleware\AuditSecurityMiddleware::class,
-            'track.session'     => \App\Http\Middleware\TrackAdminSession::class,
-            'auth.rpa'          => EnsureRpaAuth::class,
+            'role' => \App\Http\Middleware\EnsureRole::class,
+            'store.approved' => \App\Http\Middleware\EnsureStoreApproved::class,
+            'verified' => \App\Http\Middleware\EnsureEmailVerified::class,
+            'contract.active' => \App\Http\Middleware\EnsureContractActive::class,
+            'track.session' => \App\Http\Middleware\TrackAdminSession::class,
+            'plan.module' => \App\Http\Middleware\EnsurePlanModule::class,
+            'audit.auth' => \App\Http\Middleware\AuditAuthMiddleware::class,
+            'audit.security' => \App\Http\Middleware\AuditSecurityMiddleware::class,
+            'auth.rpa' => EnsureRpaAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

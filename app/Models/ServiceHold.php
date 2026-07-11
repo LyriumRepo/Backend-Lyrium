@@ -44,6 +44,16 @@ final class ServiceHold extends Model
         return $this->belongsTo(Specialist::class);
     }
 
+    public function scopeActive($query)
+    {
+        return $query->where('expires_at', '>', now());
+    }
+
+    public function scopeForCart($query, string $cartToken)
+    {
+        return $query->where('cart_token', $cartToken)->active();
+    }
+
     public function isExpired(): bool
     {
         return now()->isAfter($this->expires_at);

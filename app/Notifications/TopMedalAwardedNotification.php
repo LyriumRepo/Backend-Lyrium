@@ -22,7 +22,7 @@ final class TopMedalAwardedNotification extends Notification
 
         $settings = $notifiable->notificationSetting;
         if ($settings && $settings->wantsPush()) {
-            $channels[] = 'push';
+            $channels[] = \App\Channels\PushChannel::class;
         }
 
         return $channels;

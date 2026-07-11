@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Blog\BlogReviewNotifier;
 use App\Http\Controllers\Controller;
 use App\Models\BlogShort;
 use App\Models\Store;
+use App\Services\ContentLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -67,9 +68,13 @@ final class BlogShortController extends Controller
         return $finalUrl ?: $url;
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ContentLimitService $contentLimit): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+
+        if ($error = $contentLimit->checkBioblogLimit($store, BlogShort::class, 'bioblog_shorts_per_week', 'shorts')) {
+            return response()->json(['success' => false, 'message' => $error, 'upgrade_required' => true], 403);
+        }
 
         $data = $request->validate([
             'platform' => ['required', 'string', 'max:30', 'in:tiktok,youtube_shorts,instagram_reels'],

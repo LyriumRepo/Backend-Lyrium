@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SubscriptionResource;
+use App\Models\PaymentMethod;
 use App\Models\Plan;
 use App\Models\Subscription;
 use Illuminate\Http\JsonResponse;
@@ -153,6 +154,45 @@ final class SubscriptionController extends Controller
         return response()->json([
             'message' => 'Suscripción renovada correctamente',
             'subscription' => new SubscriptionResource($subscription->fresh(['plan'])),
+        ]);
+    }
+
+    public function updateAutoRenew(int $id, Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'payment_method_id' => ['required_if:enabled,true', 'nullable', 'integer', 'exists:payment_methods,id'],
+        ]);
+
+        $store = $request->user()->ownedStores()->firstOrFail();
+
+        $subscription = Subscription::query()
+            ->where('store_id', $store->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        if ($data['enabled']) {
+            $paymentMethod = PaymentMethod::where('user_id', $request->user()->id)
+                ->where('id', $data['payment_method_id'])
+                ->first();
+
+            if (! $paymentMethod || ! $paymentMethod->isCardTokenized()) {
+                return response()->json([
+                    'message' => 'Guarda una tarjeta primero para activar la renovación automática',
+                ], 422);
+            }
+
+            $subscription->update([
+                'auto_renew' => true,
+                'payment_method_id' => $paymentMethod->id,
+            ]);
+        } else {
+            $subscription->update(['auto_renew' => false]);
+        }
+
+        return response()->json([
+            'message' => $data['enabled'] ? 'Renovación automática activada' : 'Renovación automática desactivada',
+            'subscription' => new SubscriptionResource($subscription->fresh(['plan', 'paymentMethod'])),
         ]);
     }
 

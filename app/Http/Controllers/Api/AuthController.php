@@ -12,13 +12,17 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\ResendOtpRequest;
 use App\Http\Requests\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AdminSession;
 use App\Models\LoginAttempt;
 use App\Models\SellerApplication;
 use App\Models\User;
+use App\Notifications\NewSellerRegistrationNotification;
 use App\Notifications\RpaDiagnosticoNotification;
 use App\Services\AuditService;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,9 +94,9 @@ final class AuthController extends Controller
             'status' => 'success',
         ]);
 
-        \App\Models\AdminSession::where('user_id', $user->id)->delete();
-        \App\Models\AdminSession::create([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
+        AdminSession::where('user_id', $user->id)->delete();
+        AdminSession::create([
+            'id' => (string) Str::uuid(),
             'user_id' => $user->id,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
@@ -114,44 +118,61 @@ final class AuthController extends Controller
     {
         $data = $request->validated();
 
-        $username = Str::slug($data['storeName'], '_');
-        $baseUsername = $username;
-        $counter = 1;
-        while (User::where('username', $username)->exists()) {
-            $username = $baseUsername.'_'.$counter++;
-        }
+        return DB::transaction(function () use ($data): JsonResponse {
+            $username = Str::slug($data['storeName'], '_');
+            $baseUsername = $username;
+            $counter = 1;
+            while (User::where('username', $username)->exists()) {
+                $username = $baseUsername.'_'.$counter++;
+            }
 
-        $user = User::create([
-            'name' => $data['storeName'],
-            'username' => $username,
-            'email' => $data['email'],
-            'nicename' => Str::slug($data['storeName']),
-            'phone' => $data['phone'],
-            'document_type' => 'RUC',
-            'document_number' => $data['ruc'],
-            'password' => $data['password'],
-        ]);
+            $user = User::create([
+                'name' => $data['storeName'],
+                'username' => $username,
+                'email' => $data['email'],
+                'nicename' => Str::slug($data['storeName']),
+                'phone' => $data['phone'],
+                'document_type' => 'RUC',
+                'document_number' => $data['ruc'],
+                'password' => $data['password'],
+            ]);
 
-        $user->assignRole('seller');
+            $user->assignRole('seller');
 
-        $this->otpService->generate($user);
+            $store = Store::create([
+                'owner_id' => $user->id,
+                'ruc' => $data['ruc'],
+                'trade_name' => $data['storeName'],
+                'corporate_email' => $data['email'],
+                'slug' => Str::slug($data['storeName']),
+                'status' => 'pending',
+            ]);
 
-        $this->auditService->record(
-            event: 'auth.register',
-            module: 'auth',
-            description: 'Registro de vendedor',
-            success: true,
-            source: AuditService::SOURCE_WEB,
-            metadata: ['email' => $user->email],
-        );
+            $this->otpService->generate($user);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Registro exitoso. Revisa tu correo para el código de verificación.',
-            'requires_verification' => true,
-            'email' => $user->email,
-            'user_id' => $user->id,
-        ], 201);
+            $store->load('owner');
+            $admins = User::role('administrator')->get();
+            if ($admins->isNotEmpty()) {
+                NotificationFacade::send($admins, new NewSellerRegistrationNotification($user, $store));
+            }
+
+            $this->auditService->record(
+                event: 'auth.register',
+                module: 'auth',
+                description: 'Registro de vendedor',
+                success: true,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $user->email],
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registro exitoso. Revisa tu correo para el código de verificación.',
+                'requires_verification' => true,
+                'email' => $user->email,
+                'user_id' => $user->id,
+            ], 201);
+        });
     }
 
     /**
@@ -619,7 +640,7 @@ final class AuthController extends Controller
         $user->currentAccessToken()->delete();
 
         // Marcar sesión como inactiva inmediatamente
-        \App\Models\AdminSession::where('user_id', $user->id)
+        AdminSession::where('user_id', $user->id)
             ->where('last_activity', '>=', now()->subMinutes(15)->timestamp)
             ->update(['last_activity' => now()->subMinutes(16)->timestamp]);
 

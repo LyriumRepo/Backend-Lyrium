@@ -9,6 +9,7 @@ use App\Events\CriticalSecurityEvent;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Listeners\AccrueLiriosForOrder;
 use App\Listeners\BroadcastNotificationCreated;
 use App\Listeners\GenerateInvoicesForOrder;
 use App\Listeners\LogBlockedIpListener;
@@ -34,6 +35,7 @@ final class EventServiceProvider extends ServiceProvider
         OrderPaymentConfirmed::class => [
             GenerateInvoicesForOrder::class,
             SendOrderConfirmationMailListener::class,
+            AccrueLiriosForOrder::class,
         ],
         OrderStatusChanged::class => [
             SendOrderTrackingEmailListener::class,

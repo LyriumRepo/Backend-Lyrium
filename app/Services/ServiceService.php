@@ -12,9 +12,11 @@ use App\Models\OrderServiceItem;
 use App\Notifications\BookingCancelledNotification;
 use App\Notifications\BookingConfirmedNotification;
 use App\Notifications\BookingCreatedNotification;
+use App\Notifications\BookingOnTheWayNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -471,11 +473,23 @@ final class ServiceService
 
         $storeUser = $booking->service?->store?->owner;
         if ($storeUser) {
-            $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+            try {
+                $storeUser->notify(new BookingCreatedNotification($booking, 'seller'));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingCreated al vendedor', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         if ($booking->user) {
-            $booking->user->notify(new BookingCreatedNotification($booking, 'client'));
+            try {
+                $booking->user->notify(new BookingCreatedNotification($booking, 'client'));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingCreated al cliente', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $this->auditService->record(
@@ -526,7 +540,13 @@ final class ServiceService
         }
 
         if ($booking->user) {
-            $booking->user->notify(new BookingConfirmedNotification($booking));
+            try {
+                $booking->user->notify(new BookingConfirmedNotification($booking));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingConfirmed al cliente', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
 
             Mail::to($booking->user->email)
                 ->queue(new BookingConfirmationMail(
@@ -579,11 +599,23 @@ final class ServiceService
 
         $storeUser = $booking->service?->store?->owner;
         if ($storeUser) {
-            $storeUser->notify(new BookingCancelledNotification($booking, 'seller'));
+            try {
+                $storeUser->notify(new BookingCancelledNotification($booking, 'seller'));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingCancelled al vendedor', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         if ($booking->user) {
-            $booking->user->notify(new BookingCancelledNotification($booking, 'client'));
+            try {
+                $booking->user->notify(new BookingCancelledNotification($booking, 'client'));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingCancelled al cliente', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $this->auditService->record(
@@ -690,14 +722,13 @@ final class ServiceService
         $booking = $booking->fresh()->load('service', 'user');
 
         if ($booking->user) {
-            Mail::to($booking->user->email)
-                ->send(new BookingConfirmationMail(
-                    booking: $booking,
-                    recipientName: $booking->user->name,
-                    role: 'client',
-                    icsContent: null,
-                    gcalOk: true,
-                ));
+            try {
+                $booking->user->notify(new BookingOnTheWayNotification($booking));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error notificando BookingOnTheWay al cliente', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $booking;
@@ -767,7 +798,7 @@ final class ServiceService
 
         return ServiceBooking::query()
             ->where('user_id', $userId)
-            ->with(['service', 'service.store', 'schedule', 'specialist'])
+            ->with(['service', 'service.store', 'schedule', 'specialist', 'review'])
             ->latest()
             ->paginate($perPage);
     }

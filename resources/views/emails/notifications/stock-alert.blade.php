@@ -3,44 +3,58 @@
 @section('email_title', $level === 'out' ? 'Producto agotado — Lyrium' : 'Stock crítico — Lyrium')
 
 @section('email_content')
-    <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-            <td>
-                <div class="greeting">Hola, {{ $sellerName }}</div>
+<p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#14532d;">Hola, {{ $sellerName }}</p>
 
-                @if($level === 'out')
-                    <p style="margin-top: 12px;">
-                        Tu producto se ha <strong>agotado</strong>. Los clientes no podrán comprarlo hasta que reponga el stock.
-                    </p>
+@if($level === 'out')
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+  <tr>
+    <td style="background:#fef2f2;border-left:4px solid #dc2626;border-radius:0 8px 8px 0;padding:14px 16px;">
+      <p style="margin:0;font-size:15px;font-weight:600;color:#b91c1c;">⚠️ Producto agotado</p>
+      <p style="margin:6px 0 0;font-size:14px;color:#374151;">
+        Tu producto <strong>{{ $productName }}</strong> se ha agotado (0 unidades). Los clientes no podrán comprarlo hasta que reponga el stock.
+      </p>
+    </td>
+  </tr>
+</table>
+@else
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+  <tr>
+    <td style="background:#fff7ed;border-left:4px solid #ea580c;border-radius:0 8px 8px 0;padding:14px 16px;">
+      <p style="margin:0;font-size:15px;font-weight:600;color:#c2410c;">🔔 Stock en nivel crítico</p>
+      <p style="margin:6px 0 0;font-size:14px;color:#374151;">
+        Tu producto <strong>{{ $productName }}</strong> tiene solo <strong>{{ $stock }} unidad(es)</strong> disponibles. Considera reabastecer pronto.
+      </p>
+    </td>
+  </tr>
+</table>
+@endif
 
-                    <div class="status-badge" style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:12px 18px;margin:18px 0;font-size:14px;">
-                        ⚠️ Sin stock disponible
-                    </div>
-                @else
-                    <p style="margin-top: 12px;">
-                        Tu producto está llegando a un nivel de stock <strong>crítico</strong>. Te recomendamos reabastecer pronto para evitar quedarte sin existencias.
-                    </p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+  <tr style="background:#f9fafb;">
+    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Producto</td>
+    <td style="padding:10px 16px;font-size:13px;color:#14532d;font-weight:700;border-bottom:1px solid #e5e7eb;">{{ $productName }}</td>
+  </tr>
+  <tr>
+    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;">Unidades disponibles</td>
+    <td style="padding:10px 16px;font-size:13px;color:#{{ $level === 'out' ? 'b91c1c' : 'c2410c' }};font-weight:700;">{{ $stock }}</td>
+  </tr>
+</table>
 
-                    <div class="status-badge" style="background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:8px;padding:12px 18px;margin:18px 0;font-size:14px;">
-                        🔔 Stock en nivel crítico
-                    </div>
-                @endif
+<p style="margin:0 0 20px;font-size:14px;color:#4b5563;line-height:1.6;">
+  Ingresa a tu panel de inventario para actualizar el stock y mantener tu catálogo activo.
+</p>
 
-                <div class="highlight-box">
-                    <p><strong>Producto:</strong> {{ $productName }}</p>
-                    <p><strong>Unidades disponibles:</strong> {{ $stock }}</p>
-                </div>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+  <tr>
+    <td align="center">
+      <a href="{{ $actionUrl }}" style="display:inline-block;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;">
+        Ir al inventario
+      </a>
+    </td>
+  </tr>
+</table>
 
-                <p>
-                    Ingresa a tu panel de inventario para actualizar el stock y mantener tu catálogo activo.
-                </p>
-
-                <a href="{{ $actionUrl }}" class="cta-button">Ir al inventario</a>
-
-                <p style="text-align: center; font-size: 13px; color: #94A3B8; margin-top: 24px;">
-                    Este correo se generó automáticamente. No respondas a este mensaje.
-                </p>
-            </td>
-        </tr>
-    </table>
+<p style="margin:0;font-size:12px;color:#9ca3af;text-align:center;">
+  Este correo se generó automáticamente.
+</p>
 @endsection

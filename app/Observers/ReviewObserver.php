@@ -4,15 +4,14 @@ namespace App\Observers;
 
 use App\Models\Product;
 use App\Models\Review;
+use App\Notifications\NewReviewNotification;
 
 class ReviewObserver
 {
-    /**
-     * Se dispara cuando se crea una nueva reseña.
-     */
     public function created(Review $review): void
     {
         $this->recalcularProducto($review->product_id);
+        $this->notifyStoreOwner($review);
     }
 
     /**
@@ -41,6 +40,20 @@ class ReviewObserver
      * Recalcula rating_promedio y rating_count de un producto
      * a partir de todas sus reseñas existentes.
      */
+    private function notifyStoreOwner(Review $review): void
+    {
+        $owner = $review->product?->store?->owner;
+        if ($owner) {
+            try {
+                $owner->notify(new NewReviewNotification($review->load(['product.store', 'user'])));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('[Review] Error notificando NewReview', [
+                    'review_id' => $review->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
     private function recalcularProducto(int $productId): void
     {
         $stats = Review::where('product_id', $productId)

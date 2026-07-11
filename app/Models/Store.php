@@ -117,6 +117,11 @@ final class Store extends Model implements HasMedia
         return $this->hasMany(Product::class);
     }
 
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+
     public function subscription(): HasOne
     {
         return $this->hasOne(Subscription::class)->latestOfMany();
@@ -203,11 +208,17 @@ final class Store extends Model implements HasMedia
             ]);
 
             if ($this->relationLoaded('owner') && $this->owner) {
-                $this->owner->notify(new \App\Notifications\StoreStatusNotification(
-                    $this,
-                    'banned',
-                    'Auto-suspensión por acumular 3 strikes.',
-                ));
+                try {
+                    $this->owner->notify(new \App\Notifications\StoreStatusNotification(
+                        $this,
+                        'banned',
+                        'Auto-suspensión por acumular 3 strikes.',
+                    ));
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('[Store] Error notificando auto-ban', [
+                        'store_id' => $this->id, 'error' => $e->getMessage(),
+                    ]);
+                }
             }
         }
     }
@@ -243,6 +254,9 @@ final class Store extends Model implements HasMedia
             ->useDisk('public');
 
         $this->addMediaCollection('banner2')
+            ->useDisk('public');
+
+        $this->addMediaCollection('banner3')
             ->useDisk('public');
 
         $this->addMediaCollection('gallery')

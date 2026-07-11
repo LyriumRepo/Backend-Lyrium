@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 final class Invoice extends Model
 {
@@ -42,9 +43,15 @@ final class Invoice extends Model
         self::SUNAT_STATUS_REJECTED,
     ];
 
+    public const SOURCE_ORDER = 'order';
+
+    public const SOURCE_PLAN_SUBSCRIPTION = 'plan_subscription';
+
     protected $fillable = [
         'store_id',
         'order_id',
+        'plan_request_id',
+        'source',
         'invoice_number',
         'series',
         'number',
@@ -102,6 +109,11 @@ final class Invoice extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function planRequest(): BelongsTo
+    {
+        return $this->belongsTo(PlanRequest::class);
+    }
+
     public static function generateInvoiceNumber(): string
     {
         $prefix = 'INV';
@@ -109,6 +121,32 @@ final class Invoice extends Model
         $random = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         return "{$prefix}-{$timestamp}-{$random}";
+    }
+
+    /**
+     * Calcula el siguiente número correlativo para una serie de NubeFact.
+     *
+     * El correlativo de NubeFact es GLOBAL por serie (ej. FFF1), no por tienda:
+     * todas las tiendas y todos los flujos (órdenes, suscripciones de plan)
+     * comparten la misma serie configurada en NUBEFACT_SERIES_*. Por eso el
+     * máximo debe calcularse sobre TODA la tabla para esa serie — filtrar por
+     * store_id u otro criterio hace que cada tienda/flujo calcule su propio
+     * "siguiente número" de forma aislada, y esos números terminan chocando
+     * entre sí en NubeFact (error "Este documento ya existe", código 23).
+     *
+     * Debe invocarse dentro de una transacción (DB::transaction) que también
+     * contenga el Invoice::create() correspondiente, para que el lockForUpdate
+     * evite que dos procesos concurrentes calculen el mismo número.
+     */
+    public static function resolveNextNumber(string $series, int $padLength = 4): string
+    {
+        $max = self::where('series', $series)
+            ->lockForUpdate()
+            ->max(DB::raw('CAST(number AS UNSIGNED)'));
+
+        $next = $max ? (int) $max + 1 : 1;
+
+        return str_pad((string) $next, $padLength, '0', STR_PAD_LEFT);
     }
 
     public function addHistoryEntry(string $status, string $note, string $user): void

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumPost;
 use App\Models\ForumTopic;
 use App\Models\Store;
+use App\Services\ContentLimitService;
 use App\Services\ContentModerationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,9 +45,13 @@ final class ForumTopicController extends Controller
         return response()->json(['success' => true, 'data' => $topic]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ContentLimitService $contentLimit): JsonResponse
     {
         $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+
+        if ($error = $contentLimit->checkForumWeeklyLimit($store)) {
+            return response()->json(['success' => false, 'message' => $error, 'upgrade_required' => true], 403);
+        }
 
         $data = $request->validate([
             'forum_category_id' => ['required', 'integer', 'exists:forum_categories,id'],

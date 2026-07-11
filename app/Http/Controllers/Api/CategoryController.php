@@ -187,7 +187,11 @@ final class CategoryController extends Controller
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
 
-        broadcast(new CategoryUpdated($category->loadCount('products'), 'created'));
+        try {
+            broadcast(new CategoryUpdated($category->loadCount('products'), 'created'));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new CategoryResource($category->loadCount('products')), 201);
     }
@@ -240,7 +244,11 @@ final class CategoryController extends Controller
 
         $category->update($updateData);
 
-        broadcast(new CategoryUpdated($category->fresh()->loadCount('products'), 'updated'));
+        try {
+            broadcast(new CategoryUpdated($category->fresh()->loadCount('products'), 'updated'));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new CategoryResource($category->fresh()->loadCount('products')));
     }
@@ -276,7 +284,11 @@ final class CategoryController extends Controller
         $category->products()->detach();
         $category->delete();
 
-        broadcast(new CategoryUpdated($category, 'deleted'));
+        try {
+            broadcast(new CategoryUpdated($category, 'deleted'));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new CategoryResource($category));
     }

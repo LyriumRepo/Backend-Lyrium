@@ -14,11 +14,13 @@ use App\Http\Resources\ServiceBookingResource;
 use App\Http\Resources\ServiceResource;
 use App\Models\Service;
 use App\Models\User;
+use App\Notifications\ServicePendingReviewNotification;
 use App\Notifications\ServiceStatusNotification;
 use App\Services\ServiceService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 final class ServiceController extends Controller
 {
@@ -123,8 +125,9 @@ final class ServiceController extends Controller
         );
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
 
+        // Notificar a administradores: servicio pendiente de revisión
         $admins = User::role('administrator')->get();
-        $notification = new ServiceStatusNotification($service, Service::STATUS_PENDING_REVIEW);
+        $notification = new ServicePendingReviewNotification($service);
         foreach ($admins as $admin) {
             $admin->notify($notification);
         }
@@ -263,8 +266,10 @@ final class ServiceController extends Controller
             ], 422);
         }
 
+        $storedStatus = $validated['status'] === 'approved' ? Service::STATUS_ACTIVE : $validated['status'];
+
         $service->update([
-            'status' => $validated['status'],
+            'status' => $storedStatus,
             'rejection_reason' => $validated['status'] === 'rejected' ? $validated['reason'] : null,
             'reviewed_at' => now(),
             'reviewed_by' => Auth::id(),
@@ -275,11 +280,17 @@ final class ServiceController extends Controller
         $service->load('store.owner');
 
         if ($service->store && $service->store->owner) {
-            $service->store->owner->notify(new ServiceStatusNotification(
-                $service,
-                $validated['status'],
-                $validated['reason'] ?? null,
-            ));
+            try {
+                $service->store->owner->notify(new ServiceStatusNotification(
+                    $service,
+                    $validated['status'],
+                    $validated['reason'] ?? null,
+                ));
+            } catch (\Throwable $e) {
+                Log::error('[Service] Error notificando ServiceStatus al vendedor', [
+                    'service_id' => $service->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
@@ -336,7 +347,11 @@ final class ServiceController extends Controller
         );
 
         $booking->load(['service', 'schedule', 'user']);
-        broadcast(new NewBookingReceived($booking));
+        try {
+            broadcast(new NewBookingReceived($booking));
+        } catch (\Throwable) {
+            // Real-time broadcast unavailable; data was saved successfully
+        }
 
         return response()->json(new ServiceBookingResource($booking), 201);
     }
@@ -726,4 +741,5 @@ final class ServiceController extends Controller
             ], 500);
         }
     }
+
 }

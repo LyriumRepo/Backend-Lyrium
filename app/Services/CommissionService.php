@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\CommissionTier;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderServiceItem;
 use App\Models\Store;
 
 final class CommissionService
@@ -24,11 +25,11 @@ final class CommissionService
         return $tier ?? CommissionTier::orderBy('sort_order')->first();
     }
 
-    // $orderSubtotal: total del pedido CON IGV (usado para determinar tramo, no precio individual)
-    public function calculateItemCommission(OrderItem $item, float $orderSubtotal): void
+    // $storeSubtotal: subtotal de la tienda CON IGV (sin envío); los tramos están en valores con IGV
+    public function calculateItemCommission(OrderItem $item, float $storeSubtotal): void
     {
-        $valorVentaOrden = $orderSubtotal / 1.18;
-        $tier = $this->getTierForValue($valorVentaOrden);
+        // Los tramos (0-400, 401-800…) se evalúan sobre la venta de cada tienda individualmente
+        $tier = $this->getTierForValue($storeSubtotal);
         $rate = $tier->rate;
 
         $itemLineVenta = $item->line_total / 1.18;
@@ -41,21 +42,56 @@ final class CommissionService
         ]);
     }
 
+    // Misma lógica que calculateItemCommission pero para ítems de servicio
+    public function calculateServiceItemCommission(OrderServiceItem $item, float $storeSubtotal): void
+    {
+        $tier = $this->getTierForValue($storeSubtotal);
+        $rate = $tier->rate;
+
+        $itemLineVenta = $item->line_total / 1.18;
+        $commissionAmount = round($itemLineVenta * ($rate / 100), 2);
+
+        $item->updateQuietly([
+            'commission_rate' => $rate,
+            'commission_amount' => $commissionAmount,
+        ]);
+    }
+
     public function calculateForOrder(Order $order): void
     {
-        $order->loadMissing('items');
-        $orderSubtotal = (float) $order->subtotal;
+        $order->loadMissing(['items', 'serviceItems']);
 
-        foreach ($order->items as $item) {
-            $this->calculateItemCommission($item, $orderSubtotal);
+        // Agrupar por tienda (productos + servicios) para que cada una evalúe su propio
+        // tramo de comisión sobre su venta total. Usar el subtotal global de la orden
+        // mezclaría ventas de distintos vendedores y podría llevar a un tramo distinto
+        // al que le corresponde a cada uno.
+        $itemsByStore = $order->items->groupBy('store_id');
+        $serviceItemsByStore = $order->serviceItems->groupBy('store_id');
+        $storeIds = $itemsByStore->keys()->merge($serviceItemsByStore->keys())->unique();
+
+        foreach ($storeIds as $storeId) {
+            $storeItems = $itemsByStore->get($storeId, collect());
+            $storeServiceItems = $serviceItemsByStore->get($storeId, collect());
+            $storeSubtotal = (float) $storeItems->sum('line_total') + (float) $storeServiceItems->sum('line_total');
+
+            foreach ($storeItems as $item) {
+                $this->calculateItemCommission($item, $storeSubtotal);
+            }
+            foreach ($storeServiceItems as $item) {
+                $this->calculateServiceItemCommission($item, $storeSubtotal);
+            }
         }
     }
 
-    public function getCommissionSummary(Order $order): array
+    public function getCommissionSummary(Order $order, ?int $storeId = null): array
     {
         $order->loadMissing('items');
 
-        $items = $order->items->map(fn (OrderItem $item) => [
+        $source = $storeId
+            ? $order->items->where('store_id', $storeId)
+            : $order->items;
+
+        $items = $source->map(fn (OrderItem $item) => [
             'product_name' => $item->product_name,
             'line_total' => (float) $item->line_total,
             'valor_venta' => round($item->line_total / 1.18, 2),

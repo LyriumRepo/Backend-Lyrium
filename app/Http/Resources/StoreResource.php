@@ -20,6 +20,7 @@ final class StoreResource extends JsonResource
             'logo_marketplace' => $this->getMediaUrl('logo_marketplace'),
             'banner' => $this->getMediaUrl('banner'),
             'banner2' => $this->getMediaUrl('banner2'),
+            'banner3' => $this->getMediaUrl('banner3'),
             'gallery' => $this->getGalleryUrls(),
             'ad_banners' => $this->getMedia('ad_banners')
                 ->map(fn ($media) => [

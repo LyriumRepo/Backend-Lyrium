@@ -205,6 +205,16 @@ final class ContractController extends Controller
             $user->name ?? 'Admin'
         );
 
+        User::role('administrator')->each(function (User $admin) use ($contract): void {
+            try {
+                $admin->notify(new ContractStatusNotification($contract, 'created'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando creación', [
+                    'contract_id' => $contract->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        });
+
         $this->auditService->record(
             event: 'contracts.created',
             module: 'contracts',
@@ -213,10 +223,6 @@ final class ContractController extends Controller
             source: AuditService::SOURCE_WEB,
             metadata: ['contract_number' => $contractNumber],
         );
-
-        User::role('administrator')->each(function (User $admin) use ($contract): void {
-            $admin->notify(new ContractStatusNotification($contract, 'created'));
-        });
 
         $contract->load(['auditTrails', 'store']);
 
@@ -326,6 +332,32 @@ final class ContractController extends Controller
             $user->name ?? 'Admin'
         );
 
+        $action = match ($data['status']) {
+            'ACTIVE' => 'activated',
+            'EXPIRED' => 'expired',
+            default => 'updated',
+        };
+
+        if ($contract->store && $contract->store->owner) {
+            try {
+                $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando al dueño', [
+                    'contract_id' => $contract->id, 'action' => $action, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        User::role('administrator')->each(function (User $admin) use ($contract, $action): void {
+            try {
+                $admin->notify(new ContractStatusNotification($contract, $action));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando al admin', [
+                    'contract_id' => $contract->id, 'action' => $action, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        });
+
         $auditEvent = match ($data['status']) {
             'ACTIVE' => 'contracts.activated',
             'EXPIRED' => 'contracts.expired',
@@ -351,19 +383,6 @@ final class ContractController extends Controller
             );
         }
 
-        $action = match ($data['status']) {
-            'ACTIVE' => 'activated',
-            'EXPIRED' => 'expired',
-            default => 'updated',
-        };
-
-        if ($contract->store && $contract->store->owner) {
-            $contract->store->owner->notify(new ContractStatusNotification($contract, $action));
-        }
-
-        User::role('administrator')->each(function (User $admin) use ($contract, $action): void {
-            $admin->notify(new ContractStatusNotification($contract, $action));
-        });
         $contract->load(['auditTrails', 'store']);
 
         return response()->json(['data' => new ContractResource($contract)]);
@@ -524,7 +543,6 @@ final class ContractController extends Controller
     public function destroy(string $id): JsonResponse
     {
         $contract = Contract::where('contract_number', $id)->firstOrFail();
-        $contractData = $contract->toArray();
         $user = request()->user();
 
         $contract->addAuditEntry(
@@ -533,9 +551,16 @@ final class ContractController extends Controller
         );
 
         User::role('administrator')->each(function (User $admin) use ($contract): void {
-            $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+            try {
+                $admin->notify(new ContractStatusNotification($contract, 'deleted'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando eliminación', [
+                    'contract_id' => $contract->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
+        $contractData = $contract->toArray();
         $contract->delete();
 
         $this->auditService->record(
@@ -724,11 +749,23 @@ final class ContractController extends Controller
         $renewed->load(['auditTrails', 'store']);
 
         if ($renewed->store && $renewed->store->owner) {
-            $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+            try {
+                $renewed->store->owner->notify(new ContractStatusNotification($renewed, 'renewed'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando renovación al dueño', [
+                    'contract_id' => $renewed->id, 'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         User::role('administrator')->each(function (User $admin) use ($renewed): void {
-            $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+            try {
+                $admin->notify(new ContractStatusNotification($renewed, 'renewed'));
+            } catch (\Throwable $e) {
+                Log::error('[Contract] Error notificando renovación al admin', [
+                    'contract_id' => $renewed->id, 'admin_id' => $admin->id, 'error' => $e->getMessage(),
+                ]);
+            }
         });
 
         return response()->json(['data' => new ContractResource($renewed)], 201);

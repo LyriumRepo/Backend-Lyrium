@@ -46,16 +46,20 @@ final class NubefactService
             ];
         }
 
-        $totalConIgv = (float) $invoice->total;
-        // Usar el subtotal pre-calculado si existe para evitar imprecisión de coma flotante
-        // al dividir totalConIgv / 1.18 (p.ej. 117.53 / 1.18 puede dar 99.599... en lugar de 99.6).
-        $storedBase  = (float) ($invoice->subtotal_sin_igv ?? 0);
-        $baseGravada = $storedBase > 0 ? $storedBase : $totalConIgv / (1 + self::IGV_RATE);
-        $totalIgv    = round($totalConIgv - $baseGravada, 2);
-
         if ($customItems !== null) {
-            $items = $customItems;
+            // Derivar totales del encabezado desde los ítems para que coincidan exactamente.
+            // Si se calculan desde invoice->total e invoice->subtotal_sin_igv, el costo de
+            // envío queda fuera de total_gravada y el total_igv queda inflado (bug confirmado).
+            $items       = $customItems;
+            $baseGravada = round(array_sum(array_column($items, 'subtotal')), 2);
+            $totalIgv    = round(array_sum(array_column($items, 'igv')), 2);
+            $totalConIgv = round($baseGravada + $totalIgv, 2);
         } else {
+            $totalConIgv = (float) $invoice->total;
+            $storedBase  = (float) ($invoice->subtotal_sin_igv ?? 0);
+            $baseGravada = $storedBase > 0 ? $storedBase : $totalConIgv / (1 + self::IGV_RATE);
+            $totalIgv    = round($totalConIgv - $baseGravada, 2);
+
             $order = $invoice->order()->with('items')->first();
             $shippingCost = $order ? (float) ($order->shipping_cost ?? 0) : 0.0;
             $items = $this->buildItems($order?->items, $baseGravada, $invoice->customer_name, $shippingCost);
@@ -70,7 +74,7 @@ final class NubefactService
             'cliente_tipo_de_documento' => $this->getCustomerDocType($invoice->customer_ruc),
             'cliente_numero_de_documento' => $invoice->customer_ruc,
             'cliente_denominacion' => $invoice->customer_name,
-            'cliente_email' => '',
+            'cliente_email' => $invoice->customer_email ?: null,
             'fecha_de_emision' => now('America/Lima')->format('d-m-Y'),
             'moneda' => '1',
             'porcentaje_de_igv' => '18.00',
@@ -166,13 +170,14 @@ final class NubefactService
                 $unitBase = $qty > 0 ? round($itemBase / $qty, 2) : 0;
                 $igv = round($itemBase * self::IGV_RATE, 2);
                 $itemTotal = round($itemBase + $igv, 2);
+                $unitPrice = $qty > 0 ? round($itemTotal / $qty, 2) : $itemTotal;
 
                 $items[] = [
                     'unidad_de_medida' => 'NIU',
                     'descripcion' => $oi->product_name ?? $fallbackDesc,
                     'cantidad' => (string) $qty,
                     'valor_unitario' => $unitBase,
-                    'precio_unitario' => $itemTotal,
+                    'precio_unitario' => $unitPrice,
                     'subtotal' => $itemBase,
                     'tipo_de_igv' => '1',
                     'igv' => $igv,

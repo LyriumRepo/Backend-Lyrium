@@ -1,34 +1,45 @@
 
 <?php
 
-use App\Http\Controllers\Api\AdminFinanceController;
-use App\Http\Controllers\Api\Admin\CommissionTierController;
-use App\Http\Controllers\Api\AdminTicketController;
 use App\Http\Controllers\Api\AddressController;
+use App\Http\Controllers\Api\Admin\CommissionTierController;
+use App\Http\Controllers\Api\AdminFinanceController;
+use App\Http\Controllers\Api\AdminMedalController;
+use App\Http\Controllers\Api\AdminSellerController;
+use App\Http\Controllers\Api\AdminTicketController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BenefitController;
-use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BrandController;
-use App\Http\Controllers\Api\ChatBotController;
 use App\Http\Controllers\Api\CartController;
-use App\Http\Controllers\Api\ServiceHoldController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ChatBotController;
 use App\Http\Controllers\Api\ContractController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Api\CulqiController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\DisputeController;
 use App\Http\Controllers\Api\EventsController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FinanceAnalyticsController;
 use App\Http\Controllers\Api\ForumController;
+use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\IzipayController;
 use App\Http\Controllers\Api\IzipayPaymentController;
+use App\Http\Controllers\Api\IzipayPlanController;
+use App\Http\Controllers\Api\LiriosController;
+use App\Http\Controllers\Api\LogisticsController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NewsletterController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\NubefactController;
+use App\Http\Controllers\Api\OperationalRoleController;
+use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\PaymentMethodController;
@@ -36,33 +47,25 @@ use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\Api\PlanRequestController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileRequestController;
+use App\Http\Controllers\Api\RankingController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\ReviewModerationController;
 use App\Http\Controllers\Api\SellerApplicationController;
+use App\Http\Controllers\Api\SellerMedalController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceHoldController;
 use App\Http\Controllers\Api\ShippingController;
 use App\Http\Controllers\Api\StoreController;
+use App\Http\Controllers\Api\StoreReviewController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SystemConfigController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\AdminSellerController;
-use App\Http\Controllers\Api\AuditLogController;
-use App\Http\Controllers\Api\CulqiController;
-use App\Http\Controllers\Api\ExpenseController;
-use App\Http\Controllers\Api\GoogleCalendarController;
-use App\Http\Controllers\Api\OperationalRoleController;
-use App\Http\Controllers\Api\OperationsController;
-use App\Http\Controllers\Api\RankingController;
-use App\Http\Controllers\Api\ReviewModerationController;
-use App\Http\Controllers\Api\StoreReviewController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\IzipayController;
-use App\Http\Controllers\Api\AdminMedalController;
-use App\Http\Controllers\Api\SellerMedalController;
-use App\Http\Controllers\Api\LogisticsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -89,12 +92,6 @@ Route::prefix('auth')->middleware('audit.auth')->group(function () {
     });
 });
 
-/*
-|--------------------------------------------------------------------------
-| Logística (públicos: geo + shalom | calcular usa carrito auth implícito)
-|--------------------------------------------------------------------------
-*/
-
 // Endpoint interno usado por el servicio RPA para disparar el OTP
 Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
 
@@ -107,23 +104,28 @@ Route::post('/contracts/preview', [ContractController::class, 'preview']);
 // Endpoint interno para el RPA — genera el Word del acuerdo comercial
 Route::post('/internal/rpa/generate-contract-doc', [ContractController::class, 'generateDocument'])->middleware('auth.rpa');
 
+/*
+|--------------------------------------------------------------------------
+| Logística (públicos: geo + shalom | calcular usa carrito auth implícito)
+|--------------------------------------------------------------------------
+*/
+
 Route::prefix('logistics')->group(function () {
     // Geo — alimentan los selects de destino en checkout (siempre públicos)
-    Route::get('/departamentos',              [LogisticsController::class, 'departamentos']);
-    Route::get('/provincias/{departamento}',  [LogisticsController::class, 'provincias']);
-    Route::get('/distritos',                  [LogisticsController::class, 'distritos']);
-    Route::get('/operadores',                 [LogisticsController::class, 'operadores']);
+    Route::get('/departamentos', [LogisticsController::class, 'departamentos']);
+    Route::get('/provincias/{departamento}', [LogisticsController::class, 'provincias']);
+    Route::get('/distritos', [LogisticsController::class, 'distritos']);
+    Route::get('/operadores', [LogisticsController::class, 'operadores']);
 
     // Shalom — endpoints para que shalom.js del scraper consulte la BD
-    Route::get('/shalom/terminal',            [LogisticsController::class, 'shalomTerminal']);
-    Route::get('/shalom/reparto',             [LogisticsController::class, 'shalomReparto']);
+    Route::get('/shalom/terminal', [LogisticsController::class, 'shalomTerminal']);
+    Route::get('/shalom/reparto', [LogisticsController::class, 'shalomReparto']);
 
     // Cálculo — Paso 2 (sin destino) y Paso 3 (con destino + couriers)
-    Route::post('/calcular-caja',             [LogisticsController::class, 'calcularCaja']);
-    Route::post('/calcular',                  [LogisticsController::class, 'calcular']);
-    Route::post('/confirmar-envio',           [LogisticsController::class, 'confirmarEnvio']);
+    Route::post('/calcular-caja', [LogisticsController::class, 'calcularCaja']);
+    Route::post('/calcular', [LogisticsController::class, 'calcular']);
+    Route::post('/confirmar-envio', [LogisticsController::class, 'confirmarEnvio']);
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -137,6 +139,7 @@ Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/services', [ServiceController::class, 'index']);
+Route::get('/services/slug/{slug}', [ServiceController::class, 'showBySlug']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/slots', [ServiceController::class, 'availableSlots']);
 Route::get('/reviews', [ReviewController::class, 'index']);
@@ -156,7 +159,7 @@ Route::get('/config/public', [SystemConfigController::class, 'publicConfigs']);
 Route::get('/events', [EventsController::class, 'stream']);
 
 // Webhook Izipay (público)
-Route::post('/webhooks/izipay/plan',  [PlanRequestController::class, 'webhookIzipay']);
+Route::post('/webhooks/izipay/plan', [PlanRequestController::class, 'webhookIzipay']);
 Route::post('/webhooks/izipay/order', [IzipayController::class, 'webhook']);
 
 Route::post('/webhooks/culqi', [CulqiController::class, 'webhook']);
@@ -167,7 +170,7 @@ Route::get('/medals/active', [\App\Http\Controllers\Api\MedalController::class, 
 // ranking
 Route::prefix('rankings')->group(function () {
     Route::get('/products', [RankingController::class, 'products']);
-    Route::get('/stores',   [RankingController::class, 'stores']);
+    Route::get('/stores', [RankingController::class, 'stores']);
     Route::get('/services', [RankingController::class, 'services']);
 });
 
@@ -184,10 +187,6 @@ Route::get('/orders/{orderId}/returns', [ReturnController::class, 'orderReturns'
 
 // Disputes público
 Route::get('/orders/{orderId}/disputes', [DisputeController::class, 'orderDisputes']);
-
-
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -212,16 +211,14 @@ Route::get('/blog/posts/recent', [BlogController::class, 'recent']);
 Route::get('/blog/posts/featured', [BlogController::class, 'featured']);
 Route::get('/blog/posts/{slug}', [BlogController::class, 'show']);
 Route::get('/blog/comments', [BlogController::class, 'comments']);
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/blog/comments', [BlogController::class, 'storeComment']);
-    Route::put('/blog/comments/{id}', [BlogController::class, 'updateComment']);
-    Route::delete('/blog/comments/{id}', [BlogController::class, 'deleteComment']);
-});
-Route::get('/blog/published-podcasts', [BlogController::class, 'podcasts']);
+Route::post('/blog/comments', [BlogController::class, 'storeComment']);
+Route::put('/blog/comments/{id}', [BlogController::class, 'updateComment']);
+Route::delete('/blog/comments/{id}', [BlogController::class, 'deleteComment']);
+Route::get('/blog/podcasts', [BlogController::class, 'podcasts']);
 Route::get('/blog/published-podcasts/{id}', [BlogController::class, 'showPodcast']);
-Route::get('/blog/published-videos', [BlogController::class, 'videos']);
+Route::get('/blog/videos', [BlogController::class, 'videos']);
 Route::get('/blog/published-videos/{id}', [BlogController::class, 'showVideo']);
-Route::get('/blog/published-shorts', [BlogController::class, 'shorts']);
+Route::get('/blog/shorts', [BlogController::class, 'shorts']);
 Route::get('/blog/published-shorts/{id}', [BlogController::class, 'showShort']);
 Route::get('/blog/tiktok-video/{id}', [BlogController::class, 'tiktokVideo']);
 
@@ -236,8 +233,8 @@ Route::get('/foro/temas/{id}', [ForumController::class, 'topic']);
 Route::post('/foro/temas', [ForumController::class, 'createTopic']);
 Route::get('/foro/temas/{id}/respuestas', [ForumController::class, 'posts']);
 Route::post('/foro/respuestas', [ForumController::class, 'createPost']);
-Route::put('/foro/respuestas/{postId}', [ForumController::class, 'updatePost']);
-Route::delete('/foro/respuestas/{postId}', [ForumController::class, 'deletePost']);
+Route::put('/foro/respuestas/{id}', [ForumController::class, 'updatePost']);
+Route::delete('/foro/respuestas/{id}', [ForumController::class, 'deletePost']);
 Route::post('/foro/votos', [ForumController::class, 'vote']);
 Route::get('/foro/estadisticas', [ForumController::class, 'stats']);
 
@@ -259,6 +256,9 @@ Route::delete('/cart/service-holds/{id}', [ServiceHoldController::class, 'destro
 // Invoice PDF (público para permitir apertura en nueva pestaña)
 Route::get('/invoices/{id}/pdf', [\App\Http\Controllers\Api\InvoicePdfController::class, 'show']);
 
+// Recibo interno de suscripción de plan — no depende de Nubefact (público, mismo patrón que arriba)
+Route::get('/plan-invoices/{invoice}/pdf', [\App\Http\Controllers\Api\NubefactController::class, 'receiptPdf']);
+
 /*
 |--------------------------------------------------------------------------
 | Autenticado (cualquier rol)
@@ -272,10 +272,11 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     });
 
     Route::prefix('payments/izipay')->group(function () {
-        Route::post('/create-session', [IzipayController::class, 'createSession']);
-        Route::get('/status/{orderId}', [IzipayController::class, 'status']);
+        Route::post('/create-session', [IzipayController::class,     'createSession']);
+        Route::post('/plan-session', [IzipayPlanController::class,  'createSession']);
+        Route::post('/plan-callback', [IzipayPlanController::class,  'planCallback']);
+        Route::get('/status/{orderId}', [IzipayController::class,     'status']);
     });
-
 
     Route::post('/reviews/{id}/report', [ReviewController::class, 'report']);
 
@@ -321,11 +322,12 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::get('/{id}', [AuditLogController::class, 'show'])->name('show');
     });
 
-
     // Users
     Route::get('/users/me', [UserController::class, 'me']);
     Route::put('/users/profile', [UserController::class, 'updateProfile']);
     Route::put('/users/profile/password', [UserController::class, 'updatePassword']);
+    Route::get('/users/profile/sessions', [UserController::class, 'getSessions']);
+    Route::delete('/users/profile/sessions/{tokenId}', [UserController::class, 'revokeSession']);
     Route::get('/users/settings', [UserController::class, 'getSettings']);
     Route::put('/users/settings', [UserController::class, 'updateSettings']);
     Route::post('/users/avatar', [UserController::class, 'uploadAvatar']);
@@ -340,10 +342,10 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::post('/stores/me/media/gallery', [StoreController::class, 'uploadGallery']);
     Route::delete('/stores/me/media/gallery/{index}', [StoreController::class, 'deleteGalleryImage']);
 
-    //Reseñas Tiendas
-    Route::post('/stores/{slug}/reviews',   [StoreReviewController::class, 'store']);
-    Route::put('/stores/reviews/{id}',      [StoreReviewController::class, 'update']);
-    Route::delete('/stores/reviews/{id}',   [StoreReviewController::class, 'destroy']);
+    // Reseñas Tiendas
+    Route::post('/stores/{slug}/reviews', [StoreReviewController::class, 'store']);
+    Route::put('/stores/reviews/{id}', [StoreReviewController::class, 'update']);
+    Route::delete('/stores/reviews/{id}', [StoreReviewController::class, 'destroy']);
 
     // Profile Requests - Seller
     Route::get('/stores/me/profile-request', [ProfileRequestController::class, 'me']);
@@ -377,6 +379,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::put('/notifications/{id}/read', [NotificationController::class, 'read']);
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::post('/notifications/delete-all', [NotificationController::class, 'deleteAll']);
 
     // Loyalty
     Route::get('/loyalty/account', [LoyaltyController::class, 'account']);
@@ -387,6 +390,12 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::get('/loyalty/transactions', [LoyaltyController::class, 'transactions']);
     Route::post('/loyalty/validate-code', [LoyaltyController::class, 'validateCode']);
     Route::post('/loyalty/use-code', [LoyaltyController::class, 'useCode']);
+
+    // Lirios (puntos de fidelidad internos)
+    Route::get('/lirios/balance', [LiriosController::class, 'balance']);
+    Route::get('/lirios/checkout-eligibility', [LiriosController::class, 'checkoutEligibility']);
+    Route::get('/lirios/transactions', [LiriosController::class, 'transactions']);
+    Route::post('/lirios/accrue', [LiriosController::class, 'accrue']);
 
     // Devices (FCM push notification tokens)
     Route::post('/devices', [DeviceController::class, 'register'])->middleware('throttle:10,1');
@@ -487,7 +496,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::delete('/wishlist/{id}', [WishlistController::class, 'destroy']);
 
     // Services (Citas/Servicios)
-    //Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
+    // Route::get('/services', [ServiceController::class, 'index']); - Se quito por error en la carga de menu
     Route::get('/services/{id}', [ServiceController::class, 'show']);
 
     Route::get('/seller/services', [ServiceController::class, 'sellerServices']);
@@ -497,6 +506,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::get('/bookings/my', [ServiceController::class, 'myBookings']);
     Route::put('/bookings/{id}/cancel', [ServiceController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/reschedule', [ServiceController::class, 'reschedule']);
+    Route::post('/bookings/{id}/rate', [ServiceController::class, 'rateBooking']);
 
     // Izipay Payment
     Route::prefix('payments/izipay')->group(function () {
@@ -507,8 +517,8 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     // Google Calendar OAuth
     Route::prefix('google')->group(function () {
-        Route::get('/status',      [GoogleCalendarController::class, 'status']);
-        Route::get('/auth-url',    [GoogleCalendarController::class, 'authUrl']);
+        Route::get('/status', [GoogleCalendarController::class, 'status']);
+        Route::get('/auth-url', [GoogleCalendarController::class, 'authUrl']);
         Route::delete('/disconnect', [GoogleCalendarController::class, 'disconnect']);
     });
     /*
@@ -517,6 +527,10 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:administrator')->group(function () {
+        // Lirios Admin
+        Route::get('/lirios/admin/accounts', [LiriosController::class, 'adminAccounts']);
+        Route::put('/lirios/admin/accounts/{userId}', [LiriosController::class, 'adminUpdateBalance']);
+
         // Users management
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/role/{role}', [UserController::class, 'byRole']);
@@ -525,15 +539,15 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::put('/users/{id}/ban', [UserController::class, 'toggleBan']);
         Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-        //Gestion Puntuacion
-        Route::get('/admin/reviews',              [ReviewModerationController::class, 'index']);
-        Route::get('/admin/reviews/reported',     [ReviewModerationController::class, 'reported']);
+        // Gestion Puntuacion
+        Route::get('/admin/reviews', [ReviewModerationController::class, 'index']);
+        Route::get('/admin/reviews/reported', [ReviewModerationController::class, 'reported']);
         Route::put('/admin/reviews/{id}/moderate', [ReviewModerationController::class, 'moderate']);
-        Route::delete('/admin/reviews/{id}',      [ReviewModerationController::class, 'destroy']);
+        Route::delete('/admin/reviews/{id}', [ReviewModerationController::class, 'destroy']);
 
         // Medallas Top 100
         Route::prefix('admin/medals')->group(function () {
-            Route::get('/',             [AdminMedalController::class, 'index']);
+            Route::get('/', [AdminMedalController::class, 'index']);
             Route::put('/{medal}/approve', [AdminMedalController::class, 'approve']);
             Route::put('/{medal}/suspend', [AdminMedalController::class, 'suspend']);
         });
@@ -619,6 +633,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
         // Admin Historial de pagos de planes
         Route::get('/admin/plan-payments', [PlanRequestController::class, 'paymentHistory']);
+
+        // Admin Facturas de suscripciones de planes
+        Route::get('/admin/plan-invoices', [NubefactController::class, 'planInvoices']);
 
         // System Config - Admin
         Route::get('/admin/config', [SystemConfigController::class, 'index']);
@@ -736,7 +753,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     | Admin BioBlog Approval
     |----------------------------------------------------------------------
     */
-    Route::prefix('admin/bioblog')->group(function () {
+    Route::middleware('role:administrator')->prefix('admin/bioblog')->group(function () {
         Route::get('/pending', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'pending']);
         Route::get('/stats', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'stats']);
         Route::post('/{type}/{id}/approve', [\App\Http\Controllers\Api\Admin\BioBlogApprovalController::class, 'approve']);
@@ -777,7 +794,6 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         });
     });
 
-
     /*
     |----------------------------------------------------------------------
     | Seller
@@ -807,8 +823,10 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::post('/stores/{id}/media/logo-marketplace', [MediaController::class, 'uploadStoreMarketplaceLogo']);
         Route::post('/stores/{id}/media/banner', [MediaController::class, 'uploadStoreBanner']);
         Route::post('/stores/{id}/media/banner2', [MediaController::class, 'uploadStoreBanner2']);
+        Route::post('/stores/{id}/media/banner3', [MediaController::class, 'uploadStoreBanner3']);
         Route::delete('/stores/{id}/media/banner', [MediaController::class, 'deleteStoreBanner']);
         Route::delete('/stores/{id}/media/banner2', [MediaController::class, 'deleteStoreBanner2']);
+        Route::delete('/stores/{id}/media/banner3', [MediaController::class, 'deleteStoreBanner3']);
 
         // Store ad banners
         Route::post('/stores/{id}/media/ad-banners', [MediaController::class, 'uploadStoreAdBanner']);
@@ -838,6 +856,8 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
             Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
             Route::get('/bookings/seller', [ServiceController::class, 'sellerBookings']);
             Route::put('/bookings/{id}/confirm', [ServiceController::class, 'confirmBooking']);
+            Route::put('/bookings/{id}/on-the-way', [ServiceController::class, 'markOnTheWay']);
+            Route::put('/bookings/{id}/complete', [ServiceController::class, 'completeBooking']);
             Route::put('/bookings/{id}/no-show', [ServiceController::class, 'markNoShow']);
             Route::put('/bookings/{id}/notes', [ServiceController::class, 'addNotes']);
         });
@@ -867,6 +887,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         Route::get('/subscriptions/{id}', [SubscriptionController::class, 'show']);
         Route::put('/subscriptions/{id}/cancel', [SubscriptionController::class, 'cancel']);
         Route::put('/subscriptions/{id}/renew', [SubscriptionController::class, 'renew']);
+        Route::put('/subscriptions/{id}/auto-renew', [SubscriptionController::class, 'updateAutoRenew']);
 
         // Disputes (vendedor)
         Route::get('/disputes', [DisputeController::class, 'storeDisputes']);
@@ -892,8 +913,8 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
         // Medallas Top 100 — Vendedor
         Route::prefix('seller/medals')->group(function () {
-            Route::get('/',                          [SellerMedalController::class, 'index']);
-            Route::put('/{medal}/visibility',        [SellerMedalController::class, 'toggleVisibility']);
+            Route::get('/', [SellerMedalController::class, 'index']);
+            Route::put('/{medal}/visibility', [SellerMedalController::class, 'toggleVisibility']);
         });
 
         Route::post('/url-metadata', [\App\Http\Controllers\Api\UrlMetadataController::class, 'preview']);
