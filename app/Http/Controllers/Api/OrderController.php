@@ -55,6 +55,7 @@ final class OrderController extends Controller
         'serviceItems.serviceBooking',
         'shipments',
         'user',
+        'branch',
     ];
 
     public function __construct(
@@ -77,6 +78,48 @@ final class OrderController extends Controller
             ->count();
 
         return $this->success(['count' => $count]);
+    }
+
+    public function dashboardStats(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->hasRole('seller') && ! $user->hasRole('administrator')) {
+            return $this->forbidden('No autorizado.');
+        }
+
+        $storeIds = $user->ownedStores()->pluck('id')
+            ->concat($user->stores()->pluck('stores.id'))
+            ->unique();
+
+        if ($storeIds->isEmpty()) {
+            return $this->success([
+                'monthly_sales' => 0,
+                'today_orders'  => 0,
+            ]);
+        }
+
+        $now = now();
+
+        // Ventas del mes: suma de subtotal de items del vendedor en órdenes del mes actual
+        $monthlySales = OrderItem::whereIn('store_id', $storeIds)
+            ->whereHas('order', fn ($q) => $q->whereMonth('created_at', $now->month)
+                ->whereYear('created_at', $now->year)
+                ->whereNotIn('status', [Order::STATUS_CANCELLED]))
+            ->sum('line_total');
+
+        // Pedidos de hoy: contar órdenes que contienen items de este vendedor y fueron creadas hoy
+        $todayOrders = Order::whereDate('created_at', $now->toDateString())
+            ->where(function ($q) use ($storeIds) {
+                $q->whereHas('items', fn ($q) => $q->whereIn('store_id', $storeIds))
+                  ->orWhereHas('serviceItems', fn ($q) => $q->whereIn('store_id', $storeIds));
+            })
+            ->count();
+
+        return $this->success([
+            'monthly_sales' => (float) $monthlySales,
+            'today_orders'  => (int) $todayOrders,
+        ]);
     }
 
 
@@ -280,6 +323,7 @@ final class OrderController extends Controller
                 'shipping_notes' => $data['shipping_notes'] ?? null,
                 'shipping_type' => $data['shipping_type'] ?? null,
                 'carrier' => $data['carrier'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
                 'store_shipping' => $data['store_shipping'] ?? null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,

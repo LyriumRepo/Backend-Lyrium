@@ -193,7 +193,8 @@ These controllers exist but their routes are **not registered** in `routes/api.p
 | `SearchController` | Unified search, product search, suggestions | `shared/lib/api/searchRepository.ts` |
 | `AgendaController` | Seller calendar — aggregates orders + bookings by month/year/type | `features/seller/agenda/` |
 | `NubefactController` | SUNAT electronic invoicing via Nubefact | `features/admin/invoices/`, `shared/lib/api/nubefactRepository.ts` |
-| `LiriosController` | Lirios wallet balance, checkout eligibility, transactions | `shared/lib/api/liriosRepository.ts` calls `/lirios/balance`, `/lirios/checkout-eligibility`, `/lirios/transactions` — all 404 |
+
+> **`LiriosController` is connected** — routes at `/lirios/balance`, `/lirios/checkout-eligibility`, `/lirios/transactions` are registered in `routes/api.php` under `auth:sanctum`. Frontend: `shared/lib/api/liriosRepository.ts`.
 
 `AgendaController` query params: `month`, `year`, `type` (all|orders|services), `date`, `per_page`, `page`.
 

@@ -131,6 +131,7 @@ Route::get('/categories/slug/{slug}', [CategoryController::class, 'getBySlug']);
 Route::get('/categories/{id}', [CategoryController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
+Route::get('/products/{id}/branches/public', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'publicIndex']);
 Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/slug/{slug}', [ServiceController::class, 'showBySlug']);
 Route::get('/services/{id}', [ServiceController::class, 'show']);
@@ -411,6 +412,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/active-count', [OrderController::class, 'activeCount']);
+    Route::get('/orders/dashboard-stats', [OrderController::class, 'dashboardStats']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
     Route::put('/orders/{id}/confirm', [OrderController::class, 'confirm']);
@@ -813,6 +815,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // Store gallery
         Route::post('/stores/{id}/media/gallery', [MediaController::class, 'uploadStoreGallery']);
         Route::delete('/stores/{id}/media/gallery/{mediaId}', [MediaController::class, 'deleteStoreGallery']);
+
+        // Products Branch Stock (Retiro en Tienda) — no requiere contrato activo
+        Route::get('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'index']);
+        Route::put('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'update']);
 
         // Rutas que requieren contrato activo para operar
         Route::middleware('auth:sanctum', 'contract.active')->group(function () {

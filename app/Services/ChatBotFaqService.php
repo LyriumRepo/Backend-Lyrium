@@ -100,7 +100,25 @@ final class ChatBotFaqService
             'keywords' => ['comisiones', 'cuanto cobra lyrium', 'tarifas vendedor', 'porcentaje comision', 'costo vender'],
             'terms'    => ['comision', 'tarifa', 'costo', 'cobro', 'porcentaje'],
             'audience' => ['seller', 'administrator'],
-            'response' => 'Lyrium ofrece planes de suscripción con diferentes porcentajes de comisión: 1. Plan Emprende: 5% de comisión por venta. 2. Plan Crece: 10% de comisión por venta. 3. Plan Especial: 15% de comisión por venta. Cada plan incluye beneficios adicionales como mayor visibilidad, herramientas de gestión y soporte prioritario. Puedes consultar los detalles de cada plan en la sección de Planes de nuestra web o desde tu panel de vendedor.',
+            'response' => "Lyrium ofrece 3 planes de suscripción para vendedores. Todos cobran **15% de comisión por venta**:\n\n🟢 **Plan Emprende** — Gratuito. Incluye tienda personalizada, chat con clientes, 20 productos, 5 servicios, BioBlog (2 artículos/semana) y 1 tema en BioForo/semana.\n\n🔵 **Plan Especial** — Primeros 6 meses gratis. Incluye banners en homepage, medalla de recomendado, 4 artículos/semana en BioBlog, 2 temas/semana en BioForo, todos los stickers y plantillas.\n\n🟣 **Plan Crece** — S/.40/mes (descuentos por compromiso anual). Incluye todo lo del Especial con límites ampliados (100 productos, 20 servicios), indicadores financieros y capacitaciones.\n\nConsulta los detalles en tu panel de vendedor → Planes. 🌿",
+        ],
+        'bioblog_info' => [
+            'keywords' => ['bioblog', 'bio blog', 'publicar articulo', 'crear articulo', 'escribir articulo', 'blog vendedor', 'publicar en el blog'],
+            'terms'    => ['bioblog', 'articulo', 'blog', 'publicar', 'contenido'],
+            'audience' => ['seller'],
+            'response' => "El BioBlog es tu espacio para publicar contenido y posicionarte como referente en bienestar y salud. Puedes crear 4 tipos de contenido:\n\n📝 **Artículos** — Texto con imágenes, máximo 4 páginas (800-2000 palabras). Incluye título, resumen para SEO y categoría (Salud, Alimentación, Sostenibilidad, Belleza o Ciencia).\n\n🎙️ **Podcasts** — Audio desde Spotify u otra plataforma. Portada mínima 1400x1400 px, máximo 30 min.\n\n🎬 **Videos** — YouTube, Vimeo o TikTok. Máximo 30 min.\n\n📱 **Shorts** — Video vertical estilo TikTok/Reels. Máximo 60 seg, miniatura 9:16.\n\nRecomendaciones: títulos descriptivos, subtítulos para dividir texto, imágenes cada 2-3 párrafos, gancho en los primeros segundos del video. Revisa ortografía antes de enviar a revisión. 🌿",
+        ],
+        'bioforo_info' => [
+            'keywords' => ['bioforo', 'bio foro', 'foro', 'crear tema', 'abrir tema', 'comunidad vendedor', 'foro vendedor', 'discusion'],
+            'terms'    => ['bioforo', 'foro', 'tema', 'comunidad', 'discusion'],
+            'audience' => ['seller'],
+            'response' => "El BioForo es el módulo de comunidad de Lyrium. Te permite abrir temas de conversación con los usuarios, generar interacción y posicionarte como referente.\n\nEs un espacio de **diálogo, no de venta directa**.\n\nPara crear un tema:\n1. Escribe un título breve y llamativo.\n2. Selecciona una categoría.\n3. Desarrolla el tema (debe ser sobre bienestar y salud).\n\nRecomendaciones: no hagas anuncios directos, enfócate en aportar valor. Formula el título como pregunta o afirmación que despierte curiosidad. Usa tono cercano y conversacional. 🌿",
+        ],
+        'planes_detallado' => [
+            'keywords' => ['que plan tengo', 'cual es mi plan', 'diferencia entre planes', 'que incluye mi plan', 'beneficios del plan', 'comparar planes', 'planes de suscripcion'],
+            'terms'    => ['plan', 'planes', 'suscripcion', 'beneficios', 'diferencia'],
+            'audience' => ['seller'],
+            'response' => "Lyrium tiene 3 planes para vendedores (todos con 15% de comisión):\n\n🟢 **EMPRENDE (Gratis)**:\n· Tienda personalizada + chat con clientes\n· Hasta 20 productos, 5 servicios, 1 especialista\n· BioBlog: 2 artículos, 1 podcast, 1 video, 1 short/semana\n· BioForo: 1 tema/semana\n· Stickers: solo descuento · Plantilla básica\n· Soporte en 48h · Exportación Excel\n\n🔵 **ESPECIAL (6 meses gratis)**:\n· Todo lo de Emprende, más:\n· Logo en banners y marcas destacadas de homepage\n· Medalla de producto recomendado\n· BioBlog: 4 artículos, 4 podcasts, 4 videos, 4 shorts/semana\n· BioForo: 2 temas/semana\n· Todos los stickers y plantillas\n· Soporte prioritario · Exportación Excel + PDF\n· Capacitaciones online incluidas\n\n🟣 **CRECE (S/.40/mes)**:\n· Todo lo de Especial, más:\n· Hasta 100 productos, 20 servicios, 5 especialistas\n· Indicadores financieros completos\n\nConsulta tu plan actual en tu panel → Planes. 🌿",
         ],
         'registro_usuario' => [
             'keywords' => ['como registrarse', 'crear cuenta', 'registrarse en lyrium', 'crear perfil', 'darse de alta'],

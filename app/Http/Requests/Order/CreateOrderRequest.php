@@ -26,6 +26,7 @@ final class CreateOrderRequest extends FormRequest
             'shipping_notes' => ['nullable', 'string', 'max:500'],
             'shipping_type' => ['nullable', 'string', 'max:50'],
             'carrier' => ['nullable', 'string', 'max:50'],
+            'branch_id' => ['nullable', 'integer', 'exists:store_branches,id'],
             'shipping_cost' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'coupon_code' => ['nullable', 'string', 'max:50'],

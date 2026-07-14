@@ -71,6 +71,7 @@ final class Order extends Model
         'shipping_notes',
         'shipping_type',
         'carrier',
+        'branch_id',
         'subtotal',
         'shipping_cost',
         'tax_amount',
@@ -117,6 +118,11 @@ final class Order extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(StoreBranch::class, 'branch_id');
     }
 
     public function getPaymentStatusLabelAttribute(): string

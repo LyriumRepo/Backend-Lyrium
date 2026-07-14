@@ -38,4 +38,10 @@ final class StoreBranch extends Model
     {
         return $this->belongsTo(Store::class);
     }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_branch_stock')
+            ->withPivot(['stock', 'pickup_enabled']);
+    }
 }

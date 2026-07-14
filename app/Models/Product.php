@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Traits\AuditableModel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
-use App\Traits\AuditableModel;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 final class Product extends Model implements HasMedia
@@ -131,6 +131,18 @@ final class Product extends Model implements HasMedia
                 'product_id' => $this->id, 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    public function branchStock(): HasMany
+    {
+        return $this->hasMany(ProductBranchStock::class);
+    }
+
+    public function availableBranches()
+    {
+        return $this->belongsToMany(StoreBranch::class, 'product_branch_stock')
+            ->withPivot(['stock', 'pickup_enabled'])
+            ->wherePivot('pickup_enabled', true);
     }
 
     public function reviews(): HasMany

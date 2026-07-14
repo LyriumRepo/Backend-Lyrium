@@ -383,7 +383,7 @@ final class StoreController extends Controller
                 'id' => $branch->id,
                 'name' => $branch->name,
                 'address' => $branch->address,
-                'department' => $branch->departmet,
+                'department' => $branch->department,
                 'province' => $branch->province,
                 'district' => $branch->district,
                 'phone' => $branch->phone,
