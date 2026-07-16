@@ -31,11 +31,11 @@
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
   <tr style="background:#f9fafb;">
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Producto</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;text-align:left;">Producto</th>
     <td style="padding:10px 16px;font-size:13px;color:#14532d;font-weight:700;border-bottom:1px solid #e5e7eb;">{{ $productName }}</td>
   </tr>
   <tr>
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;">Unidades disponibles</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;text-align:left;">Unidades disponibles</th>
     <td style="padding:10px 16px;font-size:13px;color:#{{ $level === 'out' ? 'b91c1c' : 'c2410c' }};font-weight:700;">{{ $stock }}</td>
   </tr>
 </table>

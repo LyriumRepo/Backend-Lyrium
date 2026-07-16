@@ -65,6 +65,8 @@ final class HomeController extends Controller
             ->first();
 
         $products = Product::with(['categories', 'store'])
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->whereHas('categories', fn ($q) => $q->where('categories.id', $category->id))
             ->where('status', 'approved')
             ->orderBy('created_at', 'desc')

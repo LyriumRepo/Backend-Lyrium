@@ -65,11 +65,15 @@ class ShalomService
     private function getLBCookie(): string
     {
         $cached = Cache::get('shalom_do_lb');
-        if ($cached) return $cached;
+        if ($cached) {
+            return $cached;
+        }
 
         return Cache::lock('shalom_lb_init', 10)->block(8, function () {
             $existing = Cache::get('shalom_do_lb');
-            if ($existing) return $existing;
+            if ($existing) {
+                return $existing;
+            }
 
             try {
                 $res        = Http::timeout(10)->withHeaders(self::HEADERS)
@@ -93,7 +97,9 @@ class ShalomService
     private function headers(string $lb = ''): array
     {
         $h = self::HEADERS;
-        if ($lb) $h['Cookie'] = "DO-LB={$lb}";
+        if ($lb) {
+            $h['Cookie'] = "DO-LB={$lb}";
+        }
         return $h;
     }
     private function findTerminal(string $dept, string $prov, string $dist): ?array
@@ -158,7 +164,9 @@ class ShalomService
             }
 
             $data = $this->decryptIfNeeded($res->json());
-            if (!($data['success'] ?? false)) return null;
+            if (!($data['success'] ?? false)) {
+                return null;
+            }
 
             return $data['data'] ?? null;
         } catch (\Throwable $e) {
@@ -200,13 +208,17 @@ class ShalomService
         $provId = $terminal['provincia_id']    ?? null;
         $distId = $terminal['distrito_id']     ?? null;
 
-        if (!$depId || !$provId) return null;
+        if (!$depId || !$provId) {
+            return null;
+        }
         $cacheKey = "shalom_reparto_{$depId}_{$provId}_" . ($distId ?? 0);
 
         return Cache::remember($cacheKey, 3600, function () use ($depId, $provId, $distId, $lb) {
             try {
                 $body = ['dep_id' => $depId, 'prov_id' => $provId];
-                if ($distId) $body['dist_id'] = $distId;
+                if ($distId) {
+                    $body['dist_id'] = $distId;
+                }
 
                 $res  = Http::timeout(10)
                     ->withHeaders($this->headers($lb))
@@ -278,7 +290,9 @@ class ShalomService
 
     public function cotizar(array $origen, array $destino, array $cajas): ?array
     {
-        if (empty($cajas)) return null;
+        if (empty($cajas)) {
+            return null;
+        }
 
         try {
             $lb = $this->getLBCookie();

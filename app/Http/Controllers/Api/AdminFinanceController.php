@@ -82,7 +82,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('total')->map(fn ($v) => (float) $v)->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
+            return ['labels' => [], 'data' => [], 'trend' => '0%'];
         }
 
         $total = array_sum($data);
@@ -110,7 +110,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('total')->map(fn ($v) => round((float) $v * (1 - $avgCommission), 2))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
+            return ['labels' => [], 'data' => [], 'trend' => '0%'];
         }
 
         return ['labels' => $labels, 'data' => $data, 'trend' => '+0%'];
@@ -135,7 +135,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->map(fn ($r) => round((float) $r->total * (1 - $avgCommission) - (float) $r->shipping, 2))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
+            return ['labels' => [], 'data' => [], 'trend' => '0%'];
         }
 
         return ['labels' => $labels, 'data' => $data, 'trend' => '+0%'];
@@ -154,7 +154,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('count')->map(fn ($v) => (int) $v)->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'], 'data' => [0, 0, 0, 0, 0, 0], 'trend' => '0%'];
+            return ['labels' => [], 'data' => [], 'trend' => '0%'];
         }
 
         return ['labels' => $labels, 'data' => $data, 'trend' => '+0%'];
@@ -173,7 +173,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('avg_total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['L', 'M', 'X', 'J', 'V', 'S', 'D'], 'data' => [0, 0, 0, 0, 0, 0, 0], 'trend' => '0%'];
+            return ['labels' => [], 'data' => [], 'trend' => '0%'];
         }
 
         return ['labels' => $labels, 'data' => $data, 'trend' => '+0%'];
@@ -193,7 +193,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('avg_hours')->map(fn ($v) => round((float) $v, 1))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], 'data' => [0, 0, 0, 0]];
+            return ['labels' => [], 'data' => []];
         }
 
         return ['labels' => $labels, 'data' => $data];
@@ -206,8 +206,8 @@ final class AdminFinanceController extends Controller
         $rate = $totalProducts > 0 ? round($disputesCount / $totalProducts * 100, 2) : 0;
 
         return [
-            'labels' => ['ENE', 'FEB', 'MAR'],
-            'data' => [$rate > 0 ? $rate : 1.2, $rate > 0 ? $rate : 0.8, $rate],
+            'labels' => ['Sin Defectos', 'Defectuosos'],
+            'data' => [$rate > 0 ? round(100 - $rate, 2) : 100, $rate],
         ];
     }
 
@@ -231,8 +231,8 @@ final class AdminFinanceController extends Controller
         $data = $weeks->pluck('count')->map(fn ($v) => (int) $v)->toArray();
 
         if (empty($labels)) {
-            $labels = ['S1', 'S2', 'S3', 'S4'];
-            $data = [$avgMinutes ?: 15, $avgMinutes ?: 14, $avgMinutes ?: 12, $avgMinutes ?: 10];
+            $labels = [];
+            $data = [];
         }
 
         return ['labels' => $labels, 'data' => $data];
@@ -246,7 +246,7 @@ final class AdminFinanceController extends Controller
 
         return [
             'labels' => ['Q1', 'Q2', 'Q3', 'Q4'],
-            'data' => [$avgRotation ?: 1.8, $avgRotation ?: 2.0, $avgRotation ?: 2.2, $avgRotation ?: 2.4],
+            'data' => [$avgRotation, $avgRotation, $avgRotation, $avgRotation],
         ];
     }
 
@@ -258,7 +258,7 @@ final class AdminFinanceController extends Controller
 
         return [
             'labels' => ['ROI General'],
-            'data' => [$roiValue ?: 150, $roiValue ?: 200, $roiValue ?: 180, $roiValue ?: 220, $roiValue ?: 250],
+            'data' => [$roiValue],
         ];
     }
 
@@ -275,7 +275,7 @@ final class AdminFinanceController extends Controller
         $data = $rows->pluck('avg_total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['2024', '2025', '2026'], 'data' => [0, 0, 0]];
+            return ['labels' => [], 'data' => []];
         }
 
         return ['labels' => $labels, 'data' => $data];
@@ -302,7 +302,7 @@ final class AdminFinanceController extends Controller
         $data = $storesData->map(fn ($s) => $total > 0 ? round((float) $s->ventas / $total * 100, 1) : 0)->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Tu Tienda', 'Competencia A', 'Competencia B', 'Otros'], 'data' => [35, 25, 20, 20]];
+            return ['labels' => [], 'data' => []];
         }
 
         $otherShare = 100 - array_sum($data);
@@ -374,15 +374,7 @@ final class AdminFinanceController extends Controller
         $dayNames = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
         if ($rows->isEmpty()) {
-            return [
-                ['day' => 'Lun', 'hour' => 10, 'value' => 0],
-                ['day' => 'Lun', 'hour' => 15, 'value' => 0],
-                ['day' => 'Mar', 'hour' => 11, 'value' => 0],
-                ['day' => 'Mie', 'hour' => 10, 'value' => 0],
-                ['day' => 'Jue', 'hour' => 9, 'value' => 0],
-                ['day' => 'Vie', 'hour' => 11, 'value' => 0],
-                ['day' => 'Sab', 'hour' => 10, 'value' => 0],
-            ];
+            return [];
         }
 
         return $rows->map(fn ($r) => [
@@ -411,7 +403,7 @@ final class AdminFinanceController extends Controller
         $data = $cats->pluck('total')->map(fn ($v) => round((float) $v, 2))->toArray();
 
         if (empty($labels)) {
-            return ['labels' => ['Categoría A', 'Categoría B', 'Categoría C', 'Categoría D'], 'data' => [40, 25, 20, 15]];
+            return ['labels' => [], 'data' => []];
         }
 
         return ['labels' => $labels, 'data' => $data];

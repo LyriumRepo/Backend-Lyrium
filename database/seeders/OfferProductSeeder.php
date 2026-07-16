@@ -133,7 +133,7 @@ class OfferProductSeeder extends Seeder
                 array_merge($data, [
                     'store_id' => $store->id,
                     'status' => 'approved',
-                    'stock' => rand(10, 100),
+                    'stock' => random_int(10, 100),
                     'type' => 'physical',
                     'discount_percentage' => round((($data['regular_price'] - $data['price']) / $data['regular_price']) * 100, 2),
                 ])
@@ -193,7 +193,7 @@ class OfferProductSeeder extends Seeder
                 array_merge($data, [
                     'store_id' => $store->id,
                     'status' => 'approved',
-                    'stock' => rand(10, 100),
+                    'stock' => random_int(10, 100),
                     'type' => 'physical',
                 ])
             );

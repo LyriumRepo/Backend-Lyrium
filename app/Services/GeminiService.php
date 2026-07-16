@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Log;
 final class GeminiService
 {
     private const TIMEOUT = 15;
+
     private const CONNECT_TIMEOUT = 5;
+
     private const MODEL = 'gemini-flash-lite-latest';
 
     public function ask(string $prompt, array $history = [], ?string $role = null): ?string
@@ -19,6 +21,7 @@ final class GeminiService
 
         if (empty($apiKey)) {
             Log::warning('Gemini API key not configured');
+
             return null;
         }
 
@@ -26,7 +29,7 @@ final class GeminiService
             $response = Http::timeout(self::TIMEOUT)
                 ->connectTimeout(self::CONNECT_TIMEOUT)
                 ->post(
-                    'https://generativelanguage.googleapis.com/v1beta/models/' . self::MODEL . ':generateContent?key=' . $apiKey,
+                    'https://generativelanguage.googleapis.com/v1beta/models/'.self::MODEL.':generateContent?key='.$apiKey,
                     $this->buildPayload($prompt, $history, $role)
                 );
 
@@ -35,6 +38,7 @@ final class GeminiService
                     'status' => $response->status(),
                     'body' => $response->body(),
                 ]);
+
                 return null;
             }
 
@@ -45,6 +49,7 @@ final class GeminiService
             Log::error('Gemini request failed', [
                 'error' => $e->getMessage(),
             ]);
+
             return null;
         }
     }
@@ -106,7 +111,8 @@ final class GeminiService
             '- Excepción: cuando compartas información de contacto (WhatsApp, teléfono, correo, horarios de atención), escríbela completa y tal cual, sin acortarla ni resumirla.',
             '- Responde siempre en español (Perú). Tono cálido y servicial.',
             '- Si el usuario necesita ayuda humana, indícale: WhatsApp https://wa.me/51937093420 (lun–vie 9:00–18:00) o abrir un ticket desde su panel.',
-            '- El usuario actual tiene el rol: ' . $this->roleLabel($role) . '. Responde SOLO con información relevante a ese rol. No mezcles ni reveles información de otros roles (por ejemplo, no le des a un cliente datos de comisiones de vendedor, ni a un vendedor datos internos de administración).',
+            '- El usuario actual tiene el rol: '.$this->roleLabel($role).'. Responde SOLO con información relevante a ese rol. No mezcles ni reveles información de otros roles (por ejemplo, no le des a un cliente datos de comisiones de vendedor, ni a un vendedor datos internos de administración).',
+            '- Si el usuario es visitante (sin cuenta / no identificado): responde SOLO con información general pública de Lyrium (qué es, cómo funciona, beneficios). Para cualquier consulta específica sobre pedidos, cuenta, pagos, vendedor o empaque, indica amablemente que necesita iniciar sesión o crear una cuenta para acceder a esa información. Ofrece enlace de registro: lyriumbiomarketplace.com y WhatsApp: https://wa.me/51937093420.',
         ];
     }
 
@@ -116,7 +122,8 @@ final class GeminiService
             'seller' => $this->sellerKnowledge(),
             'administrator', 'security_admin' => $this->adminKnowledge(),
             'logistics_operator' => $this->logisticsKnowledge(),
-            default => $this->customerKnowledge(),
+            'customer' => $this->customerKnowledge(),
+            default => $this->visitorKnowledge(),
         };
     }
 
@@ -209,8 +216,44 @@ final class GeminiService
             'Los pagos se procesan en pasarelas certificadas; Lyrium no almacena datos de tarjeta.',
             'No se comparte información personal del cliente con terceros sin consentimiento.',
             '',
+            '— TÉRMINOS Y CONDICIONES DEL CLIENTE (resumen) —',
+            'Privacidad: los datos personales (nombres, documento, dirección, correo, teléfono) se usan exclusivamente para concretar operaciones de compra-venta. Lyrium almacena la información de forma segura y confidencial; solo personal autorizado accede a ella.',
+            'Cookies y datos técnicos: direcciones IP, cookies y datos de navegación se usan para mejorar la experiencia del usuario.',
+            'Transferencia de datos: Lyrium puede compartir datos con socios, proveedores de envío, mensajería y plataformas de pago para cumplir con las entregas. También puede facilitar información a organismos públicos si la ley lo requiere.',
+            'Modificación de T&C: Lyrium se reserva el derecho de actualizar los Términos y Condiciones, notificando a los usuarios a través del sitio web.',
+            'Creación de cuenta: no es obligatoria para comprar, pero permite recibir beneficios adicionales. El usuario debe proveer información real, actualizarla si cambia, y es responsable de la veracidad de sus datos y la confidencialidad de sus credenciales.',
+            'Precios y promociones: los precios están en soles peruanos (o tipo de cambio SUNAT si se indica). No incluyen gastos de transporte. Las ofertas duran hasta agotar inventario. Los precios pueden cambiar sin previo aviso hasta la aceptación de compra.',
+            'Método de pago: solo pago en línea a través de pasarelas certificadas (Izipay, Culqi). Los reembolsos por devolución se realizan por el mismo medio de pago.',
+            'Formación del consentimiento: las ofertas se concretan con la aceptación del usuario en línea, sujeta a validación de la transacción.',
+            'Envíos: Lyrium permite despachos a nivel nacional, sujetos a las políticas de cada vendedor.',
+            'Devoluciones y reembolsos: sujetos a las políticas de cada empresa vendedora del Marketplace.',
+            'Exoneración: Lyrium actúa como Marketplace intermediario; no es responsable directo de las características del producto, su envío ni despacho — esto corresponde al vendedor.',
+            '',
             '— APP MÓVIL —',
             'Actualmente Lyrium es una plataforma web optimizada para móviles. No hay app nativa todavía (en desarrollo).',
+        ];
+    }
+
+    private function visitorKnowledge(): array
+    {
+        return [
+            '— QUÉ ES LYRIUM —',
+            'Lyrium Biomarketplace es una plataforma peruana de comercio electrónico especializada en bienestar, salud natural y productos orgánicos.',
+            'Conecta compradores con vendedores de productos y servicios de bienestar y salud en todo Perú.',
+            '',
+            '— CÓMO FUNCIONA —',
+            'Los usuarios pueden registrarse gratis para comprar productos de tiendas especializadas en salud y bienestar.',
+            'Los vendedores se suscriben a planes para publicar sus productos y servicios en la plataforma.',
+            'Métodos de pago: tarjetas Visa, Mastercard, American Express, Diners Club (procesadas por Izipay y Culqi).',
+            'Envíos a nivel nacional con couriers especializados.',
+            '',
+            '— PRODUCTOS DISPONIBLES —',
+            'Alimentos orgánicos y naturales, suplementos vitamínicos, medicina natural, cosmética orgánica, productos de bienestar personal, servicios de salud (terapias, consultas, etc.).',
+            '',
+            '— CONTACTO —',
+            'WhatsApp: https://wa.me/51937093420 (lun–vie 9:00–18:00, sáb 9:00–13:00)',
+            'Redes sociales: @lyrium_biomarketplace en Instagram, Facebook y TikTok',
+            'Sitio web: lyriumbiomarketplace.com',
         ];
     }
 
@@ -323,6 +366,32 @@ final class GeminiService
             '  · WhatsApp: https://wa.me/51937093420 (lun–vie 9:00–18:00, sáb 9:00–13:00)',
             '  · Ticket de soporte desde tu panel de vendedor → Ayuda → Nuevo ticket',
             '  · También puedes usar el chat de la plataforma para consultas rápidas.',
+            '',
+            '— TÉRMINOS Y CONDICIONES DEL VENDEDOR (resumen) —',
+            'Antecedentes: Lyrium E.I.R.L. pone a disposición del Seller la plataforma Biomarketplace para comercializar productos y servicios de bienestar y salud en Perú, bajo cuenta, costo y riesgo exclusivo del Seller.',
+            'Servicios de Lyrium: espacio virtual de venta, panel de control, coordinación post-venta (devoluciones, cambios, garantías), marketing global, capacitación, recaudación de pagos, comprobante de comisión por cada venta y correo corporativo con dominio @lyriumbiomarketplace.com.',
+            'Obligaciones del Seller: products nuevos, información veraz, precios en soles con IGV incluido, catálogo completo con fotos, descripción, precio, garantía y políticas de devolución. Cumplir plazos de entrega y brindar servicio post-venta. No publicar publicidad engañosa, no manipular el sitio ni redirigir ventas a otras plataformas.',
+            'Aprobación de productos: Lyrium verifica cada producto. Puede aprobar, solicitar cambios o rechazar. El Seller debe mantener información actualizada.',
+            'Comisión: 15% sobre el valor de venta sin IGV. Lyrium emite comprobante de comisión automáticamente al correo del Seller.',
+            'Pagos al Seller: Lyrium recauda los pagos de consumidores. Cada lunes se revisan las ventas de la semana anterior; el total menos la comisión se paga al Seller en máximo 3 días hábiles (miércoles) por transferencia bancaria, Yape empresarial o Plin empresarial.',
+            'Propiedad intelectual: el Seller declara y garantiza legalidad y originalidad de sus productos. Queda prohibido vender productos falsificados o replicados.',
+            'Resolución: si el Seller no alcanza las ventas mínimas tras un mes, se resuelve el acuerdo y se elimina su cuenta. Lyrium puede resolver por incumplimiento de estándares de servicio.',
+            'Modificaciones: Lyrium puede modificar los T&C; si el Seller no está de acuerdo, puede resolver el Acuerdo y cerrar su cuenta.',
+            '',
+            '— MANUAL DE EMPAQUETO DE LYRIUM (resumen para vendedores) —',
+            'IMPORTANTE: Empacar bien en Lyrium es parte del compromiso con la salud. Un producto dañado durante el envío afecta directamente el bienestar del cliente.',
+            'Cajas Lyrium: 7 tamaños — XXS (15x10x10cm, hasta 0.5kg), XS (25x20x12cm, hasta 1kg), S (30x20x12cm, hasta 2kg), M (40x30x20cm, hasta 5kg), ML (50x40x25cm, hasta 10kg), L (60x40x30cm, hasta 10kg), XL (80x60x40cm, hasta 25kg). El producto debe entrar con 3-5cm libres para relleno.',
+            'Tipo de cartón: XXS/XS = cartón sencillo; S/M = cartón sencillo reforzado; ML/L = cartón doble; XL = cartón doble o triple. Para vidrio, líquidos o electrónicos: mínimo caja ML/L.',
+            'Grupos de producto: (1) Blandos (ropa, tela) — doblar, bolsa plástica, nunca con humedad. (2) Duros/frágiles (vidrio, electrónicos) — envolver cada uno por separado con burbujas (2 vueltas), relleno en fondo/lados/tapa, prueba del movimiento. (3) Especiales — medicamentos: sello intacto, fecha vigente >30 días, proteger de luz. Alimentos frescos: ventilación, cadena de frío. Químicos: sello con cinta, bolsa Ziploc, NUNCA junto a alimentos.',
+            'Revisión de caja antes de usar: firmeza, humedad, golpes/cortes, tapas/solapas, reutilización excesiva. Si hay duda, no usar.',
+            'Protección interior: plástico de burbujas con burbujas HACIA el producto (no al revés). Materiales de relleno: chips blancos, papel kraft arrugado, gel de sílice para humedad. La prueba del movimiento: agitar la caja en todas las direcciones antes de sellar.',
+            'Líquidos y químicos: sellar tapa con cinta, envolver con stretch, bolsa Ziploc, papel absorbente en el fondo. Químicos de limpieza NUNCA con alimentos o medicamentos.',
+            'Foto antes de cerrar: obligatoria para el 100% de los pedidos. Foto cenital desde arriba, buena luz, sin filtros. Incluir boleta/packing list visible. Guardar con nombre del pedido, conservar 90 días mínimo.',
+            'Sellado: patrón en H (tira central + 2 bordes laterales). Cinta mínima 5cm de ancho. Sellado base primero, luego carga, prueba del movimiento, tira central, bordes laterales. Plástico stretch va DESPUÉS de la cinta, no en vez.',
+            'Papeles del pedido: boleta/factura + packing list van ENCIMA del producto en bolsa plástica transparente. Sin papeles no hay garantía ni cambios.',
+            'Etiqueta del courier: SIEMPRE en la cara superior. Datos: nombre completo, DNI/CE/RUC, dirección exacta, referencias, distrito, provincia/departamento, teléfono, contenido, peso (redondear al 0.5kg superior). Couriers: SHALOM (sierra/selva), OLVA (Lima), SHARF (verificar cobertura), URBANO EXPRESS (Lima express).',
+            'Símbolos: FRÁGIL (copa rota), MANTENER SECO (paraguas), ESTE LADO ARRIBA (flechas). Secundarios: NO APILAR, LÍMITE DE PILAS, NO EXPONER AL SOL, MANTENER FRÍO. Pegar en 2 caras, mínimo 10x10cm.',
+            'Tabla rápida por producto alimentario: fresas/uvas = caja S/M ventilada + FRÁGIL; paltas/mangos = M ventilada; sandías/melones = L/XL + No apilar; jugos en vidrio = ML/L con colmena + FRÁGIL; huevos = M/ML + FRÁGIL + No apilar.',
             '',
             '— IMPORTANTE —',
             'No inventes cifras exactas de comisiones, costos o fechas que no estén en esta base de conocimiento.',

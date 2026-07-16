@@ -32,7 +32,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #f9fafb;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Producto</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Producto</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ $productName }}</td>
         </tr></table>
       </td>
@@ -40,7 +40,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #f9fafb;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Tienda</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Tienda</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ $storeName }}</td>
         </tr></table>
       </td>
@@ -48,7 +48,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #f9fafb;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Tipo</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Tipo</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ ucfirst($productType) }}</td>
         </tr></table>
       </td>
@@ -56,7 +56,7 @@
     <tr>
       <td style="padding:9px 16px;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Precio</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Precio</th>
           <td style="font-size:16px;font-weight:800;color:#14532d;text-align:right;">S/ {{ number_format($price, 2) }}</td>
         </tr></table>
       </td>

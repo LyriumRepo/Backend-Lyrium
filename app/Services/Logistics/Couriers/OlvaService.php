@@ -54,7 +54,9 @@ class OlvaService
 
         return Cache::lock("olva_pool_lock_{$idx}", 10)->block(8, function () use ($cacheKey) {
             $existing = Cache::get($cacheKey);
-            if ($existing) return $existing;
+            if ($existing) {
+                return $existing;
+            }
 
             $session = $this->createSession();
             if ($session) {
@@ -221,7 +223,9 @@ class OlvaService
     }
     public function cotizar(array $origen, array $destino, array $cajas): ?array
     {
-        if (empty($cajas)) return null;
+        if (empty($cajas)) {
+            return null;
+        }
 
         $ci = $this->getSession();
         if (!$ci) {

@@ -19,7 +19,9 @@ class UrbanoService
 
     public function cotizar(array $origen, array $destino, array $cajas): ?array
     {
-        if (empty($cajas)) return null;
+        if (empty($cajas)) {
+            return null;
+        }
 
         try {
             [$ciuOrigen, $ciuDestino] = $this->resolveDistritos($origen, $destino);
@@ -34,7 +36,9 @@ class UrbanoService
 
             foreach ($cajas as $caja) {
                 $q = $this->cotizarCaja($ciuOrigen['ciu_id'], $ciuDestino['ciu_id'], $caja);
-                if (!$q) return null;
+                if (!$q) {
+                    return null;
+                }
                 $totalAgencia   += $q['pickup'];
                 $totalDomicilio += $q['total'];
             }
@@ -70,11 +74,15 @@ class UrbanoService
                 'distrito' => strtoupper(substr($distrito, 0, 3)),
             ]);
 
-        if (!$res->successful()) return null;
+        if (!$res->successful()) {
+            return null;
+        }
 
         $data       = $res->json();
         $candidates = $data['data'] ?? [];
-        if (empty($candidates)) return null;
+        if (empty($candidates)) {
+            return null;
+        }
 
         $nDept = $this->norm($dept);
         $nProv = $this->norm($prov);
@@ -83,18 +91,24 @@ class UrbanoService
         if ($nDept) {
             $f = array_filter($candidates, fn($d) =>
             str_contains($this->norm(explode(' - ', $d['ciudad'])[0] ?? ''), $nDept));
-            if ($f) $candidates = array_values($f);
+            if ($f) {
+                $candidates = array_values($f);
+            }
         }
 
         if ($nProv) {
             $f = array_filter($candidates, fn($d) =>
             str_contains($this->norm(explode(' - ', $d['ciudad'])[1] ?? ''), $nProv));
-            if ($f) $candidates = array_values($f);
+            if ($f) {
+                $candidates = array_values($f);
+            }
         }
 
         foreach ($candidates as $c) {
             $parts = explode(' - ', $c['ciudad']);
-            if ($this->norm(end($parts)) === $nDist) return $c;
+            if ($this->norm(end($parts)) === $nDist) {
+                return $c;
+            }
         }
 
         return $candidates[0];
@@ -144,7 +158,9 @@ class UrbanoService
 
         $data = $res->json();
         $r    = $data['data'][0] ?? null;
-        if (!$r) return null;
+        if (!$r) {
+            return null;
+        }
 
         return [
             'total'  => (float) ($r['total']        ?? 0),

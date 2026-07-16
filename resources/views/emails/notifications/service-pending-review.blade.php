@@ -20,16 +20,16 @@
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
   <tr style="background:#f9fafb;">
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Servicio</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;text-align:left;">Servicio</th>
     <td style="padding:10px 16px;font-size:13px;color:#14532d;font-weight:700;border-bottom:1px solid #e5e7eb;">{{ $serviceName }}</td>
   </tr>
   <tr>
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Tienda</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;text-align:left;">Tienda</th>
     <td style="padding:10px 16px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">{{ $storeName }}</td>
   </tr>
   @if($price)
   <tr>
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;">Precio</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;text-align:left;">Precio</th>
     <td style="padding:10px 16px;font-size:13px;color:#374151;font-weight:700;">S/ {{ number_format($price, 2) }}</td>
   </tr>
   @endif

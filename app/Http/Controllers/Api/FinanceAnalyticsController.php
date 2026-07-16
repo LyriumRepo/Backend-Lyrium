@@ -22,7 +22,7 @@ final class FinanceAnalyticsController extends Controller
     public function analytics(Request $request): JsonResponse
     {
         $store = $this->getStore($request->user());
-        if (!$store) {
+        if (! $store) {
             return response()->json(['success' => false, 'message' => 'No tienes una tienda'], 403);
         }
 
@@ -30,6 +30,7 @@ final class FinanceAnalyticsController extends Controller
         $csat = $this->computeCsat($store->id);
         $stockRotation = $this->computeStockRotation($store->id);
         $cuotaMercado = $this->computeCuotaMercado($store->id);
+        $categories = $this->computeCategories($store->id);
 
         return response()->json([
             'success' => true,
@@ -38,6 +39,7 @@ final class FinanceAnalyticsController extends Controller
                 'csat' => $csat,
                 'stockRotation' => $stockRotation,
                 'cuotaMercado' => $cuotaMercado,
+                'categories' => $categories,
             ],
         ]);
     }
@@ -46,7 +48,7 @@ final class FinanceAnalyticsController extends Controller
     {
         $tickets = Ticket::where('store_id', $storeId)
             ->whereHas('messages')
-            ->with(['messages' => fn($q) => $q->orderBy('created_at')])
+            ->with(['messages' => fn ($q) => $q->orderBy('created_at')])
             ->get();
 
         if ($tickets->isEmpty()) {
@@ -62,7 +64,7 @@ final class FinanceAnalyticsController extends Controller
                 $minutes = $prev->diffInMinutes($msg->created_at);
                 $week = $msg->created_at->startOfWeek()->toDateString();
 
-                if (!isset($weeklyData[$week])) {
+                if (! isset($weeklyData[$week])) {
                     $weeklyData[$week] = ['sum' => 0.0, 'count' => 0];
                 }
 
@@ -172,5 +174,29 @@ final class FinanceAnalyticsController extends Controller
             'marketplace_total_sales' => $marketplaceSales,
             'by_category' => $categoryBreakdown,
         ];
+    }
+
+    private function computeCategories(int $storeId): array
+    {
+        $cats = OrderItem::where('order_items.store_id', $storeId)
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->join('category_product', 'products.id', '=', 'category_product.product_id')
+            ->join('categories', 'category_product.category_id', '=', 'categories.id')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.payment_status', 'paid')
+            ->select('categories.name', \Illuminate\Support\Facades\DB::raw('SUM(order_items.line_total) as total'))
+            ->groupBy('categories.name')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+
+        $labels = $cats->pluck('name')->map(fn ($n) => $n ?: 'General')->toArray();
+        $data = $cats->pluck('total')->map(fn ($v) => round((float) $v, 2))->toArray();
+
+        if (empty($labels)) {
+            return ['labels' => [], 'data' => []];
+        }
+
+        return ['labels' => $labels, 'data' => $data];
     }
 }

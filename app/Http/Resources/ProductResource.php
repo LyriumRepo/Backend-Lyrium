@@ -61,8 +61,8 @@ final class ProductResource extends JsonResource
             ]),
 
             'rating' => [
-                'average' => (float) $this->average_rating,
-                'count' => (int) $this->review_count,
+                'average' => (float) ($this->reviews_avg ?? $this->average_rating),
+                'count' => (int) ($this->reviews_count ?? $this->review_count),
             ],
 
             // Ficha de características — renderizable como tabla key/value

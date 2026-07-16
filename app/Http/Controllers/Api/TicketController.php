@@ -346,8 +346,13 @@ final class TicketController extends Controller
 
     public function submitSurvey(SubmitSurveyRequest $request, int $id): JsonResponse
     {
-        $ticket = Ticket::where('user_id', $request->user()->id)
-            ->where('status', 'closed')
+        $user = $request->user();
+        $ticket = Ticket::where('status', 'closed')
+            ->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('assigned_admin_id', $user->id);
+            })
+            ->with('store')
             ->findOrFail($id);
 
         if ($ticket->satisfaction_rating !== null) {

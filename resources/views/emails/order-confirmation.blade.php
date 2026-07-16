@@ -30,18 +30,18 @@
                 </tr>
                 {{-- Cabeceras columnas --}}
                 <tr style="background:#1a9d96;">
-                    <td width="55%" style="padding:9px 10px;font-size:11px;font-weight:800;
+                    <th width="55%" scope="col" style="padding:9px 10px;font-size:11px;font-weight:800;
                         color:#e0faf8;text-transform:uppercase;letter-spacing:0.8px;text-align:left;">
                         Producto / Servicio
-                    </td>
-                    <td width="15%" style="padding:9px 4px;font-size:11px;font-weight:800;
+                    </th>
+                    <th width="15%" scope="col" style="padding:9px 4px;font-size:11px;font-weight:800;
                         color:#e0faf8;text-transform:uppercase;letter-spacing:0.8px;text-align:center;">
                         Cant.
-                    </td>
-                    <td width="30%" style="padding:9px 10px;font-size:11px;font-weight:800;
+                    </th>
+                    <th width="30%" scope="col" style="padding:9px 10px;font-size:11px;font-weight:800;
                         color:#e0faf8;text-transform:uppercase;letter-spacing:0.8px;text-align:center;">
                         Total
-                    </td>
+                    </th>
                 </tr>
             </table>
 
@@ -68,10 +68,10 @@
                 {{-- Subtotal --}}
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
                     <td style="padding:8px 10px;"></td>
-                    <td style="padding:8px 4px;font-size:13px;font-weight:600;
+                    <th scope="row" style="padding:8px 4px;font-size:13px;font-weight:600;
                         color:#555;text-align:right;padding-right:12px;">
                         Subtotal
-                    </td>
+                    </th>
                     <td style="padding:8px 10px;font-size:13px;font-weight:600;
                         color:#555;text-align:center;white-space:nowrap;">
                         S/ {{ number_format($subtotal, 2) }}
@@ -81,10 +81,10 @@
                 {{-- Envío --}}
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
                     <td style="padding:8px 10px;"></td>
-                    <td style="padding:8px 4px;font-size:13px;font-weight:600;
+                    <th scope="row" style="padding:8px 4px;font-size:13px;font-weight:600;
                         color:#555;text-align:right;padding-right:12px;">
                         Envío
-                    </td>
+                    </th>
                     <td style="padding:8px 10px;font-size:13px;font-weight:600;
                         color:#555;text-align:center;white-space:nowrap;">
                         @if((float)$shippingCost > 0)
@@ -115,11 +115,11 @@
             <table width="100%" cellpadding="0" cellspacing="0" style="margin:0;">
                 <tr style="background:#2BBFBF;">
                     <td style="padding:12px 10px;"></td>
-                    <td style="padding:12px 4px;font-size:13px;font-weight:900;
+                    <th scope="row" style="padding:12px 4px;font-size:13px;font-weight:900;
                         color:#ffffff;text-align:right;padding-right:12px;
                         text-transform:uppercase;letter-spacing:0.5px;">
                         Total a pagar
-                    </td>
+                    </th>
                     <td style="padding:12px 10px;font-size:15px;font-weight:900;
                         color:#ffffff;text-align:center;white-space:nowrap;">
                         S/ {{ number_format($total, 2) }}

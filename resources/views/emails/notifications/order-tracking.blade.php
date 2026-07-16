@@ -80,14 +80,14 @@
                     {{-- Subtotal --}}
                     <tr>
                         <td style="padding: 10px 16px; font-size: 13px; color: #333333;"></td>
-                        <td style="padding: 10px 16px; font-size: 13px; color: #555555; text-align: right;">Subtotal</td>
+                        <th scope="row" style="padding: 10px 16px; font-size: 13px; color: #555555; text-align: right; font-weight: normal;">Subtotal</th>
                         <td style="padding: 10px 16px; font-size: 13px; color: #333333; text-align: right;">S/ {{ $subtotal }}</td>
                     </tr>
 
                     {{-- Envío --}}
                     <tr>
                         <td style="padding: 6px 16px; font-size: 13px; color: #333333;"></td>
-                        <td style="padding: 6px 16px; font-size: 13px; color: #555555; text-align: right;">Envío</td>
+                        <th scope="row" style="padding: 6px 16px; font-size: 13px; color: #555555; text-align: right; font-weight: normal;">Envío</th>
                         <td style="padding: 6px 16px; font-size: 13px; color: #333333; text-align: right;">S/ {{ $shippingCost }}</td>
                     </tr>
 
@@ -99,7 +99,7 @@
                     {{-- Total a pagar --}}
                     <tr style="background-color: #00BFC1;">
                         <td style="padding: 12px 16px; font-size: 13px; color: #ffffff; font-weight: 700;"></td>
-                        <td style="padding: 12px 8px; font-size: 13px; color: #ffffff; font-weight: 700; text-align: right; white-space: nowrap;">Total a pagar</td>
+                        <th scope="row" style="padding: 12px 8px; font-size: 13px; color: #ffffff; font-weight: 700; text-align: right; white-space: nowrap;">Total a pagar</th>
                         <td style="padding: 12px 16px; font-size: 14px; color: #ffffff; font-weight: 800; text-align: right; white-space: nowrap;">S/ {{ $total }}</td>
                     </tr>
 
@@ -120,20 +120,20 @@
                     </tr>
 
                     <tr>
-                        <td style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7;">Operador</td>
+                        <th scope="row" style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7; font-weight: normal; text-align: left;">Operador</th>
                         <td style="padding: 10px 16px; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right; border-bottom: 1px solid #e0f7f7;">{{ $carrierName }}</td>
                     </tr>
 
                     @if($trackingCode)
                     <tr>
-                        <td style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7;">Código de seguimiento</td>
+                        <th scope="row" style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7; font-weight: normal; text-align: left;">Código de seguimiento</th>
                         <td style="padding: 10px 16px; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right; border-bottom: 1px solid #e0f7f7;">{{ $trackingCode }}</td>
                     </tr>
                     @endif
 
                     @foreach($carrierFields as $field)
                     <tr>
-                        <td style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7;">{{ $field['label'] }}</td>
+                        <th scope="row" style="padding: 10px 16px; font-size: 13px; color: #555555; border-bottom: 1px solid #e0f7f7; font-weight: normal; text-align: left;">{{ $field['label'] }}</th>
                         <td style="padding: 10px 16px; font-size: 13px; color: #00BFC1; font-weight: 700; text-align: right; border-bottom: 1px solid #e0f7f7;">{{ $field['value'] }}</td>
                     </tr>
                     @endforeach

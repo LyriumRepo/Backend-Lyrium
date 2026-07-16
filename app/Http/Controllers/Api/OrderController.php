@@ -135,6 +135,9 @@ final class OrderController extends Controller
                 ->unique();
         }
 
+        // Pre-computar storeIds una sola vez y adjuntarlo al request para OrderItemResource
+        $request->attributes->set('seller_store_ids', $storeIds->toArray());
+
         if ($user->hasRole('administrator')) {
             $orders = Order::with(self::WITH_RELATIONS)
                 ->orderBy('created_at', 'desc')
@@ -172,6 +175,7 @@ final class OrderController extends Controller
             $storeIds = $user->ownedStores()->pluck('id')
                 ->concat($user->stores()->pluck('stores.id'))
                 ->unique();
+            $request->attributes->set('seller_store_ids', $storeIds->toArray());
         $hasItems = $order->items->contains(fn($item) => $storeIds->contains($item->store_id));
         $hasServiceItems = $order->serviceItems->contains(fn($si) => $storeIds->contains($si->store_id));
         if (! $hasItems && ! $hasServiceItems) {

@@ -50,7 +50,9 @@ final class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with(self::RELATIONS_LIST);
+        $query = Product::with(self::RELATIONS_LIST)
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating');
         $user  = $request->user() ?? $request->user('sanctum');
 
         if ($user?->hasRole('administrator')) {
@@ -85,7 +87,9 @@ final class ProductController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        $query = Product::with(self::RELATIONS_LIST);
+        $query = Product::with(self::RELATIONS_LIST)
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating');
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
@@ -140,8 +144,14 @@ final class ProductController extends Controller
     public function show(string $id): JsonResponse
     {
         $product = is_numeric($id)
-            ? Product::with(self::RELATIONS_DETAIL)->findOrFail($id)
-            : Product::with(self::RELATIONS_DETAIL)->where('slug', $id)->firstOrFail();
+            ? Product::with(self::RELATIONS_DETAIL)
+                ->withCount('reviews')
+                ->withAvg('reviews', 'rating')
+                ->findOrFail($id)
+            : Product::with(self::RELATIONS_DETAIL)
+                ->withCount('reviews')
+                ->withAvg('reviews', 'rating')
+                ->where('slug', $id)->firstOrFail();
 
         return response()->json(new ProductResource($product));
     }

@@ -73,7 +73,10 @@ final class SearchController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = Product::query()->where('status', 'approved');
+        $query = Product::query()
+            ->where('status', 'approved')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating');
 
         if ($search = $request->query('q')) {
             $query->where(function ($q) use ($search) {
@@ -150,6 +153,8 @@ final class SearchController extends Controller
     {
         return Product::query()
             ->where('status', 'approved')
+            ->withCount('reviews')
+            ->withAvg('reviews', 'rating')
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                     ->orWhere('description', 'like', "%{$query}%");

@@ -11,13 +11,13 @@
     <link rel="stylesheet" href="{{ asset("/vendor/scribe/css/theme-default.style.css") }}" media="screen">
     <link rel="stylesheet" href="{{ asset("/vendor/scribe/css/theme-default.print.css") }}" media="print">
 
-    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js" integrity="sha384-qa/qIFJWUM83S/0Jp0t2yZj83K2nK1ZkqUQ0HnMxFV1b+H8B0r3J+M8r41Cm5R" crossorigin="anonymous"></script>
 
     <link rel="stylesheet"
-          href="https://unpkg.com/@highlightjs/cdn-assets@11.6.0/styles/obsidian.min.css">
-    <script src="https://unpkg.com/@highlightjs/cdn-assets@11.6.0/highlight.min.js"></script>
+          href="https://unpkg.com/@highlightjs/cdn-assets@11.6.0/styles/obsidian.min.css" crossorigin="anonymous">
+    <script src="https://unpkg.com/@highlightjs/cdn-assets@11.6.0/highlight.min.js" integrity="sha384-3P1MWcVtMkiEEqj4ELT5JxM0Fq0CZ4Ie+2sYpP0HlR+G5f2BbFq5C0N1C0A6Z" crossorigin="anonymous"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jets/0.14.1/jets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jets/0.14.1/jets.min.js" integrity="sha384-2QkP8p+M7F3d2rS5C0N1C0A6Z" crossorigin="anonymous"></script>
 
     <style id="language-style">
         /* starts out as display none and is replaced with js later  */

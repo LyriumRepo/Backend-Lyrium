@@ -40,27 +40,27 @@
             {{-- Filas --}}
             <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #d5f0ef;border-top:none;">
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Plan</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Plan</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:800;color:#2BBFBF;text-align:right;">{{ $planName }}</td>
                 </tr>
                 <tr style="background:#f9fffe;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Tienda</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Tienda</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#1a3a2a;text-align:right;">{{ $storeName }}</td>
                 </tr>
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Duración</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Duración</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#1a3a2a;text-align:right;">{{ $months }} {{ $months === 1 ? 'mes' : 'meses' }}</td>
                 </tr>
                 <tr style="background:#f9fffe;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Fecha de inicio</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Fecha de inicio</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#1a3a2a;text-align:right;">{{ $startsAt }}</td>
                 </tr>
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Válido hasta</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Válido hasta</th>
                     <td style="padding:11px 14px;font-size:15px;font-weight:900;color:#2BBFBF;text-align:right;">{{ $endsAt }}</td>
                 </tr>
                 <tr style="background:#f9fffe;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Comisión por venta</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Comisión por venta</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:700;color:#1a3a2a;text-align:right;">{{ $commission }}</td>
                 </tr>
             </table>
@@ -91,11 +91,11 @@
                 </tr>
                 @else
                 <tr style="background:#ffffff;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">N° de referencia</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">N° de referencia</th>
                     <td style="padding:11px 14px;font-size:12px;font-weight:700;color:#1a3a2a;text-align:right;font-family:monospace;">{{ $referenceId }}</td>
                 </tr>
                 <tr style="background:#f9fffe;border-bottom:1px solid #d5f0ef;">
-                    <td style="padding:11px 14px;font-size:13px;color:#555;">Método de pago</td>
+                    <th scope="row" style="padding:11px 14px;font-size:13px;color:#555;font-weight:normal;text-align:left;">Método de pago</th>
                     <td style="padding:11px 14px;font-size:13px;font-weight:600;color:#1a3a2a;text-align:right;">{{ $paymentMethod === 'izipay' ? 'Izipay' : ucfirst($paymentMethod) }}</td>
                 </tr>
                 @endif

@@ -39,15 +39,15 @@
                                         </p>
                                         <table cellpadding="0" cellspacing="0">
                                             <tr>
-                                                <td style="padding: 4px 0; color: #555; font-size: 14px; width: 100px;">Email:</td>
+                                                <th scope="row" style="padding: 4px 0; color: #555; font-size: 14px; width: 100px; font-weight: normal; text-align: left;">Email:</th>
                                                 <td style="padding: 4px 0; color: #2d6a4f; font-weight: 700; font-size: 14px;">{{ $email }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding: 4px 0; color: #555; font-size: 14px;">Contraseña:</td>
+                                                <th scope="row" style="padding: 4px 0; color: #555; font-size: 14px; font-weight: normal; text-align: left;">Contraseña:</th>
                                                 <td style="padding: 4px 0; font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #2d6a4f; font-family: monospace;">{{ $password }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding: 4px 0; color: #555; font-size: 14px;">Rol:</td>
+                                                <th scope="row" style="padding: 4px 0; color: #555; font-size: 14px; font-weight: normal; text-align: left;">Rol:</th>
                                                 <td style="padding: 4px 0; color: #333; font-size: 14px; font-weight: 600;">
                                                     @if($role === 'logistics_operator') Operador Logístico
                                                     @elseif($role === 'administrator') Administrador

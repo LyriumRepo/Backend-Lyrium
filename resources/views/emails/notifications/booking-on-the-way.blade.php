@@ -18,15 +18,15 @@
 
 <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:24px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
   <tr style="background:#f9fafb;">
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Servicio</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;text-align:left;">Servicio</th>
     <td style="padding:10px 16px;font-size:13px;color:#14532d;font-weight:700;border-bottom:1px solid #e5e7eb;">{{ $serviceName }}</td>
   </tr>
   <tr>
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;">Proveedor</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;text-align:left;">Proveedor</th>
     <td style="padding:10px 16px;font-size:13px;color:#374151;border-bottom:1px solid #e5e7eb;">{{ $storeName }}</td>
   </tr>
   <tr>
-    <td style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;">Fecha pactada</td>
+    <th scope="row" style="padding:10px 16px;font-size:13px;color:#6b7280;font-weight:600;text-align:left;">Fecha pactada</th>
     <td style="padding:10px 16px;font-size:13px;color:#374151;">{{ $date }}</td>
   </tr>
 </table>

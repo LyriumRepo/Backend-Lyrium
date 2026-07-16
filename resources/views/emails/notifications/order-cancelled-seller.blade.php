@@ -29,7 +29,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #fef3c7;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Cliente</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Cliente</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ $customerName }}</td>
         </tr></table>
       </td>
@@ -47,7 +47,7 @@
     <tr>
       <td style="padding:9px 16px;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Total cancelado</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Total cancelado</th>
           <td style="font-size:16px;font-weight:800;color:#b45309;text-align:right;">S/ {{ number_format($total, 2) }}</td>
         </tr></table>
       </td>

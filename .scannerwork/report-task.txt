@@ -1,0 +1,6 @@
+projectKey=lyrium-backend
+serverUrl=http://localhost:9000
+serverVersion=26.7.0.124771
+dashboardUrl=http://localhost:9000/dashboard?id=lyrium-backend
+ceTaskId=1afbf9bc-2d5d-4cb9-8675-988c1ec201ee
+ceTaskUrl=http://localhost:9000/api/ce/task?id=1afbf9bc-2d5d-4cb9-8675-988c1ec201ee

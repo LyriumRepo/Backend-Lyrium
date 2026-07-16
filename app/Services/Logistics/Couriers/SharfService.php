@@ -14,7 +14,9 @@ class SharfService
 
     public function cotizar(array $origen, array $destino, array $cajas): ?array
     {
-        if (empty($cajas)) return null;
+        if (empty($cajas)) {
+            return null;
+        }
 
         try {
             [$distOrigen, $distDestino] = $this->resolveDistritos(
@@ -77,8 +79,12 @@ class SharfService
         $distOrigen  = $this->pickDistrito($oResp->json(), $orig);
         $distDestino = $this->pickDistrito($dResp->json(), $dest);
 
-        if (!$distOrigen)  Log::debug("[Sharf] Sin match para origen '{$orig}' (status {$oResp->status()})");
-        if (!$distDestino) Log::debug("[Sharf] Sin match para destino '{$dest}' (status {$dResp->status()})");
+        if (!$distOrigen) {
+            Log::debug("[Sharf] Sin match para origen '{$orig}' (status {$oResp->status()})");
+        }
+        if (!$distDestino) {
+            Log::debug("[Sharf] Sin match para destino '{$dest}' (status {$dResp->status()})");
+        }
 
         return [$distOrigen, $distDestino];
     }
@@ -93,11 +99,15 @@ class SharfService
         $q       = $this->norm($nombre);
 
         foreach ($results as $r) {
-            if ($this->norm($r['text'] ?? '') === $q) return $r;
+            if ($this->norm($r['text'] ?? '') === $q) {
+                return $r;
+            }
         }
 
         foreach ($results as $r) {
-            if (str_contains($this->norm($r['text'] ?? ''), $q)) return $r;
+            if (str_contains($this->norm($r['text'] ?? ''), $q)) {
+                return $r;
+            }
         }
 
         return $results[0];

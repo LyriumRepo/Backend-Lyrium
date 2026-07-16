@@ -19,10 +19,14 @@ final class OrderItemResource extends JsonResource
         $isOwner = false;
 
         if ($isSeller) {
-            $storeIds = $user->ownedStores()->pluck('id')
-                ->concat($user->stores()->pluck('stores.id'))
-                ->unique()
-                ->toArray();
+            // Usar storeIds pre-computado del controller (evita N+1 de 2 queries por item)
+            $storeIds = $request->attributes->get('seller_store_ids', []);
+            if (empty($storeIds)) {
+                $storeIds = $user->ownedStores()->pluck('id')
+                    ->concat($user->stores()->pluck('stores.id'))
+                    ->unique()
+                    ->toArray();
+            }
             $isOwner = in_array($this->store_id, $storeIds);
 
             $canConfirm = $isOwner && $this->status === \App\Models\OrderItem::STATUS_PENDING_SELLER;

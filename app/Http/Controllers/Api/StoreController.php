@@ -32,7 +32,8 @@ final class StoreController extends Controller
      */
     public function publicIndex(Request $request): JsonResponse
     {
-        $query = Store::with('category')
+        $query = Store::with(['category', 'media'])
+            ->withCount(['products as approved_products_count' => fn ($q) => $q->where('status', 'approved')])
             ->where('status', 'approved');
 
         if ($search = $request->query('search')) {
@@ -67,7 +68,7 @@ final class StoreController extends Controller
                 'phone' => $store->phone,
                 'category' => $store->category?->name,
                 'rating' => (float) $store->rating,
-                'product_count' => $store->products()->where('status', 'approved')->count(),
+                'product_count' => $store->approved_products_count,
             ]),
             'pagination' => [
                 'page' => $stores->currentPage(),
@@ -85,7 +86,7 @@ final class StoreController extends Controller
      */
     public function publicShow(string $slug): JsonResponse
     {
-        $store = Store::with(['category', 'branches' => fn ($q) => $q->where('is_active', true)])
+        $store = Store::with(['category', 'media', 'branches' => fn ($q) => $q->where('is_active', true)])
             ->where('slug', $slug)
             ->where('status', 'approved')
             ->first();
@@ -158,7 +159,7 @@ final class StoreController extends Controller
     {
         $user = $request->user();
 
-        $store = Store::with(['category', 'subscription.plan', 'branches'])
+        $store = Store::with(['category', 'media', 'subscription.plan', 'branches'])
             ->where('owner_id', $user->id)
             ->first();
 
@@ -179,7 +180,7 @@ final class StoreController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Store::with(['owner', 'category', 'contracts' => fn ($q) => $q->latest()]);
+        $query = Store::with(['owner', 'category', 'media', 'contracts' => fn ($q) => $q->latest()]);
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -222,7 +223,7 @@ final class StoreController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $store = Store::with(['owner', 'subscription.plan', 'category'])->findOrFail($id);
+        $store = Store::with(['owner', 'media', 'subscription.plan', 'category'])->findOrFail($id);
 
         return response()->json(new StoreResource($store));
     }
@@ -232,7 +233,7 @@ final class StoreController extends Controller
      */
     public function showBySlug(string $slug): JsonResponse
     {
-        $store = Store::with(['subscription.plan', 'category', 'branches'])
+        $store = Store::with(['media', 'subscription.plan', 'category', 'branches'])
             ->where('slug', $slug)
             ->where('status', 'approved')
             ->firstOrFail();
@@ -763,7 +764,7 @@ final class StoreController extends Controller
     public function uploadRepLegalPhoto(Request $request, int $id)
     {
         $request->validate([
-            'file' => ['required', 'image']
+            'file' => ['required', 'image', 'max:5120']
         ]);
 
         $store = Store::findOrFail($id);

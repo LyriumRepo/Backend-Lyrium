@@ -28,7 +28,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #fef3c7;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Plan activo</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Plan activo</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ $planName }}</td>
         </tr></table>
       </td>
@@ -36,7 +36,7 @@
     <tr>
       <td style="padding:9px 16px;border-bottom:1px solid #fef3c7;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Tienda</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Tienda</th>
           <td style="font-size:12.5px;font-weight:600;color:#111827;text-align:right;">{{ $storeName }}</td>
         </tr></table>
       </td>
@@ -44,7 +44,7 @@
     <tr>
       <td style="padding:9px 16px;">
         <table width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:12px;color:#6b7280;">Fecha de vencimiento</td>
+          <th scope="row" style="font-size:12px;color:#6b7280;font-weight:normal;text-align:left;">Fecha de vencimiento</th>
           <td style="font-size:16px;font-weight:800;color:#b45309;text-align:right;">{{ $endsAt }}</td>
         </tr></table>
       </td>
