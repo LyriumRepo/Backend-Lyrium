@@ -857,6 +857,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     });
 });
 
+// ── Diagnóstico Cloudflare ──────────────────────────────────────────────
+Route::get('/debug/cloudflare', \App\Http\Controllers\Api\DebugCloudflareController::class);
+
 // ── Público: Tiendas ────────────────────────────────────────────────────
 Route::get('/stores', [StoreController::class, 'publicIndex']);
 Route::get('/store/{slug}', [StoreController::class, 'publicShow']);

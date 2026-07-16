@@ -18,6 +18,11 @@ final class AdminSessionResource extends JsonResource
             'user_agent' => $this->user_agent,
             'device' => $this->device,
             'browser' => $this->browser,
+            'browser_version' => $this->browser_version,
+            'platform' => $this->platform,
+            'platform_version' => $this->platform_version,
+            'is_mobile' => $this->is_mobile,
+            'country' => $this->country,
             'last_activity' => $this->last_activity
                 ? \Illuminate\Support\Carbon::createFromTimestamp($this->last_activity)->toISOString()
                 : null,

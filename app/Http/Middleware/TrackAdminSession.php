@@ -25,6 +25,7 @@ final class TrackAdminSession
                     'user_id' => $user->id,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
+                    'country' => $request->header('CF-IPCountry'),
                     'last_activity' => $now,
                     'payload' => '[]',
                 ]

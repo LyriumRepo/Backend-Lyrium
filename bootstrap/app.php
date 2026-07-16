@@ -26,6 +26,22 @@ return Application::configure(basePath: dirname(__DIR__))
             'track.session' => \App\Http\Middleware\TrackAdminSession::class,
             'auth.rpa' => EnsureRpaAuth::class,
         ]);
+
+        // ── Cloudflare Trusted Proxies ──────────────────────────────────
+        // Laravel recibe conexiones a través de Cloudflare Tunnel (cloudflared),
+        // lo que hace que $request->ip() devuelva 127.0.0.1.
+        // Al confiar en los proxies de Cloudflare, Laravel usará los headers
+        // CF-Connecting-IP o X-Forwarded-For para obtener la IP real del visitante.
+        //
+        // Cloudflare publica sus rangos de IP en:
+        //   https://www.cloudflare.com/ips-v4
+        //   https://www.cloudflare.com/ips-v6
+        //
+        // Usamos '*' porque Cloudflare Tunnel puede originarse desde cualquier IP
+        // (cloudflared corre localmente y se conecta via 127.0.0.1).
+        // Laravel internamente prioriza CF-Connecting-IP sobre X-Forwarded-For
+        // cuando detecta headers de Cloudflare.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
