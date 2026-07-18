@@ -668,6 +668,18 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     /*
     |----------------------------------------------------------------------
+    | Admin BioForo Approval
+    |----------------------------------------------------------------------
+    */
+    Route::prefix('admin/bioforo')->group(function () {
+        Route::get('/pending', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'pending']);
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'stats']);
+        Route::post('/{id}/approve', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'approve']);
+        Route::post('/{id}/reject', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'reject']);
+    });
+
+    /*
+    |----------------------------------------------------------------------
     | Security Admin (administrator + security_admin)
     |----------------------------------------------------------------------
     */
@@ -840,6 +852,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
             Route::post('/topics', [\App\Http\Controllers\Api\ForumTopicController::class, 'store']);
             Route::put('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'update']);
             Route::delete('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'destroy']);
+            Route::post('/topics/{id}/submit-review', [\App\Http\Controllers\Api\ForumTopicController::class, 'submitForReview']);
+            Route::post('/topics/{id}/publish', [\App\Http\Controllers\Api\ForumTopicController::class, 'publish']);
+            Route::post('/topics/{id}/hide', [\App\Http\Controllers\Api\ForumTopicController::class, 'hide']);
 
             Route::get('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'replies']);
             Route::post('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'storeReply']);

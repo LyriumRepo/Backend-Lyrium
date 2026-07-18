@@ -73,6 +73,7 @@ final class ForumController extends Controller
             'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'title' => $validated['title'],
             'content' => $validated['content'],
+            'status' => 'active',
         ]);
 
         $topic->load('category');

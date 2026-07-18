@@ -53,7 +53,7 @@ final class ForumTopicController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
             'image' => ['nullable', 'string', 'max:2048'],
-            'status' => ['nullable', 'string', 'in:draft,published,closed'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,published,closed'],
         ]);
 
         $moderation = app(ContentModerationService::class)->check($data['title'].' '.$data['content']);
@@ -63,6 +63,7 @@ final class ForumTopicController extends Controller
 
         $data['store_id'] = $store->id;
         $data['user_id'] = $request->user()->id;
+        $data['status'] = $data['status'] ?? 'draft';
 
         $topic = ForumTopic::create($data);
 
@@ -79,7 +80,7 @@ final class ForumTopicController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string', 'max:5000'],
             'image' => ['nullable', 'string', 'max:2048'],
-            'status' => ['nullable', 'string', 'in:draft,published,closed'],
+            'status' => ['nullable', 'string', 'in:draft,pending_review,published,closed'],
         ]);
 
         $topic->update($data);
@@ -93,6 +94,51 @@ final class ForumTopicController extends Controller
         ForumTopic::where('store_id', $store->id)->findOrFail($id)->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    public function submitForReview(Request $request, int $id): JsonResponse
+    {
+        $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+        $topic = ForumTopic::where('store_id', $store->id)->findOrFail($id);
+
+        if ($topic->status !== 'draft') {
+            return response()->json(['error' => 'Solo los temas en borrador pueden enviarse a revisión.'], 422);
+        }
+
+        $topic->status = 'pending_review';
+        $topic->save();
+
+        return response()->json(['success' => true, 'message' => 'Tema enviado a revisión.']);
+    }
+
+    public function publish(Request $request, int $id): JsonResponse
+    {
+        $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+        $topic = ForumTopic::where('store_id', $store->id)->findOrFail($id);
+
+        if ($topic->status !== 'approved') {
+            return response()->json(['error' => 'Solo los temas aprobados pueden publicarse.'], 422);
+        }
+
+        $topic->status = 'published';
+        $topic->save();
+
+        return response()->json(['success' => true, 'message' => 'Tema publicado.']);
+    }
+
+    public function hide(Request $request, int $id): JsonResponse
+    {
+        $store = Store::where('owner_id', $request->user()->id)->firstOrFail();
+        $topic = ForumTopic::where('store_id', $store->id)->findOrFail($id);
+
+        if ($topic->status !== 'published') {
+            return response()->json(['error' => 'Solo los temas publicados pueden ocultarse.'], 422);
+        }
+
+        $topic->status = 'draft';
+        $topic->save();
+
+        return response()->json(['success' => true, 'message' => 'Tema ocultado.']);
     }
 
     // ── Replies ──────────────────────────────────────────────────────────
