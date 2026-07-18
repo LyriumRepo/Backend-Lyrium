@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\CriticalSecurityEvent;
+use App\Models\AuditLog;
 use App\Models\SecurityAlert;
 use Illuminate\Support\Facades\Log;
 
@@ -51,10 +52,8 @@ final class LogSecurityAlertListener
         return 'critical';
     }
 
-    private function resolveTitle(CriticalSecurityEvent $event): string
+    private function resolveTitle(AuditLog $log): string
     {
-        $log = $event->auditLog;
-
         $titles = [
             'users.deleted' => 'Eliminación de usuario',
             'users.banned' => 'Usuario suspendido',

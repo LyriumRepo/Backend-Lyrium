@@ -131,12 +131,31 @@ final class AuditServiceTest extends TestCase
             $table->unsignedSmallInteger('response_code')->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
+
+        Schema::create('system_configs', function ($table) {
+            $table->id();
+            $table->string('key')->unique();
+            $table->string('name')->nullable();
+            $table->text('value')->nullable();
+            $table->string('type', 20)->default('string');
+            $table->string('category', 50)->default('general');
+            $table->text('description')->nullable();
+            $table->boolean('is_public')->default(false);
+            $table->timestamps();
+        });
+
+        \App\Models\SystemConfig::insert([
+            ['key' => 'autoblock_enabled', 'value' => 'true', 'type' => 'boolean', 'category' => 'security', 'name' => 'Auto-bloqueo', 'description' => '', 'is_public' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'autoblock_threshold', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'name' => 'Umbral', 'description' => '', 'is_public' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'autoblock_window_minutes', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'name' => 'Ventana', 'description' => '', 'is_public' => false, 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'autoblock_duration_minutes', 'value' => '20', 'type' => 'integer', 'category' => 'security', 'name' => 'Duración', 'description' => '', 'is_public' => false, 'created_at' => now(), 'updated_at' => now()],
+        ]);
     }
 
     private function truncateAllTables(): void
     {
         Schema::disableForeignKeyConstraints();
-        foreach (['model_has_permissions', 'role_has_permissions', 'model_has_roles', 'audit_logs', 'personal_access_tokens', 'users', 'permissions', 'roles'] as $table) {
+        foreach (['model_has_permissions', 'role_has_permissions', 'model_has_roles', 'audit_logs', 'system_configs', 'personal_access_tokens', 'users', 'permissions', 'roles'] as $table) {
             if (Schema::hasTable($table)) {
                 \DB::table($table)->truncate();
             }

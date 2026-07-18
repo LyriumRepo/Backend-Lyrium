@@ -59,48 +59,6 @@ final class AuditLog extends Model
         return $this->morphTo();
     }
 
-    // ─── Factory method ──────────────────────────────────────────────────────
-
-    /**
-     * Registra una entrada de auditoría de forma fluida.
-     *
-     * Uso:
-     * AuditLog::record('created', 'suppliers', "Creó proveedor {$supplier->name}", $supplier);
-     */
-    public static function record(
-        string $event,
-        string $module,
-        string $description,
-        ?Model $auditable = null,
-        array $oldValues = [],
-        array $newValues = [],
-    ): static {
-
-        /** @var \App\Models\User|null $user */
-        $user = auth()->user();
-
-        /** @var Request $request */
-        $request = request();
-
-        return self::create([
-            'user_id' => $user?->id,
-            'user_email' => $user?->email,
-            // Ahora el editor sabe que $user es App\Models\User y reconoce getRoleNames()
-            'user_role' => $user !== null ? (string) ($user->getRoleNames()->first() ?? '') : null,
-            'event' => $event,
-            'module' => $module,
-            'description' => $description,
-            'auditable_type' => $auditable ? get_class($auditable) : null,
-            'auditable_id' => $auditable?->getKey(),
-            'old_values' => $oldValues ?: null,
-            'new_values' => $newValues ?: null,
-            // Ahora el editor sabe que $request es un objeto Request y no un array
-            'ip_address' => $request->ip() !== null ? (string) $request->ip() : null,
-            'user_agent' => $request->userAgent() !== null ? (string) $request->userAgent() : null,
-            'created_at' => now(),
-        ]);
-    }
-
     // ─── Scopes ──────────────────────────────────────────────────────────────
 
     public function scopeModule($query, string $module)

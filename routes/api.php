@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\Admin\CommissionTierController;
+use App\Http\Controllers\Api\AgendaController;
 use App\Http\Controllers\Api\AdminFinanceController;
 use App\Http\Controllers\Api\AdminMedalController;
 use App\Http\Controllers\Api\AdminSellerController;
@@ -74,7 +75,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('auth')->middleware('audit.auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/register-customer', [AuthController::class, 'registerCustomer']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -839,6 +840,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         // Productos del vendedor autenticado (usa store_id del user)
         Route::get('/seller/products', [ProductController::class, 'myProducts']);
 
+        // Agenda del vendedor (pedidos + servicios por mes/año)
+        Route::get('/seller/agenda', [AgendaController::class, 'index']);
+
         // Rutas que requieren contrato activo para operar
         Route::middleware('auth:sanctum', 'contract.active')->group(function () {
             // Products CRUD
@@ -980,6 +984,32 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 Route::middleware(['auth:sanctum', 'role:security_admin', 'audit.security'])->prefix('security')->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
     Route::get('dashboard/realtime', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'realtime']);
+
+    // IP Management CRUD
+    Route::get('ips', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'index']);
+    Route::get('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'show']);
+    Route::post('ips', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'store']);
+    Route::put('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'update']);
+    Route::delete('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'destroy']);
+
+    // Alerts CRUD
+    Route::get('alerts', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'index']);
+    Route::get('alerts/{id}', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'show']);
+    Route::put('alerts/{id}/dismiss', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'dismiss']);
+    Route::put('alerts/{id}/resolve', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'resolve']);
+
+    // Protection Rules
+    Route::get('protection', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'index']);
+    Route::get('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'show']);
+    Route::post('protection', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'store']);
+    Route::put('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'update']);
+    Route::put('protection/{id}/toggle', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'toggleStatus']);
+    Route::delete('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'destroy']);
+
+    // Security Settings
+    Route::get('settings', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'index']);
+    Route::put('settings', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'update']);
+    Route::post('settings/reset', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'reset']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

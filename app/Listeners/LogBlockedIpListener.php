@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\AuditLogCreated;
+use App\Models\AuditLog;
 use App\Models\BlockedIp;
 use Illuminate\Support\Facades\Log;
 
@@ -41,16 +42,16 @@ final class LogBlockedIpListener
         }
     }
 
-    private function block(AuditLogCreated $event, string $ip): void
+    private function block(AuditLog $log, string $ip): void
     {
-        $log = $event->auditLog;
+        $existing = BlockedIp::byIp($ip)->first();
 
         BlockedIp::updateOrCreate(
             ['ip_address' => $ip],
             [
-                'reason' => $log->description,
-                'blocked_by' => $log->user_id,
-                'blocked_at' => $log->created_at ?? now(),
+                'reason' => $existing?->reason ?? $log->description,
+                'blocked_by' => $existing?->blocked_by ?? $log->user_id,
+                'blocked_at' => $existing?->blocked_at ?? ($log->created_at ?? now()),
                 'expires_at' => $this->extractExpiresAt($log),
                 'unblocked_at' => null,
                 'unblocked_by' => null,
@@ -59,10 +60,8 @@ final class LogBlockedIpListener
         );
     }
 
-    private function unblock(AuditLogCreated $event, string $ip): void
+    private function unblock(AuditLog $log, string $ip): void
     {
-        $log = $event->auditLog;
-
         BlockedIp::where('ip_address', $ip)
             ->whereIn('status', [BlockedIp::STATUS_BLOCKED, BlockedIp::STATUS_FLAGGED])
             ->update([
@@ -72,10 +71,8 @@ final class LogBlockedIpListener
             ]);
     }
 
-    private function flag(AuditLogCreated $event, string $ip): void
+    private function flag(AuditLog $log, string $ip): void
     {
-        $log = $event->auditLog;
-
         BlockedIp::updateOrCreate(
             ['ip_address' => $ip],
             [
@@ -87,10 +84,8 @@ final class LogBlockedIpListener
         );
     }
 
-    private function whitelist(AuditLogCreated $event, string $ip): void
+    private function whitelist(AuditLog $log, string $ip): void
     {
-        $log = $event->auditLog;
-
         BlockedIp::updateOrCreate(
             ['ip_address' => $ip],
             [
@@ -102,9 +97,9 @@ final class LogBlockedIpListener
         );
     }
 
-    private function extractExpiresAt(AuditLogCreated $event): ?string
+    private function extractExpiresAt(AuditLog $log): ?string
     {
-        $metadata = $event->auditLog->metadata;
+        $metadata = $log->metadata;
 
         if (is_array($metadata) && isset($metadata['expires_at'])) {
             return $metadata['expires_at'];
