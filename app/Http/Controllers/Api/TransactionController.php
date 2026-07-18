@@ -8,13 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TransactionResource;
 use App\Models\IzipayOrderTransaction;
 use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class TransactionController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    private function buildFilteredQuery(Request $request)
     {
         $query = Order::query()
             ->whereHas('izipayTransactions')
@@ -58,9 +59,13 @@ final class TransactionController extends Controller
             });
         }
 
-        $perPage = min((int) $request->input('per_page', 10), 100);
+        return $query;
+    }
 
-        $orders = $query->paginate($perPage);
+    public function index(Request $request): JsonResponse
+    {
+        $perPage = min((int) $request->input('per_page', 10), 100);
+        $orders = $this->buildFilteredQuery($request)->paginate($perPage);
 
         return response()->json([
             'data' => TransactionResource::collection($orders),
@@ -72,6 +77,43 @@ final class TransactionController extends Controller
                 'hasMore' => $orders->hasMorePages(),
             ],
         ]);
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $orders = $this->buildFilteredQuery($request)->get();
+
+        $headers = ['#', 'Orden', 'Fecha', 'Cliente', 'Email', 'Total', 'Método Pago', 'Estado Pago', 'Estado Transacción'];
+        $callback = function () use ($orders) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['#', 'Orden', 'Fecha', 'Cliente', 'Email', 'Total', 'Metodo Pago', 'Estado Pago', 'Estado Transaccion']);
+            foreach ($orders as $i => $order) {
+                fputcsv($file, [
+                    $i + 1,
+                    $order->order_number,
+                    $order->created_at->format('d/m/Y H:i'),
+                    $order->user?->name ?? 'N/A',
+                    $order->user?->email ?? 'N/A',
+                    number_format($order->total, 2),
+                    $order->latestIzipayTransaction?->payment_method_type ?? '—',
+                    $order->payment_status,
+                    $order->latestIzipayTransaction?->transaction_status ?? '—',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="reporte-transacciones.csv"',
+        ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $orders = $this->buildFilteredQuery($request)->get();
+        $pdf = Pdf::loadView('pdf.transactions', ['orders' => $orders]);
+        return $pdf->download('reporte-transacciones.pdf');
     }
 
     public function show(int $id): TransactionResource

@@ -8,6 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Frontend is a separate Next.js repo at `../Frontend-Lyrium/frontapp/` (runs at `http://localhost:3000`).
 
+**Frontend architecture:**
+- `src/app/` — App Router pages (dashboard, admin panel, store pages)
+- `src/features/` — feature-based modules grouped by domain (admin, store, auth, landing)
+- `src/components/` — shared UI components (BaseModal, BaseTable, Icon, etc.)
+- `src/shared/` — shared utilities, hooks, types, lib
+- Admin sidebar defined via `menuItems` array in layout — uses `usePathname()` to highlight active item. Each admin section (dashboard, finance, clients, products, orders, etc.) has its own sidebar config with icon, label, path, subItems.
+- `PAGE_SIZE` and `PAGINATION_MAX` constants in shared config (16, 5).
+
 ## Commands
 
 ```bash
@@ -199,6 +207,43 @@ These controllers exist but their routes are **not registered** in `routes/api.p
 `AgendaController` query params: `month`, `year`, `type` (all|orders|services), `date`, `per_page`, `page`.
 
 `SearchController` fallback: uses DB query if Meilisearch/Scout is unavailable. Scout is configured in `config/scout.php` (`MEILISEARCH_HOST`, `MEILISEARCH_KEY` env vars).
+
+## Frontend Features Built
+
+### Admin Dashboard (refactor)
+- Migrated from hard-coded HTML dashboard to `AdminDashboardClient` component with props: `stats, totalStores, pendingStores, totalRevenue, growthRate, chartData`
+- Dynamic stats cards with loading skeleton, chart (OrdersChart), recent activity, quick actions
+- Route `/admin` with page.tsx wrapper using `useAdminDashboard` — fetches from backend API `/api/admin/dashboard`
+
+### Admin Finance Module (`rama-danmar` branch)
+Location: `frontapp/src/features/admin/finance/`
+- **FinancePageClient.tsx** — 4-section dashboard: KPIs, Top Buyers + Próximo Pago + Desglose + Comprobantes, Mapa de Calor (7×24 heatmap), Export button
+- **Components**: `FinanceChart` (dynamic import, chart.js), `CardProxPago` (radial progress bar), `FinancialBreakdownCard` (IGV breakdown), `ComprobantesSection` (SUNAT invoice list), `KpiDetailModal` (modal with chart + per-period breakdown)
+- **Hook**: `useFinanceAnalytics()` returns `data: MOCK_FINANCE_DATA` (all mock, no backend endpoint yet)
+- **Types**: `FinanceData` with 18 chart datasets, `FinancialBreakdown`, `RecentInvoice`, `TopBuyer`, `HeatmapData`
+- Dashboard filters via `BaseDatePicker` (imported but not wired in current UI)
+
+### Public Store Page
+- Store preview at `/store/{slug}` — loads store profile, products/services, branches, banner
+- Components: `StoreHero`, `StoreBranches`, `StoreInfo`, `StoreProducts`/`StoreServices`, `StoreReviews`, `StoreContactSheet`
+- Data fetched from `/api/stores/{slug}`
+- "Ver tienda" button on admin store list opens preview
+
+### Admin Store Management
+- Store list with search, filter by status (pending/approved/rejected/banned), pagination
+- Quick actions: approve/reject, view profile, media management
+- `AdminStoreDetail` page with tabs: profile, products, members, contracts, media
+- Image gallery viewer modal with navigation
+- Pagination with page size selector
+
+### Store Preview Modal
+- Clicking any product in store preview opens a product detail modal (image gallery, attributes, price, description)
+- Animated transitions with Framer Motion
+
+### Bugs Fixed
+- **Dashboard date filter**: changed `BaseDatePicker` `onChange` to return `Date | null` consistently
+- **Modal scroll**: removed `overflow-hidden` from `BaseModal` body lock to allow page scroll when modal is open
+- **Duration field**: removed `type="number"` restriction on `ServiceSchedule` duration input to allow free text like "1 hora"
 
 ## Project Status
 - **Fase 1 — Fundación:** ✅ Completada

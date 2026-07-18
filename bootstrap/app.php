@@ -1,8 +1,25 @@
 <?php
 
+use App\Catalogs\SystemEvents;
+use App\Http\Middleware\AuditAuthMiddleware;
+use App\Http\Middleware\AuditSecurityMiddleware;
+use App\Http\Middleware\EnsureContractActive;
+use App\Http\Middleware\EnsureEmailVerified;
+use App\Http\Middleware\EnsurePlanModule;
+use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\EnsureRpaAuth;
+use App\Http\Middleware\EnsureStoreApproved;
+use App\Http\Middleware\EnsureUserNotBanned;
+use App\Http\Middleware\ForceJson;
+use App\Http\Middleware\ProtectionRuleMiddleware;
+use App\Http\Middleware\SecurityAccessMiddleware;
+use App\Http\Middleware\TrackAdminSession;
+use App\Http\Middleware\TrackCustomerPanelVisit;
+use App\Services\AuditService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,42 +31,49 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
-            \App\Http\Middleware\ForceJson::class,
-            \App\Http\Middleware\TrackCustomerPanelVisit::class,
+            ForceJson::class,
+            TrackCustomerPanelVisit::class,
+            SecurityAccessMiddleware::class,
+            ProtectionRuleMiddleware::class,
+            EnsureUserNotBanned::class,
         ]);
 
         $middleware->alias([
-            'role' => \App\Http\Middleware\EnsureRole::class,
-            'store.approved' => \App\Http\Middleware\EnsureStoreApproved::class,
-            'verified' => \App\Http\Middleware\EnsureEmailVerified::class,
-            'contract.active' => \App\Http\Middleware\EnsureContractActive::class,
-            'track.session' => \App\Http\Middleware\TrackAdminSession::class,
-            'plan.module' => \App\Http\Middleware\EnsurePlanModule::class,
-            'audit.auth' => \App\Http\Middleware\AuditAuthMiddleware::class,
-            'audit.security' => \App\Http\Middleware\AuditSecurityMiddleware::class,
+            'role' => EnsureRole::class,
+            'store.approved' => EnsureStoreApproved::class,
+            'verified' => EnsureEmailVerified::class,
+            'contract.active' => EnsureContractActive::class,
+            'track.session' => TrackAdminSession::class,
+            'plan.module' => EnsurePlanModule::class,
+            'audit.auth' => AuditAuthMiddleware::class,
+            'audit.security' => AuditSecurityMiddleware::class,
+            'auth.rpa' => EnsureRpaAuth::class,
+            'security.access' => SecurityAccessMiddleware::class,
+            'protection.rule' => ProtectionRuleMiddleware::class,
+            'user.notbanned' => EnsureUserNotBanned::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (Throwable $e): void {
-            $statusCode = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+            $statusCode = $e instanceof HttpExceptionInterface
                 ? $e->getStatusCode()
                 : 500;
 
             if ($statusCode >= 500) {
                 try {
-                    app(\App\Services\AuditService::class)->record(
-                        event: \App\Catalogs\SystemEvents::EXCEPTION,
+                    app(AuditService::class)->record(
+                        event: SystemEvents::EXCEPTION,
                         module: 'system',
-                        description: 'Excepción no controlada: ' . $e->getMessage(),
+                        description: 'Excepción no controlada: '.$e->getMessage(),
                         severity: 'critical',
-                        source: \App\Services\AuditService::SOURCE_SYSTEM,
+                        source: AuditService::SOURCE_SYSTEM,
                         metadata: [
                             'exception_class' => $e::class,
                             'file' => $e->getFile(),
                             'line' => $e->getLine(),
                         ],
                     );
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Silent fail — never interrupt the main flow
                 }
             }

@@ -22,6 +22,14 @@ class SystemConfigSeeder extends Seeder
             ['key' => 'site_description', 'name' => 'Descripción del Sitio', 'value' => 'Biomarketplace para productos orgánicos', 'type' => 'string', 'category' => 'general', 'description' => 'Descripción breve de la plataforma', 'is_public' => true],
             ['key' => 'contact_email', 'name' => 'Email de Contacto', 'value' => 'contacto@lyrium.com', 'type' => 'string', 'category' => 'general', 'description' => 'Email de contacto principal', 'is_public' => true],
             ['key' => 'commission_tiers', 'name' => 'Tasas de Comisión', 'value' => '[{"min":0,"max":400,"rate":0.15},{"min":401,"max":800,"rate":0.14},{"min":801,"max":1200,"rate":0.13},{"min":1201,"max":null,"rate":0.12}]', 'type' => 'json', 'category' => 'commission', 'description' => 'Tasas de comisión por categoría de venta (min, max, rate)', 'is_public' => false],
+
+            // Security
+            ['key' => 'autoblock_enabled', 'name' => 'Auto-bloqueo habilitado', 'value' => 'true', 'type' => 'boolean', 'category' => 'security', 'description' => 'Activar bloqueo automático por intentos fallidos', 'is_public' => false],
+            ['key' => 'autoblock_threshold', 'name' => 'Umbral de auto-bloqueo', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'description' => 'Intentos fallidos antes de bloquear IP', 'is_public' => false],
+            ['key' => 'autoblock_window_minutes', 'name' => 'Ventana de tiempo', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'description' => 'Minutos en los que se evalúan los intentos fallidos', 'is_public' => false],
+            ['key' => 'autoblock_duration_minutes', 'name' => 'Duración del bloqueo', 'value' => '20', 'type' => 'integer', 'category' => 'security', 'description' => 'Minutos que dura el bloqueo automático (0 = indefinido)', 'is_public' => false],
+            ['key' => 'whitelist_enabled', 'name' => 'Whitelist habilitada', 'value' => 'true', 'type' => 'boolean', 'category' => 'security', 'description' => 'Permitir bypass de rate limiting para IPs en whitelist', 'is_public' => false],
+            ['key' => 'max_login_attempts', 'name' => 'Intentos máximos de login', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'description' => 'Intentos máximos por minuto antes de rate limiting', 'is_public' => false],
         ];
 
         foreach ($configs as $config) {

@@ -17,15 +17,16 @@ use App\Models\LoginAttempt;
 use App\Models\SellerApplication;
 use App\Models\User;
 use App\Notifications\NewSellerRegistrationNotification;
+use App\Notifications\RpaDiagnosticoNotification;
 use App\Services\AuditService;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
-use Spatie\Permission\Models\Role;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Str;
 
 final class AuthController extends Controller
@@ -55,10 +56,44 @@ final class AuthController extends Controller
                 'status' => 'failed',
             ]);
 
+            $this->auditService->record(
+                event: 'auth.login.failed',
+                module: 'auth',
+                description: 'Intento de inicio de sesión fallido — credenciales inválidas',
+                success: false,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $credentials['email'], 'reason' => 'invalid_credentials'],
+            );
+
             return response()->json([
                 'success' => false,
                 'error' => 'Credenciales inválidas.',
             ], 401);
+        }
+
+        if ($user->is_banned) {
+            LoginAttempt::create([
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'status' => 'failed',
+            ]);
+
+            $this->auditService->record(
+                event: 'auth.login.failed',
+                module: 'auth',
+                description: 'Intento de inicio de sesión de usuario suspendido',
+                success: false,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $user->email, 'user_id' => $user->id, 'reason' => 'account_suspended'],
+            );
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Tu cuenta ha sido suspendida. Contacta al soporte para más información.',
+                'code' => 'ACCOUNT_SUSPENDED',
+            ], 403);
         }
 
         // Verificar email
@@ -72,6 +107,15 @@ final class AuthController extends Controller
                 'user_agent' => $request->userAgent(),
                 'status' => 'failed',
             ]);
+
+            $this->auditService->record(
+                event: 'auth.login.failed',
+                module: 'auth',
+                description: 'Intento de inicio de sesión de email no verificado',
+                success: false,
+                source: AuditService::SOURCE_WEB,
+                metadata: ['email' => $user->email, 'user_id' => $user->id, 'reason' => 'email_not_verified'],
+            );
 
             return response()->json([
                 'success' => false,
@@ -91,6 +135,15 @@ final class AuthController extends Controller
             'user_agent' => $request->userAgent(),
             'status' => 'success',
         ]);
+
+        $this->auditService->record(
+            event: 'auth.login.success',
+            module: 'auth',
+            description: 'Inicio de sesión exitoso',
+            success: true,
+            source: AuditService::SOURCE_WEB,
+            metadata: ['email' => $user->email, 'user_id' => $user->id],
+        );
 
         AdminSession::where('user_id', $user->id)->delete();
         AdminSession::create([
@@ -497,15 +550,55 @@ final class AuthController extends Controller
 
         $user = User::where('email', $request->input('email'))->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['error' => 'Usuario no encontrado'], 404);
         }
 
-        if (!$user->hasVerifiedEmail()) {
+        if (! $user->hasVerifiedEmail()) {
             $this->otpService->generate($user);
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * POST /api/auth/send-diagnostico
+     * Envía el diagnóstico de una solicitud al correo del vendedor.
+     */
+    public function sendDiagnostico(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'application_id' => ['required', 'integer'],
+            'email' => ['required', 'email'],
+        ]);
+
+        try {
+            $application = SellerApplication::where('id', $data['application_id'])
+                ->where('correo', $data['email'])
+                ->first();
+
+            if (! $application) {
+                return response()->json(['error' => 'Solicitud no encontrada.'], 404);
+            }
+
+            $user = User::where('email', $data['email'])->first();
+
+            if ($user) {
+                $user->notify(new RpaDiagnosticoNotification($application));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Diagnóstico enviado a tu correo.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al enviar diagnóstico RPA', [
+                'application_id' => $data['application_id'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'No se pudo enviar el diagnóstico.'], 500);
+        }
     }
 
     /**
@@ -527,7 +620,7 @@ final class AuthController extends Controller
         $baseUsername = $username;
         $counter = 1;
         while (User::where('username', $username)->exists()) {
-            $username = $baseUsername . '_' . $counter++;
+            $username = $baseUsername.'_'.$counter++;
         }
 
         $user = User::create([
@@ -567,7 +660,7 @@ final class AuthController extends Controller
             ],
         ]);
 
-        if (!$user->hasVerifiedEmail()) {
+        if (! $user->hasVerifiedEmail()) {
             $this->otpService->generate($user);
         }
 

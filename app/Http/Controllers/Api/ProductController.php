@@ -83,6 +83,38 @@ final class ProductController extends Controller
     }
 
     /**
+     * GET /api/seller/products (auth required — seller's own products)
+     */
+    public function myProducts(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $store = $user?->store;
+
+        if (! $store) {
+            return response()->json(['success' => true, 'data' => [], 'meta' => [
+                'current_page' => 1, 'per_page' => 100, 'total' => 0, 'total_pages' => 1,
+            ]]);
+        }
+
+        $query = Product::with(self::RELATIONS_LIST)->where('store_id', $store->id);
+        $this->applyFilters($query, $request);
+
+        $perPage = min((int) $request->query('per_page', 15), 100);
+        $products = $query->orderByDesc('created_at')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => ProductResource::collection($products),
+            'meta' => [
+                'current_page' => $products->currentPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
+                'total_pages' => $products->lastPage(),
+            ],
+        ]);
+    }
+
+    /**
      * GET /api/admin/products
      */
     public function adminIndex(Request $request): JsonResponse

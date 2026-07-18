@@ -70,7 +70,7 @@ final class LiriosService
         $account = $this->getOrCreateAccount($userId);
 
         if ($account->balance < $amount) {
-            throw new \RuntimeException('No tienes suficientes Lirios.');
+            throw new \RuntimeException('No tienes suficientes Lyriopuntos.');
         }
 
         $balanceBefore = $account->balance;
@@ -102,7 +102,7 @@ final class LiriosService
         $balanceBefore = $account->balance;
 
         if ($points <= 0) {
-            throw new \RuntimeException('El monto pagado no genera Lirios.');
+            throw new \RuntimeException('El monto pagado no genera Lyriopuntos.');
         }
 
         return DB::transaction(function () use ($account, $userId, $points, $order, $balanceBefore) {
@@ -148,16 +148,16 @@ final class LiriosService
         }
 
         if ($liriosToUse <= 0) {
-            throw new \RuntimeException('La cantidad de Lirios debe ser mayor a 0.');
+            throw new \RuntimeException('La cantidad de Lyriopuntos debe ser mayor a 0.');
         }
 
         $maxLirios = $eligibility['max_lirios_usables'];
         if ($liriosToUse > $maxLirios) {
-            throw new \RuntimeException("Solo puedes usar hasta {$maxLirios} Lirios en esta orden.");
+            throw new \RuntimeException("Solo puedes usar hasta {$maxLirios} Lyriopuntos en esta orden.");
         }
 
         if ($liriosToUse > $eligibility['balance']) {
-            throw new \RuntimeException('No tienes suficientes Lirios.');
+            throw new \RuntimeException('No tienes suficientes Lyriopuntos.');
         }
 
         return [

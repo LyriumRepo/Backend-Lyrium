@@ -114,12 +114,4 @@ final class CommissionService
             'commission_total' => $commissionConIgv, // total a cobrar (base + IGV)
         ];
     }
-
-    private function getOrderStore(Order $order): ?Store
-    {
-        $order->loadMissing('items.store');
-        $firstItem = $order->items->first();
-
-        return $firstItem?->store;
-    }
 }

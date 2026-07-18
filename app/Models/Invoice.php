@@ -80,6 +80,7 @@ final class Invoice extends Model
         'cdr_url',
         'nubefact_response',
         'items',
+        'store_commissions',
     ];
 
     protected function casts(): array
@@ -94,6 +95,7 @@ final class Invoice extends Model
             'cdr_url' => 'string',
             'nubefact_response' => 'array',
             'items' => 'array',
+            'store_commissions' => 'array',
         ];
     }
 

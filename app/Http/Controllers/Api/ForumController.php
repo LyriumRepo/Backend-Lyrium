@@ -29,7 +29,7 @@ final class ForumController extends Controller
 
     public function topics(Request $request): JsonResponse
     {
-        $query = ForumTopic::with('category')
+        $query = ForumTopic::with(['category', 'user'])
             ->whereIn('status', ['active', 'published']);
 
         if ($categoryId = $request->query('forum')) {
@@ -43,7 +43,7 @@ final class ForumController extends Controller
 
     public function topic(int $id): JsonResponse
     {
-        $topic = ForumTopic::with('category')->find($id);
+        $topic = ForumTopic::with(['category', 'user'])->find($id);
 
         if (! $topic) {
             return $this->notFound('Tema no encontrado.');
@@ -69,8 +69,8 @@ final class ForumController extends Controller
 
         $topic = ForumTopic::create([
             'forum_category_id' => $validated['forumid'],
-            'user_id' => $request->user()?->id,
-            'anonymous_name' => $request->user() ? null : 'Anónimo',
+            'user_id' => $request->user('sanctum')?->id,
+            'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'title' => $validated['title'],
             'content' => $validated['content'],
         ]);
@@ -111,8 +111,8 @@ final class ForumController extends Controller
 
         $post = ForumPost::create([
             'forum_topic_id' => $validated['topicid'],
-            'user_id' => $request->user()?->id,
-            'anonymous_name' => $request->user() ? null : 'Anónimo',
+            'user_id' => $request->user('sanctum')?->id,
+            'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'content' => $validated['content'],
             'reply_to_id' => $validated['reply_to'] ?? null,
         ]);
@@ -160,7 +160,7 @@ final class ForumController extends Controller
         $topicId = $post->forum_topic_id;
         $categoryId = ForumTopic::where('id', $topicId)->value('forum_category_id');
 
-        $post->delete();
+        $post->update(['status' => 'hidden']);
 
         ForumTopic::where('id', $topicId)->decrement('reply_count');
         ForumCategory::where('id', $categoryId)->decrement('post_count');

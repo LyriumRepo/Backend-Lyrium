@@ -9,7 +9,9 @@ use App\Events\CriticalSecurityEvent;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
 use App\Events\OrderStatusChanged;
+use App\Events\RepeatedFailedLoginEvent;
 use App\Listeners\AccrueLiriosForOrder;
+use App\Listeners\AutoBlockIpListener;
 use App\Listeners\BroadcastNotificationCreated;
 use App\Listeners\GenerateInvoicesForOrder;
 use App\Listeners\LogBlockedIpListener;
@@ -51,6 +53,9 @@ final class EventServiceProvider extends ServiceProvider
         ],
         CriticalSecurityEvent::class => [
             LogSecurityAlertListener::class,
+        ],
+        RepeatedFailedLoginEvent::class => [
+            AutoBlockIpListener::class,
         ],
     ];
 

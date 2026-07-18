@@ -185,6 +185,7 @@ final class BlogController extends Controller
 
         $comment = BlogComment::create([
             'user_id' => $user?->id,
+            'blog_post_id' => null,
             'commentable_id' => $commentableId,
             'commentable_type' => $commentableType,
             'author_name' => $authorName,
@@ -300,6 +301,75 @@ final class BlogController extends Controller
         }
 
         return $this->success(new BlogShortResource($short));
+    }
+
+    public function tiktokVideo(Request $request, int $id)
+    {
+        $short = BlogShort::find($id);
+
+        if (! $short || $short->platform !== 'tiktok') {
+            return response()->json(['error' => 'Short no encontrado'], 404);
+        }
+
+        $url = $short->url;
+
+        // 1. Get direct video URL via yt-dlp (cached in session for 10 min)
+        $cacheKey = 'tiktok_url_'.$id;
+        $videoUrl = cache($cacheKey);
+
+        if (! $videoUrl) {
+            $cmd = 'yt-dlp -g --no-warnings '.escapeshellarg($url).' 2>/dev/null';
+            $output = shell_exec($cmd);
+
+            if ($output) {
+                $videoUrl = trim($output);
+                cache([$cacheKey => $videoUrl], now()->addMinutes(10));
+            }
+        }
+
+        if (! $videoUrl) {
+            return response()->json(['error' => 'No se pudo obtener el video de TikTok'], 502);
+        }
+
+        // 2. Proxy the video stream with Range support
+        $range = $request->header('Range');
+
+        $headers = [
+            'Content-Type' => 'video/mp4',
+            'Access-Control-Allow-Origin' => '*',
+            'Accept-Ranges' => 'bytes',
+            'Cache-Control' => 'public, max-age=86400',
+            'Content-Disposition' => 'inline',
+        ];
+
+        $curlOptions = [
+            CURLOPT_URL => $videoUrl,
+            CURLOPT_FILE => fopen('php://output', 'w'),
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36',
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_TIMEOUT => 120,
+            CURLOPT_BUFFERSIZE => 1048576,
+        ];
+
+        $statusCode = 200;
+
+        if ($range) {
+            $curlOptions[CURLOPT_RANGE] = $range;
+            $headers['Range'] = $range;
+            $statusCode = 206;
+        }
+
+        return response()->stream(function () use ($curlOptions) {
+            if (ob_get_level()) {
+                ob_end_clean();
+            }
+            $ch = curl_init();
+            curl_setopt_array($ch, $curlOptions);
+            curl_exec($ch);
+            curl_close($ch);
+            flush();
+        }, $statusCode, $headers);
     }
 
     private function optionalAuth(Request $request): void

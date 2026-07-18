@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\Api\AddressController;
 use App\Http\Controllers\Api\Admin\CommissionTierController;
+use App\Http\Controllers\Api\AgendaController;
 use App\Http\Controllers\Api\AdminFinanceController;
 use App\Http\Controllers\Api\AdminMedalController;
 use App\Http\Controllers\Api\AdminSellerController;
@@ -76,7 +77,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('auth')->middleware('audit.auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/register-customer', [AuthController::class, 'registerCustomer']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
@@ -96,6 +97,15 @@ Route::prefix('auth')->middleware('audit.auth')->group(function () {
 
 // Endpoint interno usado por el servicio RPA para disparar el OTP
 Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
+
+// Envío de diagnóstico RPA por correo (público, sin auth — solo requiere application_id + email)
+Route::post('/auth/send-diagnostico', [AuthController::class, 'sendDiagnostico']);
+
+// Vista previa del acuerdo comercial (público, usado en registro de vendedor)
+Route::post('/contracts/preview', [ContractController::class, 'preview']);
+
+// Endpoint interno para el RPA — genera el Word del acuerdo comercial
+Route::post('/internal/rpa/generate-contract-doc', [ContractController::class, 'generateDocument'])->middleware('auth.rpa');
 
 /*
 |--------------------------------------------------------------------------
@@ -214,6 +224,7 @@ Route::get('/blog/videos', [BlogController::class, 'videos']);
 Route::get('/blog/published-videos/{id}', [BlogController::class, 'showVideo']);
 Route::get('/blog/shorts', [BlogController::class, 'shorts']);
 Route::get('/blog/published-shorts/{id}', [BlogController::class, 'showShort']);
+Route::get('/blog/tiktok-video/{id}', [BlogController::class, 'tiktokVideo']);
 
 /*
 |--------------------------------------------------------------------------
@@ -257,7 +268,7 @@ Route::get('/plan-invoices/{invoice}/pdf', [\App\Http\Controllers\Api\NubefactCo
 | Autenticado (cualquier rol)
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     Route::prefix('payments/culqi')->group(function () {
         Route::post('/charge', [CulqiController::class, 'charge']);
@@ -286,6 +297,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/expenses/scan', [ExpenseController::class, 'scan']);
     Route::post('/expenses/scan/batch-store', [ExpenseController::class, 'scanBatchStore']);
     Route::apiResource('expenses', ExpenseController::class);
+    Route::get('/expenses/export/csv', [ExpenseController::class, 'exportCsv']);
+    Route::get('/expenses/export/pdf', [ExpenseController::class, 'exportPdf']);
 
     // ── Roles Operativos ──────────────────────────────────────────────────
     // Sólo administrators pueden crear/modificar roles
@@ -433,8 +446,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
     Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::post('/orders/{orderId}/invoice', [InvoiceController::class, 'generate']);
+
     Route::get('/customer/invoices', [InvoiceController::class, 'customerInvoices']);
     Route::get('/customer/payment-confirmations', [OrderController::class, 'customerPaymentConfirmations']);
+
+    // Nubefact
+    Route::post('/nubefact/emitir', [NubefactController::class, 'emitir']);
+    Route::get('/nubefact/comprobantes', [NubefactController::class, 'listar']);
+    Route::get('/nubefact/comprobantes/{id}', [NubefactController::class, 'mostrar']);
+    Route::get('/nubefact/kpis', [NubefactController::class, 'kpis']);
+    Route::get('/nubefact/export/csv', [NubefactController::class, 'exportCsv']);
+    Route::get('/nubefact/export/pdf', [NubefactController::class, 'exportPdf']);
 
     // Coupons
     Route::get('/coupons', [CouponController::class, 'index']);
@@ -513,14 +535,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Lirios Admin
         Route::get('/lirios/admin/accounts', [LiriosController::class, 'adminAccounts']);
         Route::put('/lirios/admin/accounts/{userId}', [LiriosController::class, 'adminUpdateBalance']);
-
-        // Nubefact / Facturación Electrónica
-        Route::prefix('nubefact')->group(function () {
-            Route::get('/comprobantes', [NubefactController::class, 'listar']);
-            Route::get('/comprobantes/{id}', [NubefactController::class, 'mostrar']);
-            Route::get('/kpis', [NubefactController::class, 'kpis']);
-            Route::post('/emitir', [NubefactController::class, 'emitir']);
-        });
 
         // Users management
         Route::get('/users', [UserController::class, 'index']);
@@ -701,11 +715,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('admin/transactions')->group(function () {
             Route::get('/', [TransactionController::class, 'index']);
             Route::get('/stats', [TransactionController::class, 'stats']);
+            Route::get('/export/csv', [TransactionController::class, 'exportCsv']);
+            Route::get('/export/pdf', [TransactionController::class, 'exportPdf']);
             Route::get('/{id}', [TransactionController::class, 'show']);
         });
-
-        // Finanzas — Admin (dashboard con KPIs)
-        Route::get('/admin/finance', [\App\Http\Controllers\Api\AdminFinanceController::class, 'index']);
 
         // Commission Tiers — Admin
         Route::get('/admin/commission-tiers', [CommissionTierController::class, 'index']);
@@ -772,6 +785,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/sessions/{id}', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'revokeSession']);
         Route::get('/activity', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'activity']);
         Route::get('/login-attempts', [\App\Http\Controllers\Api\Admin\SecurityController::class, 'loginAttempts']);
+
+        // ── Cloudflare v4 Integration ───────────────────────────────────
+        Route::prefix('cloudflare')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\Api\CloudflareController::class, 'status']);
+            Route::get('/zone', [\App\Http\Controllers\Api\CloudflareController::class, 'zone']);
+            Route::get('/analytics', [\App\Http\Controllers\Api\CloudflareController::class, 'analytics']);
+            Route::get('/security', [\App\Http\Controllers\Api\CloudflareController::class, 'securityAnalytics']);
+            Route::get('/firewall-events', [\App\Http\Controllers\Api\CloudflareController::class, 'firewallEvents']);
+            Route::get('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'dnsRecords']);
+            Route::post('/dns-records', [\App\Http\Controllers\Api\CloudflareController::class, 'createDnsRecord']);
+            Route::patch('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateDnsRecord']);
+            Route::delete('/dns-records/{recordId}', [\App\Http\Controllers\Api\CloudflareController::class, 'deleteDnsRecord']);
+            Route::post('/purge-cache', [\App\Http\Controllers\Api\CloudflareController::class, 'purgeCache']);
+            Route::get('/settings', [\App\Http\Controllers\Api\CloudflareController::class, 'zoneSettings']);
+            Route::patch('/settings/{settingName}', [\App\Http\Controllers\Api\CloudflareController::class, 'updateZoneSetting']);
+            Route::get('/waf', [\App\Http\Controllers\Api\CloudflareController::class, 'waf']);
+            Route::get('/tunnels', [\App\Http\Controllers\Api\CloudflareController::class, 'tunnels']);
+            Route::get('/rate-limits', [\App\Http\Controllers\Api\CloudflareController::class, 'rateLimits']);
+            Route::get('/ip-lists', [\App\Http\Controllers\Api\CloudflareController::class, 'ipLists']);
+        });
     });
 
     /*
@@ -819,6 +852,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Products Branch Stock (Retiro en Tienda) — no requiere contrato activo
         Route::get('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'index']);
         Route::put('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'update']);
+
+        // Productos del vendedor autenticado (usa store_id del user)
+        Route::get('/seller/products', [ProductController::class, 'myProducts']);
+
+        // Agenda del vendedor (pedidos + servicios por mes/año)
+        Route::get('/seller/agenda', [AgendaController::class, 'index']);
 
         // Rutas que requieren contrato activo para operar
         Route::middleware('auth:sanctum', 'contract.active')->group(function () {
@@ -918,18 +957,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'update']);
             Route::delete('/articles/{id}', [\App\Http\Controllers\Api\BlogArticleController::class, 'destroy']);
 
+            Route::get('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'index']);
             Route::get('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'show']);
             Route::post('/podcasts', [\App\Http\Controllers\Api\BlogPodcastController::class, 'store']);
             Route::put('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'update']);
             Route::delete('/podcasts/{id}', [\App\Http\Controllers\Api\BlogPodcastController::class, 'destroy']);
 
+            Route::get('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'index']);
             Route::get('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'show']);
             Route::post('/videos', [\App\Http\Controllers\Api\BlogVideoController::class, 'store']);
             Route::put('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'update']);
             Route::delete('/videos/{id}', [\App\Http\Controllers\Api\BlogVideoController::class, 'destroy']);
 
-            Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
+            Route::get('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'index']);
             Route::get('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'show']);
+            Route::post('/shorts', [\App\Http\Controllers\Api\BlogShortController::class, 'store']);
             Route::put('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'update']);
             Route::delete('/shorts/{id}', [\App\Http\Controllers\Api\BlogShortController::class, 'destroy']);
 
@@ -966,6 +1008,32 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'role:security_admin', 'audit.security'])->prefix('security')->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'index']);
     Route::get('dashboard/realtime', [\App\Http\Controllers\Api\Security\SecurityDashboardController::class, 'realtime']);
+
+    // IP Management CRUD
+    Route::get('ips', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'index']);
+    Route::get('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'show']);
+    Route::post('ips', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'store']);
+    Route::put('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'update']);
+    Route::delete('ips/{id}', [\App\Http\Controllers\Api\Security\BlockedIpController::class, 'destroy']);
+
+    // Alerts CRUD
+    Route::get('alerts', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'index']);
+    Route::get('alerts/{id}', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'show']);
+    Route::put('alerts/{id}/dismiss', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'dismiss']);
+    Route::put('alerts/{id}/resolve', [\App\Http\Controllers\Api\Security\SecurityAlertController::class, 'resolve']);
+
+    // Protection Rules
+    Route::get('protection', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'index']);
+    Route::get('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'show']);
+    Route::post('protection', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'store']);
+    Route::put('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'update']);
+    Route::put('protection/{id}/toggle', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'toggleStatus']);
+    Route::delete('protection/{id}', [\App\Http\Controllers\Api\Security\ProtectionRuleController::class, 'destroy']);
+
+    // Security Settings
+    Route::get('settings', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'index']);
+    Route::put('settings', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'update']);
+    Route::post('settings/reset', [\App\Http\Controllers\Api\Security\SecuritySettingsController::class, 'reset']);
 });
 
 // ── Público: Tiendas ────────────────────────────────────────────────────

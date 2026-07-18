@@ -336,6 +336,7 @@
             </div>
             <p class="commission-note">
                 Comisión calculada sobre el subtotal de productos × tasa vigente (sin envío).<br>
+                El envío no se incluye porque el vendedor lo traslada al carrier.
                 No modifica los importes fiscales del comprobante.
             </p>
             @endif

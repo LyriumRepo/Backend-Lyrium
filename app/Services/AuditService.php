@@ -8,6 +8,7 @@ use App\Events\AuditLogCreated;
 use App\Events\CriticalSecurityEvent;
 use App\Events\RepeatedFailedLoginEvent;
 use App\Models\AuditLog;
+use App\Models\SystemConfig;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -30,62 +31,79 @@ final class AuditService
         array $newValues = [],
         ?string $severity = null,
         ?bool $success = null,
-        string $source = self::SOURCE_WEB,
+        ?string $source = null,
+        ?array $metadata = null,
         ?string $correlationId = null,
-        array $metadata = [],
     ): AuditLog {
-        $this->validateEvent($event);
-
-        $resolvedSeverity = $this->resolveSeverity($event, $severity);
-        $resolvedCorrelationId = $this->resolveCorrelationId($correlationId);
-
-        /** @var Request|null $request */
-        $request = request();
-
+        $log = null;
         try {
             $log = AuditLog::create([
-                'user_id' => auth()->id(),
-                'user_email' => auth()->user()?->email,
-                'user_role' => auth()->user() !== null
-                    ? (string) (auth()->user()->getRoleNames()->first() ?? '')
-                    : null,
-                'session_id' => $this->resolveSessionId($request),
-                'correlation_id' => $resolvedCorrelationId,
+                'user_id' => $this->getUserId(),
+                'user_email' => $this->getUserEmail(),
+                'user_role' => $this->getUserRole(),
                 'event' => $event,
                 'module' => $module,
-                'severity' => $resolvedSeverity,
+                'severity' => $this->resolveSeverity($event, $severity),
                 'description' => $description,
                 'success' => $success,
-                'source' => $source,
+                'source' => $source ?? self::SOURCE_WEB,
+                'metadata' => $metadata,
+                'correlation_id' => $this->resolveCorrelationId($correlationId),
                 'auditable_type' => $auditable ? get_class($auditable) : null,
                 'auditable_id' => $auditable?->getKey(),
-                'old_values' => !empty($oldValues) ? $oldValues : null,
-                'new_values' => !empty($newValues) ? $newValues : null,
-                'metadata' => !empty($metadata) ? $metadata : null,
-                'ip_address' => $request?->ip(),
-                'user_agent' => $request?->userAgent(),
-                'request_method' => $request?->method(),
-                'request_url' => $this->resolveRequestUrl($request),
-                'response_code' => null,
+                'old_values' => $oldValues ?: null,
+                'new_values' => $newValues ?: null,
+                'ip_address' => $this->getIp(),
+                'user_agent' => $this->getUserAgent(),
                 'created_at' => now(),
             ]);
-
-            $this->dispatchEvents($log);
-
+            try {
+                $this->dispatchEvents($log);
+            } catch (\Throwable $dispatchError) {
+                Log::warning('AuditService: No se pudieron despachar eventos de auditoría', [
+                    'event' => $event,
+                    'module' => $module,
+                    'error' => $dispatchError->getMessage(),
+                ]);
+            }
             return $log;
         } catch (\Throwable $e) {
-            Log::error('AuditService: fallo al registrar evento de auditoría', [
+            Log::error('AuditService: No se pudo registrar evento de auditoría', [
                 'event' => $event,
                 'module' => $module,
-                'description' => $description,
-                'severity' => $resolvedSeverity,
-                'source' => $source,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
-
-            throw $e;
+            return $log ?? new AuditLog();
         }
+    }
+
+    private function getUserId(): ?int
+    {
+        return auth()->id();
+    }
+
+    private function getUserEmail(): ?string
+    {
+        return auth()->user()?->email;
+    }
+
+    private function getUserRole(): ?string
+    {
+        $user = auth()->user();
+        if ($user === null || !method_exists($user, 'getRoleNames')) {
+            return null;
+        }
+        return (string) $user->getRoleNames()->first();
+    }
+
+    private function getIp(): ?string
+    {
+        return request()->ip();
+    }
+
+    private function getUserAgent(): ?string
+    {
+        return request()->userAgent();
     }
 
     private function validateEvent(string $event): void
@@ -213,8 +231,13 @@ final class AuditService
 
     private function checkRepeatedFailedLogin(AuditLog $log): void
     {
-        $threshold = (int) config('audit.patterns.failed_login.threshold', 5);
-        $windowMinutes = (int) config('audit.patterns.failed_login.window_minutes', 5);
+        $enabled = SystemConfig::getByKey('autoblock_enabled', true);
+        if (! $enabled) {
+            return;
+        }
+
+        $threshold = (int) SystemConfig::getByKey('autoblock_threshold', config('audit.patterns.failed_login.threshold', 10));
+        $windowMinutes = (int) SystemConfig::getByKey('autoblock_window_minutes', config('audit.patterns.failed_login.window_minutes', 10));
 
         $ip = $log->ip_address;
 

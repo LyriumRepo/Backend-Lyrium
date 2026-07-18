@@ -53,18 +53,34 @@ final class UrlMetadataController extends Controller
 
     private function detectPlatform(string $url): string
     {
-        if (str_contains($url, 'youtube.com') || str_contains($url, 'youtu.be')) return 'youtube';
-        if (str_contains($url, 'spotify.com')) return 'spotify';
-        if (str_contains($url, 'tiktok.com')) return 'tiktok';
-        if (str_contains($url, 'vimeo.com')) return 'vimeo';
-        if (str_contains($url, 'apple.com')) return 'apple_podcasts';
+        if (str_contains($url, 'youtube.com') || str_contains($url, 'youtu.be')) {
+            return 'youtube';
+        }
+        if (str_contains($url, 'spotify.com')) {
+            return 'spotify';
+        }
+        if (str_contains($url, 'tiktok.com')) {
+            return 'tiktok';
+        }
+        if (str_contains($url, 'vimeo.com')) {
+            return 'vimeo';
+        }
+        if (str_contains($url, 'apple.com')) {
+            return 'apple_podcasts';
+        }
+
         return 'other';
     }
 
     private function detectType(string $url): string
     {
-        if (str_contains($url, 'youtube.com/shorts') || str_contains($url, 'tiktok.com')) return 'video';
-        if (str_contains($url, 'spotify.com') || str_contains($url, 'apple.com')) return 'audio';
+        if (str_contains($url, 'youtube.com/shorts') || str_contains($url, 'tiktok.com')) {
+            return 'video';
+        }
+        if (str_contains($url, 'spotify.com') || str_contains($url, 'apple.com')) {
+            return 'audio';
+        }
+
         return 'video';
     }
 
@@ -73,17 +89,24 @@ final class UrlMetadataController extends Controller
         $platform = $this->detectPlatform($url);
 
         $endpoints = [
-            'youtube' => 'https://www.youtube.com/oembed?url=' . urlencode($url) . '&format=json',
-            'spotify' => 'https://open.spotify.com/oembed?url=' . urlencode($url) . '&format=json',
-            'vimeo' => 'https://vimeo.com/api/oembed.json?url=' . urlencode($url),
-            'tiktok' => 'https://www.tiktok.com/oembed?url=' . urlencode($url),
+            'youtube' => 'https://www.youtube.com/oembed?url='.urlencode($url).'&format=json',
+            'spotify' => 'https://open.spotify.com/oembed?url='.urlencode($url).'&format=json',
+            'vimeo' => 'https://vimeo.com/api/oembed.json?url='.urlencode($url),
+            'tiktok' => 'https://www.tiktok.com/oembed?url='.urlencode($url),
         ];
 
         $endpoint = $endpoints[$platform] ?? null;
-        if ($endpoint === null) return null;
+        if ($endpoint === null) {
+            return null;
+        }
 
         try {
-            $response = Http::timeout(5)->get($endpoint);
+            $headers = [];
+            if ($platform === 'tiktok') {
+                $headers['Referer'] = 'https://www.tiktok.com/';
+            }
+
+            $response = Http::timeout(5)->withHeaders($headers)->get($endpoint);
             if ($response->successful()) {
                 return $response->json();
             }
@@ -98,7 +121,9 @@ final class UrlMetadataController extends Controller
     {
         try {
             $response = Http::timeout(5)->get($url);
-            if (!$response->successful()) return [];
+            if (! $response->successful()) {
+                return [];
+            }
 
             $html = $response->body();
             $og = [];

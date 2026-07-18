@@ -68,7 +68,7 @@ final class AdminVendedorController extends Controller
             ->get();
 
         $planRequests = $store->planRequests()
-            ->with(['plan:id,name,monthly_fee', 'reviewer:id,name'])
+            ->with(['plan:id,name,monthly_fee', 'currentPlan:id,name', 'reviewer:id,name'])
             ->orderBy('created_at', 'desc')
             ->limit(20)
             ->get();
@@ -87,6 +87,7 @@ final class AdminVendedorController extends Controller
                 'plan_requests' => $planRequests->map(fn ($r) => [
                     'id' => $r->id,
                     'plan_name' => $r->plan->name,
+                    'current_plan_name' => $r->currentPlan?->name,
                     'status' => $r->status,
                     'payment_method' => $r->payment_method,
                     'payment_status' => $r->payment_status,

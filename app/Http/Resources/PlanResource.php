@@ -28,14 +28,16 @@ final class PlanResource extends JsonResource
             'requires_payment' => $this->requires_payment,
             'css_color' => $this->css_color,
             'accent_color' => $this->accent_color,
+            'timeline_icon' => $this->timeline_icon,
+            'bg_image' => $this->bg_image,
+            'bg_image_fit' => $this->bg_image_fit,
+            'bg_image_position' => $this->bg_image_position,
+            'show_bg_in_card' => $this->show_bg_in_card,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
 
         if ($isAdmin) {
-            $data['timeline_icon'] = $this->timeline_icon;
-            $data['css_color'] = $this->css_color;
-            $data['accent_color'] = $this->accent_color;
             $data['enable_claim_lock'] = $this->enable_claim_lock;
             $data['claim_months'] = $this->claim_months;
             $data['subscribe_button_text'] = $this->subscribe_button_text;
