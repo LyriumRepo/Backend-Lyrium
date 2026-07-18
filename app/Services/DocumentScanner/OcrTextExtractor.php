@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 
 final class OcrTextExtractor implements ExtractsText
 {
-    private const float DEFAULT_DPI = 300.0;
+    private const DEFAULT_DPI = 300.0;
 
     public function __construct(
         private string $tesseractBin = 'tesseract',

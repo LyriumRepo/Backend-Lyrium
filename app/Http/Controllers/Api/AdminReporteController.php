@@ -228,7 +228,7 @@ final class AdminReporteController extends Controller
                     'status' => $p->status,
                     'sold_qty' => (int) $soldQty,
                     'reviews_count' => $p->reviews_count,
-                    'rating' => round($p->reviews()->avg('rating') ?? 0, 1),
+                    'rating' => round((float) ($p->reviews()->avg('rating') ?? 0), 1),
                 ];
             })->sortByDesc('sold_qty')->values();
 
