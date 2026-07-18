@@ -332,8 +332,8 @@ return [
     */
     'patterns' => [
         'failed_login' => [
-            'threshold' => 5,
-            'window_minutes' => 5,
+            'threshold' => 10,
+            'window_minutes' => 10,
         ],
     ],
 
