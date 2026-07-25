@@ -15,6 +15,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Laravel\Sanctum\PersonalAccessToken;
 
 final class SecurityController extends Controller
 {
@@ -106,6 +107,11 @@ final class SecurityController extends Controller
     public function revokeSession(string $id): JsonResponse
     {
         $session = AdminSession::findOrFail($id);
+
+        if ($session->token_id) {
+            PersonalAccessToken::where('id', $session->token_id)->delete();
+        }
+
         $session->delete();
 
         SecurityEvent::create([
@@ -116,6 +122,7 @@ final class SecurityController extends Controller
             'metadata' => [
                 'revoked_session_id' => $id,
                 'revoked_user_id' => $session->user_id,
+                'revoked_token_id' => $session->token_id,
             ],
         ]);
 

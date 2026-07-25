@@ -17,14 +17,17 @@ final class TrackAdminSession
 
         if ($user) {
             $now = now()->timestamp;
+            $token = $user->currentAccessToken();
 
             DB::table('sessions')->updateOrInsert(
                 ['user_id' => $user->id],
                 [
                     'id' => (string) Str::uuid(),
                     'user_id' => $user->id,
+                    'token_id' => $token?->id,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
+                    'country' => $request->header('CF-IPCountry'),
                     'last_activity' => $now,
                     'payload' => '[]',
                 ]
