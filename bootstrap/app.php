@@ -52,6 +52,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'protection.rule' => ProtectionRuleMiddleware::class,
             'user.notbanned' => EnsureUserNotBanned::class,
         ]);
+
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->reportable(function (Throwable $e): void {

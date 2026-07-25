@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Events\SessionRevoked;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AdminSessionResource;
 use App\Http\Resources\Admin\LoginAttemptResource;
@@ -107,6 +108,8 @@ final class SecurityController extends Controller
     public function revokeSession(string $id): JsonResponse
     {
         $session = AdminSession::findOrFail($id);
+
+        SessionRevoked::dispatch($session->user_id);
 
         if ($session->token_id) {
             PersonalAccessToken::where('id', $session->token_id)->delete();
