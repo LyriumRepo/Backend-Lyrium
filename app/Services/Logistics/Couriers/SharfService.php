@@ -59,20 +59,15 @@ class SharfService
 
     private function resolveDistritos(string $orig, string $dest): array
     {
-        $responses = Http::pool(fn($pool) => [
-            $pool->as('orig')->timeout(8)->get(
+        try {
+            $oResp = Http::timeout(8)->get(
                 self::API . '/api/v1/feed/getDistrictsbyName/' . rawurlencode($this->norm($orig)),
-            ),
-            $pool->as('dest')->timeout(8)->get(
+            );
+            $dResp = Http::timeout(8)->get(
                 self::API . '/api/v1/feed/getDistrictsbyName/' . rawurlencode($this->norm($dest)),
-            ),
-        ]);
-
-        $oResp = $responses['orig'];
-        $dResp = $responses['dest'];
-
-        if ($oResp instanceof \Throwable || $dResp instanceof \Throwable) {
-            Log::warning('[Sharf] resolveDistritos: error de red en pool');
+            );
+        } catch (\Throwable $e) {
+            Log::warning("[Sharf] resolveDistritos: error de red: {$e->getMessage()}");
             return [null, null];
         }
 
