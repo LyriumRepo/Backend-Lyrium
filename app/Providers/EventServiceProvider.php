@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Events\AuditLogCreated;
+use App\Events\BookingReceiptValidated;
 use App\Events\CriticalSecurityEvent;
 use App\Events\NewOrderReceived;
 use App\Events\OrderPaymentConfirmed;
+use App\Events\OrderReceiptValidated;
 use App\Events\OrderStatusChanged;
 use App\Events\RepeatedFailedLoginEvent;
 use App\Listeners\AccrueLiriosForOrder;
+use App\Listeners\AccrueLiriosForReceiptValidation;
 use App\Listeners\AutoBlockIpListener;
 use App\Listeners\BroadcastNotificationCreated;
 use App\Listeners\GenerateInvoicesForOrder;
@@ -41,6 +44,12 @@ final class EventServiceProvider extends ServiceProvider
         ],
         OrderStatusChanged::class => [
             SendOrderTrackingEmailListener::class,
+        ],
+        OrderReceiptValidated::class => [
+            [AccrueLiriosForReceiptValidation::class, 'handleOrder'],
+        ],
+        BookingReceiptValidated::class => [
+            [AccrueLiriosForReceiptValidation::class, 'handleBooking'],
         ],
         NotificationSent::class => [
             BroadcastNotificationCreated::class,

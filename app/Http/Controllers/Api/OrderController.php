@@ -202,6 +202,22 @@ final class OrderController extends Controller
                 ->get();
         }
 
+        // El cliente puede desmarcar ítems en el checkout para comprar solo una parte
+        // del carrito — si mandó esa selección, filtramos aquí; lo no seleccionado se
+        // queda en el carrito/como hold activo, no se descarta.
+        // Ojo: se usa array_key_exists (no empty()) porque un array vacío es una selección
+        // válida — "el cliente deseleccionó todos los productos" — y debe filtrar a nada,
+        // no ser tratado como "no mandó selección".
+        if ($cart && array_key_exists('selected_product_ids', $data)) {
+            $cart->setRelation(
+                'items',
+                $cart->items->whereIn('product_id', $data['selected_product_ids'])->values(),
+            );
+        }
+        if (array_key_exists('selected_service_hold_ids', $data)) {
+            $serviceHolds = $serviceHolds->whereIn('id', $data['selected_service_hold_ids'])->values();
+        }
+
         $hasProducts = $cart && $cart->items->isNotEmpty();
         $hasServices = $serviceHolds->isNotEmpty();
 
@@ -356,7 +372,9 @@ final class OrderController extends Controller
                     'user_id'         => $user->id,
                     'schedule_id'     => $hold->schedule_id,
                     'appointment_date'=> $hold->appointment_date,
-                    'status'          => ServiceBooking::STATUS_CONFIRMED,
+                    // Pendiente hasta que el vendedor la valide (PUT /bookings/{id}/confirm) —
+                    // antes se creaba ya "confirmed", lo que dejaba ese paso del vendedor inalcanzable.
+                    'status'          => ServiceBooking::STATUS_PENDING,
                     'total_price'     => $price,
                     'payment_method'  => $data['payment_method'] ?? null,
                     'payment_status'  => 'pending',
@@ -900,6 +918,58 @@ final class OrderController extends Controller
         );
 
         return $this->success(new OrderResource($order));
+    }
+
+    /**
+     * El cliente valida la recepción de su pedido (capa aditiva:
+     * no modifica el status, solo customer_validated_at + validation_source).
+     */
+    public function validateReceipt(
+        Request $request,
+        string $id,
+        \App\Services\ReceiptValidationService $receiptValidationService,
+    ): JsonResponse {
+        $user = $request->user();
+
+        $order = Order::findOrFail($id);
+
+        if ($order->user_id !== $user->id) {
+            return $this->forbidden('Este pedido no te pertenece.');
+        }
+
+        if ($order->status !== Order::STATUS_DELIVERED) {
+            return $this->error('Solo puedes validar pedidos que ya fueron entregados.', 400);
+        }
+
+        $result = $receiptValidationService->validateOrder(
+            $order,
+            \App\Services\ReceiptValidationService::SOURCE_MANUAL,
+        );
+
+        if (! $result['validated']) {
+            $message = $result['validation_source'] === \App\Services\ReceiptValidationService::SOURCE_AUTO_EXPIRED
+                ? 'Este pedido ya fue cerrado automáticamente por inacción.'
+                : 'Este pedido ya fue validado anteriormente.';
+
+            return $this->error($message, 409);
+        }
+
+        $this->auditService->record(
+            event: 'orders.receipt.validated',
+            module: 'orders',
+            description: "Cliente validó la recepción del pedido #{$order->order_number}",
+            auditable: $order,
+            newValues: ['validation_source' => $result['validation_source']],
+            source: AuditService::SOURCE_WEB,
+            correlationId: (string) $order->id,
+        );
+
+        $order->load(self::WITH_RELATIONS);
+
+        return $this->success([
+            'order' => new OrderResource($order),
+            'lirios_bonus' => \App\Services\LiriosService::VALIDATION_BONUS_LIRIOS,
+        ]);
     }
 
     public function requestReceipt(Request $request, string $id): JsonResponse

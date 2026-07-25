@@ -44,6 +44,9 @@ final class ServiceBooking extends Model
         'google_event_id_seller',
         'confirmed_at',
         'cancelled_at',
+        'completed_at',
+        'customer_validated_at',
+        'validation_source',
     ];
 
     protected function casts(): array
@@ -53,9 +56,26 @@ final class ServiceBooking extends Model
             'total_price' => 'decimal:2',
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'completed_at' => 'datetime',
+            'customer_validated_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Registrar el momento exacto en que la reserva llega a "completed",
+        // sin importar por qué vía se actualizó el status.
+        static::updating(function (ServiceBooking $booking) {
+            if (
+                $booking->isDirty('status')
+                && $booking->status === self::STATUS_COMPLETED
+                && $booking->completed_at === null
+            ) {
+                $booking->completed_at = now();
+            }
+        });
     }
 
     public function service(): BelongsTo
@@ -136,6 +156,17 @@ final class ServiceBooking extends Model
     public function canComplete(): bool
     {
         return $this->status === self::STATUS_CONFIRMED || $this->status === self::STATUS_ON_THE_WAY;
+    }
+
+    public function canBeCustomerValidated(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED
+            && $this->customer_validated_at === null;
+    }
+
+    public function isCustomerValidated(): bool
+    {
+        return $this->customer_validated_at !== null;
     }
 
     public function markAsOnTheWay(): void

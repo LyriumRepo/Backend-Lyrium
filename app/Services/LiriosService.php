@@ -21,6 +21,9 @@ final class LiriosService
     /** Tope absoluto del porcentaje de descuento por Lirios, sin importar la config. de la tienda. */
     private const MAX_LIRIOS_PERCENT = 3.00;
 
+    /** Bono fijo por validar la recepción de un pedido o servicio. */
+    public const VALIDATION_BONUS_LIRIOS = 50;
+
     public function getOrCreateAccount(int $userId): LiriosAccount
     {
         return LiriosAccount::firstOrCreate(
@@ -117,6 +120,38 @@ final class LiriosService
                 'reference_type' => 'order',
                 'reference_id' => $order->id,
                 'description' => "Compra en orden #{$order->order_number}",
+            ]);
+        });
+    }
+
+    /**
+     * Acredita el bono fijo por validar la recepción de un pedido o servicio.
+     *
+     * Misma estructura transaccional que accrue(), pero con monto fijo y
+     * type='validation_bonus' para distinguirlo en el historial.
+     */
+    public function creditValidationBonus(
+        int $userId,
+        string $referenceType,
+        int $referenceId,
+        string $description,
+    ): LiriosTransaction {
+        $account = $this->getOrCreateAccount($userId);
+        $points = self::VALIDATION_BONUS_LIRIOS;
+        $balanceBefore = $account->balance;
+
+        return DB::transaction(function () use ($account, $userId, $points, $referenceType, $referenceId, $description, $balanceBefore) {
+            $account->increment('balance', $points);
+
+            return LiriosTransaction::create([
+                'user_id' => $userId,
+                'type' => 'validation_bonus',
+                'amount' => $points,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceBefore + $points,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'description' => $description,
             ]);
         });
     }

@@ -38,6 +38,9 @@ Schedule::command('birthday:advance')->dailyAt('08:00')->name('birthday-advance-
 // Recordatorios del panel de cliente: días 7, 30 y 90 tras la primera compra
 Schedule::command('customers:panel-reminders')->dailyAt('09:00')->name('customer-panel-reminders');
 
+// Recordatorio mensual a clientes con el perfil incompleto (no se envía si ya lo completaron)
+Schedule::command('customers:profile-reminders')->monthlyOn(1, '09:30')->name('customer-profile-reminders');
+
 // Renovación automática de planes vencidos hoy con auto_renew activado
 // (corre antes del recordatorio de las 09:00 para no avisar dos veces si ya se renovó solo)
 Schedule::command('app:process-plan-auto-renewals')->dailyAt('07:00')->name('process-plan-auto-renewals')->withoutOverlapping();
@@ -59,3 +62,6 @@ Schedule::command('audit:purge --months=36')->cron('0 4 1 1,4,7,10 *')->name('au
 
 // Actualizar resúmenes diarios de auditoría cada hora
 Schedule::command('audit:summarize')->hourly()->name('audit-summarize')->withoutOverlapping();
+
+// Cierre automático de pedidos/reservas entregados sin validación del cliente (sin bono de Lirios)
+Schedule::command('receipts:expire-unvalidated')->dailyAt('04:30')->name('expire-unvalidated-receipts')->withoutOverlapping();

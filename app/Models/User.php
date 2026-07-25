@@ -37,6 +37,7 @@ class User extends Authenticatable
         'email_verified_at',
         'google_id',
         'panel_visited_at',
+        'last_profile_reminder_sent_at',
     ];
 
     protected $hidden = [
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'is_banned' => 'boolean',
             'password' => 'hashed',
             'panel_visited_at' => 'datetime',
+            'last_profile_reminder_sent_at' => 'datetime',
         ];
     }
 

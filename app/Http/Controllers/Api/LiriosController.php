@@ -52,8 +52,15 @@ final class LiriosController extends Controller
         $user = $request->user();
         $balance = $this->liriosService->getBalance($user->id);
 
+        $totals = \App\Models\LiriosTransaction::where('user_id', $user->id)
+            ->selectRaw("type, SUM(amount) as total")
+            ->groupBy('type')
+            ->pluck('total', 'type');
+
         return $this->success([
             'balance' => $balance,
+            'total_earned' => (int) ($totals['accrue'] ?? 0),
+            'total_redeemed' => (int) ($totals['redeem'] ?? 0),
         ]);
     }
 

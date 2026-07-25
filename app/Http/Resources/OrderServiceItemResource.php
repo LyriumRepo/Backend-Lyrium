@@ -31,6 +31,7 @@ final class OrderServiceItemResource extends JsonResource
             'durationMinutes' => $this->duration_minutes,
             'serviceBookingId' => $this->service_booking_id,
             'bookingStatus' => $this->whenLoaded('serviceBooking', fn () => $this->serviceBooking->status, null),
+            'customerValidatedAt' => $this->whenLoaded('serviceBooking', fn () => $this->serviceBooking->customer_validated_at?->toIso8601String(), null),
             'createdAt' => $this->created_at?->toIso8601String(),
             'updatedAt' => $this->updated_at?->toIso8601String(),
         ];

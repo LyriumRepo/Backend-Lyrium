@@ -34,7 +34,7 @@ final class SpatieTextExtractor implements ExtractsText
 
     private function extractViaSpatie(string $filePath, ?string $password = null): ?string
     {
-        $options = ['-layout'];
+        $options = ['-layout', '-enc UTF-8'];
 
         if ($password !== null && $password !== '') {
             $options[] = "-upw {$password}";
@@ -68,6 +68,8 @@ final class SpatieTextExtractor implements ExtractsText
         $parts = [
             escapeshellcmd($bin),
             '-layout',
+            '-enc',
+            'UTF-8',
         ];
 
         if ($password !== null && $password !== '') {
@@ -111,6 +113,8 @@ final class SpatieTextExtractor implements ExtractsText
         $parts = [
             escapeshellcmd($bin),
             '-layout',
+            '-enc',
+            'UTF-8',
         ];
 
         if ($password !== null && $password !== '') {

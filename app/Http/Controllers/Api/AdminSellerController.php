@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\OrderItem;
 use App\Models\Store;
 use App\Models\Subscription;
 use App\Models\User;
@@ -177,11 +178,14 @@ final class AdminSellerController extends Controller
                     'store_name' => $store->store_name,
                     'slug' => $store->slug,
                     'logo' => $store->logo,
-                    'status' => $store->status,           // pending | active | suspended
-                    'profile_status' => $store->profile_status,   // approved | pending | rejected
+                    'status' => $store->status,
+                    'profile_status' => $store->profile_status,
                     'strikes' => $store->strikes,
-                    'rating' => $store->rating,
-                    'total_sales' => $store->total_sales,
+                    'rating' => $store->average_rating,
+                    'review_count' => $store->review_count,
+                    'total_sales' => OrderItem::where('store_id', $store->id)
+                        ->whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled']))
+                        ->count(),
                     'approved_at' => $store->approved_at?->toIso8601String(),
                     'has_active_contract' => $store->contracts->isNotEmpty(),
                 ] : null,
@@ -230,9 +234,21 @@ final class AdminSellerController extends Controller
                 ->count()
             : 0;
 
+        $totalSales = $store
+            ? OrderItem::where('store_id', $store->id)
+                ->whereHas('order', fn ($q) => $q->whereNotIn('status', ['cancelled']))
+                ->count()
+            : 0;
+
+        $storeData = $store ? array_merge($store->toArray(), [
+            'rating' => $store->average_rating,
+            'review_count' => $store->review_count,
+            'total_sales' => $totalSales,
+        ]) : null;
+
         return response()->json([
             'user' => new UserResource($user),
-            'store' => $store,
+            'store' => $storeData,
             'open_disputes' => $openDisputes,
             'pending_payments' => $pendingPayments,
         ]);

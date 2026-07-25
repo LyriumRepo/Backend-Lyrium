@@ -5,23 +5,24 @@
     <title>Reporte Financiero - Lyrium</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DejaVu Sans', sans-serif; background: #fff; color: #1c2b24; font-size: 9px; padding: 20px; }
-        h2 { text-align: center; font-size: 16px; margin-bottom: 4px; color: #1a3a2e; }
-        .subtitle { text-align: center; font-size: 8px; color: #5a7266; margin-bottom: 16px; }
+        body { font-family: 'DejaVu Sans', sans-serif; background: #0c2316; color: #d7ebcd; font-size: 9px; padding: 20px; }
+        h2 { text-align: center; font-size: 16px; margin-bottom: 4px; color: #a3e635; }
+        .subtitle { text-align: center; font-size: 8px; color: #6b8f71; margin-bottom: 16px; }
         .summary { margin-bottom: 20px; }
-        .summary-row { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e8f5ee; font-size: 10px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #265a37; font-size: 10px; }
         .summary-row:last-child { border-bottom: none; }
-        .summary-row .label { color: #5a7266; }
-        .summary-row .value { font-weight: bold; color: #1c2b24; }
-        .summary-row.total { border-top: 2px solid #1a3a2e; margin-top: 4px; padding-top: 8px; font-size: 12px; background: #f0f9f4; }
-        .summary-row.total .value { color: #1a3a2e; }
+        .summary-row .label { color: #6b8f71; }
+        .summary-row .value { font-weight: bold; color: #d7ebcd; }
+        .summary-row.total { border-top: 2px solid #a3e635; margin-top: 4px; padding-top: 8px; font-size: 12px; background: #143420; }
+        .summary-row.total .value { color: #a3e635; }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th { background: #e8f5ee; padding: 6px 4px; text-align: left; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #2e6b50; font-weight: bold; }
-        td { padding: 5px 4px; border-bottom: 1px solid #e8f5ee; color: #1c2b24; font-size: 8px; }
+        th { background: #123c26; padding: 6px 4px; text-align: left; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #a3e635; font-weight: bold; }
+        td { padding: 5px 4px; border-bottom: 1px solid #265a37; color: #d7ebcd; font-size: 8px; }
+        tr:nth-child(even) td { background: #143420; }
         .right { text-align: right; }
-        .section-title { font-size: 11px; font-weight: bold; color: #1a3a2e; margin-top: 20px; margin-bottom: 8px; }
-        .negative { color: #c0392b; }
-        .positive { color: #27ae60; }
+        .section-title { font-size: 11px; font-weight: bold; color: #a3e635; margin-top: 20px; margin-bottom: 8px; }
+        .negative { color: #f87171; }
+        .positive { color: #4ade80; }
     </style>
 </head>
 <body>
@@ -77,7 +78,7 @@
                 <td>{{ $order->payment_status }}</td>
             </tr>
             @empty
-            <tr><td colspan="5" style="text-align:center;color:#999;">Sin ordenes</td></tr>
+            <tr><td colspan="5" style="text-align:center;color:#6b8f71;">Sin ordenes</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -101,7 +102,7 @@
                 <td>{{ $expense->status }}</td>
             </tr>
             @empty
-            <tr><td colspan="4" style="text-align:center;color:#999;">Sin gastos</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:#6b8f71;">Sin gastos</td></tr>
             @endforelse
         </tbody>
     </table>

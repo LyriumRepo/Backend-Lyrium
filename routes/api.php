@@ -101,6 +101,12 @@ Route::post('/internal/trigger-otp', [AuthController::class, 'triggerOtp']);
 // Envío de diagnóstico RPA por correo (público, sin auth — solo requiere application_id + email)
 Route::post('/auth/send-diagnostico', [AuthController::class, 'sendDiagnostico']);
 
+// Validación en tiempo real del RUC durante el registro de vendedor (público)
+Route::get('/sellers/check-ruc', [AuthController::class, 'checkRuc']);
+
+// Términos y Condiciones Generales para Sellers (público, estático)
+Route::get('/contracts/terms', [ContractController::class, 'terms']);
+
 // Vista previa del acuerdo comercial (público, usado en registro de vendedor)
 Route::post('/contracts/preview', [ContractController::class, 'preview']);
 
@@ -432,6 +438,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::get('/orders/{id}/receipt', [OrderController::class, 'downloadReceipt']);
     Route::get('/orders/{id}/payment-confirmation', [OrderController::class, 'downloadPaymentConfirmation']);
     Route::post('/orders/{id}/request-receipt', [OrderController::class, 'requestReceipt']);
+    Route::post('/orders/{id}/validate-receipt', [OrderController::class, 'validateReceipt']);
     Route::put('/orders/{orderId}/items/{itemId}/confirm', [OrderController::class, 'confirmItem']);
     Route::put('/orders/{orderId}/items/{itemId}/status', [OrderController::class, 'updateItemStatus']);
     Route::post('/orders/{id}/resend-notification', [OrderController::class, 'resendNotification']);
@@ -512,6 +519,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
     Route::put('/bookings/{id}/cancel', [ServiceController::class, 'cancelBooking']);
     Route::post('/bookings/{id}/reschedule', [ServiceController::class, 'reschedule']);
     Route::post('/bookings/{id}/rate', [ServiceController::class, 'rateBooking']);
+    Route::post('/bookings/{id}/validate-receipt', [ServiceController::class, 'validateReceipt']);
 
     // Izipay Payment
     Route::prefix('payments/izipay')->group(function () {
@@ -775,6 +783,18 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
     /*
     |----------------------------------------------------------------------
+    | Admin BioForo Approval
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:administrator')->prefix('admin/bioforo')->group(function () {
+        Route::get('/pending', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'pending']);
+        Route::get('/stats', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'stats']);
+        Route::post('/{id}/approve', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'approve']);
+        Route::post('/{id}/reject', [\App\Http\Controllers\Api\Admin\BioForoApprovalController::class, 'reject']);
+    });
+
+    /*
+    |----------------------------------------------------------------------
     | Security Admin (administrator + security_admin)
     |----------------------------------------------------------------------
     */
@@ -852,6 +872,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         // Products Branch Stock (Retiro en Tienda) — no requiere contrato activo
         Route::get('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'index']);
         Route::put('/products/{id}/branches', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'update']);
+        Route::get('/seller/products/branch-stock', [\App\Http\Controllers\Api\ProductBranchStockController::class, 'sellerBranchStock']);
 
         // Productos del vendedor autenticado (usa store_id del user)
         Route::get('/seller/products', [ProductController::class, 'myProducts']);
@@ -987,6 +1008,9 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
             Route::post('/topics', [\App\Http\Controllers\Api\ForumTopicController::class, 'store']);
             Route::put('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'update']);
             Route::delete('/topics/{id}', [\App\Http\Controllers\Api\ForumTopicController::class, 'destroy']);
+            Route::post('/topics/{id}/submit-review', [\App\Http\Controllers\Api\ForumTopicController::class, 'submitForReview']);
+            Route::post('/topics/{id}/publish', [\App\Http\Controllers\Api\ForumTopicController::class, 'publish']);
+            Route::post('/topics/{id}/hide', [\App\Http\Controllers\Api\ForumTopicController::class, 'hide']);
 
             Route::get('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'replies']);
             Route::post('/topics/{topicId}/replies', [\App\Http\Controllers\Api\ForumTopicController::class, 'storeReply']);

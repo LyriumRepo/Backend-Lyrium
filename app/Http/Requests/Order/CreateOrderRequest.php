@@ -34,6 +34,13 @@ final class CreateOrderRequest extends FormRequest
             'store_shipping' => ['nullable', 'array'],
             'store_shipping.*.store_id' => ['required', 'integer', 'exists:stores,id'],
             'store_shipping.*.shipping_cost' => ['required', 'numeric', 'min:0'],
+            // IDs de los ítems que el cliente dejó marcados en el checkout — si se envían,
+            // solo esos productos/reservas de servicio pasan a la orden; el resto permanece
+            // en el carrito. Si se omiten, se incluye todo (compatibilidad hacia atrás).
+            'selected_product_ids' => ['sometimes', 'array'],
+            'selected_product_ids.*' => ['integer'],
+            'selected_service_hold_ids' => ['sometimes', 'array'],
+            'selected_service_hold_ids.*' => ['integer'],
         ];
     }
 

@@ -195,64 +195,7 @@ final class OrderPaymentService
             return;
         }
 
-        $customItems = [];
-        foreach ($storeItems as $item) {
-            $lineTotal = (float) $item->line_total; // CON IGV
-            $qty = max((int) ($item->quantity ?? 1), 1);
-            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
-            $unitPrice = round($lineNetTotal / $qty, 2);
-            $igv = round($lineNetTotal * self::IGV_RATE, 2);
-            $itemTotal = $lineTotal; // precio con IGV = base + igv
-
-            $customItems[] = [
-                'unidad_de_medida' => 'NIU',
-                'descripcion' => $item->product_name,
-                'cantidad' => (string) $qty,
-                'valor_unitario' => $unitPrice,
-                'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
-                'subtotal' => $lineNetTotal,
-                'tipo_de_igv' => '1',
-                'igv' => $igv,
-                'total' => $itemTotal,
-            ];
-        }
-
-        foreach ($storeServiceItems as $item) {
-            $lineTotal = (float) $item->line_total; // CON IGV
-            $qty = max((int) ($item->quantity ?? 1), 1);
-            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
-            $unitPrice = round($lineNetTotal / $qty, 2);
-            $igv = round($lineNetTotal * self::IGV_RATE, 2);
-            $itemTotal = $lineTotal; // precio con IGV = base + igv
-
-            $customItems[] = [
-                'unidad_de_medida' => 'ZZ',
-                'descripcion' => $item->service_name,
-                'cantidad' => (string) $qty,
-                'valor_unitario' => $unitPrice,
-                'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
-                'subtotal' => $lineNetTotal,
-                'tipo_de_igv' => '1',
-                'igv' => $igv,
-                'total' => $itemTotal,
-            ];
-        }
-
-        if ($shippingCost > 0) {
-            $shippingBase = round($shippingCost / (1 + self::IGV_RATE), 2);
-            $shippingIgv  = round($shippingBase * self::IGV_RATE, 2);
-            $customItems[] = [
-                'unidad_de_medida' => 'ZZ',
-                'descripcion'      => 'Servicio de envío',
-                'cantidad'         => '1',
-                'valor_unitario'   => $shippingBase,
-                'precio_unitario'  => $shippingCost,
-                'subtotal'         => $shippingBase,
-                'tipo_de_igv'      => '1',
-                'igv'              => $shippingIgv,
-                'total'            => $shippingCost,
-            ];
-        }
+        $customItems = $this->buildCustomItemsForStore($storeItems, $storeServiceItems, $shippingCost);
 
         $maxAttempts = 10;
         $lastException = null;
@@ -314,6 +257,7 @@ final class OrderPaymentService
             $isInfraError = in_array($lastException->getNubefactCode(), [
                 NubefactException::CONFIG_ERROR,
                 NubefactException::CONNECTION_ERROR,
+                NubefactException::DEMO_LIMIT_EXCEEDED,
             ]);
 
             $failStatus = $isInfraError
@@ -440,5 +384,181 @@ final class OrderPaymentService
         // (ver Invoice::resolveNextNumber). $store se conserva en la firma
         // para no tocar el call site, aunque ya no participa en el cálculo.
         return Invoice::resolveNextNumber($series);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildCustomItemsForStore(iterable $storeItems, iterable $storeServiceItems, float $shippingCost): array
+    {
+        $customItems = [];
+
+        foreach ($storeItems as $item) {
+            $lineTotal = (float) $item->line_total; // CON IGV
+            $qty = max((int) ($item->quantity ?? 1), 1);
+            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
+            $unitPrice = round($lineNetTotal / $qty, 2);
+            $igv = round($lineNetTotal * self::IGV_RATE, 2);
+            $itemTotal = $lineTotal; // precio con IGV = base + igv
+
+            $customItems[] = [
+                'unidad_de_medida' => 'NIU',
+                'descripcion' => $item->product_name,
+                'cantidad' => (string) $qty,
+                'valor_unitario' => $unitPrice,
+                'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
+                'subtotal' => $lineNetTotal,
+                'tipo_de_igv' => '1',
+                'igv' => $igv,
+                'total' => $itemTotal,
+            ];
+        }
+
+        foreach ($storeServiceItems as $item) {
+            $lineTotal = (float) $item->line_total; // CON IGV
+            $qty = max((int) ($item->quantity ?? 1), 1);
+            $lineNetTotal = round($lineTotal / (1 + self::IGV_RATE), 2);
+            $unitPrice = round($lineNetTotal / $qty, 2);
+            $igv = round($lineNetTotal * self::IGV_RATE, 2);
+            $itemTotal = $lineTotal; // precio con IGV = base + igv
+
+            $customItems[] = [
+                'unidad_de_medida' => 'ZZ',
+                'descripcion' => $item->service_name,
+                'cantidad' => (string) $qty,
+                'valor_unitario' => $unitPrice,
+                'precio_unitario' => round($unitPrice * (1 + self::IGV_RATE), 2),
+                'subtotal' => $lineNetTotal,
+                'tipo_de_igv' => '1',
+                'igv' => $igv,
+                'total' => $itemTotal,
+            ];
+        }
+
+        if ($shippingCost > 0) {
+            $shippingBase = round($shippingCost / (1 + self::IGV_RATE), 2);
+            $shippingIgv  = round($shippingBase * self::IGV_RATE, 2);
+            $customItems[] = [
+                'unidad_de_medida' => 'ZZ',
+                'descripcion'      => 'Servicio de envío',
+                'cantidad'         => '1',
+                'valor_unitario'   => $shippingBase,
+                'precio_unitario'  => $shippingCost,
+                'subtotal'         => $shippingBase,
+                'tipo_de_igv'      => '1',
+                'igv'              => $shippingIgv,
+                'total'            => $shippingCost,
+            ];
+        }
+
+        return $customItems;
+    }
+
+    /**
+     * Reintenta manualmente una factura que quedó en DRAFT/REJECTED (p. ej. por el
+     * límite de cuenta DEMO de NubeFact). Reconstruye los ítems desde la orden viva,
+     * scoped a la tienda de la factura, usando los mismos totales ya persistidos en
+     * el invoice (subtotal_sin_igv, igv_amount, total) para que el envío coincida
+     * exactamente con lo que se había calculado la primera vez.
+     *
+     * Nunca reintenta facturas ya ACCEPTED/SENT_WAIT_CDR/OBSERVED — solo DRAFT/REJECTED,
+     * para no volver a emitir un comprobante que SUNAT ya procesó.
+     */
+    public function retryFailedInvoice(Invoice $invoice): bool
+    {
+        if (! in_array($invoice->sunat_status, [Invoice::SUNAT_STATUS_DRAFT, Invoice::SUNAT_STATUS_REJECTED], true)) {
+            Log::info('OrderPaymentService::retryFailedInvoice — omitido, estado no reintentable', [
+                'invoice_id' => $invoice->id,
+                'sunat_status' => $invoice->sunat_status,
+            ]);
+
+            return false;
+        }
+
+        if ($invoice->provider !== 'nubefact' || ! $invoice->order_id || ! $invoice->store_id) {
+            Log::warning('OrderPaymentService::retryFailedInvoice — factura sin order_id/store_id, no se puede reconstruir', [
+                'invoice_id' => $invoice->id,
+            ]);
+
+            return false;
+        }
+
+        $order = Order::with(['items', 'serviceItems'])->find($invoice->order_id);
+        if (! $order) {
+            Log::warning('OrderPaymentService::retryFailedInvoice — orden asociada no existe', [
+                'invoice_id' => $invoice->id,
+                'order_id' => $invoice->order_id,
+            ]);
+
+            return false;
+        }
+
+        $storeItems = $order->items->where('store_id', $invoice->store_id);
+        $storeServiceItems = $order->serviceItems->where('store_id', $invoice->store_id);
+
+        $baseGravada = (float) $invoice->subtotal_sin_igv;
+        $igvAmount = (float) $invoice->igv_amount;
+        $shippingCost = max(0.0, round((float) $invoice->total - ($baseGravada + $igvAmount), 2));
+
+        if ($baseGravada <= 0) {
+            Log::warning('OrderPaymentService::retryFailedInvoice — subtotal_sin_igv inválido, se omite', [
+                'invoice_id' => $invoice->id,
+                'subtotal_sin_igv' => $baseGravada,
+            ]);
+
+            return false;
+        }
+
+        $customItems = $this->buildCustomItemsForStore($storeItems, $storeServiceItems, $shippingCost);
+
+        try {
+            $nubefactResponse = $this->nubefact->emitInvoice($invoice, $customItems);
+
+            $invoice->addHistoryEntry(
+                Invoice::SUNAT_STATUS_SENT_WAIT_CDR,
+                'Reintento manual: enviado a NubeFact',
+                'Sistema',
+            );
+
+            $invoice->sunat_status = $nubefactResponse['sunat_status'] ?? Invoice::SUNAT_STATUS_SENT_WAIT_CDR;
+            $invoice->provider_invoice_id = $nubefactResponse['id'] ?? $invoice->provider_invoice_id;
+            $invoice->pdf_url = $nubefactResponse['pdf_url'] ?? $this->nubefact->getPdfUrl($invoice);
+            $invoice->authorization_code = $nubefactResponse['authorization_code'] ?? $invoice->authorization_code;
+            $invoice->qr_data = $nubefactResponse['qr_data'] ?? $invoice->qr_data;
+            $invoice->xml_url = $nubefactResponse['xml_url'] ?? $this->nubefact->getXmlUrl($invoice);
+            $invoice->cdr_url = $nubefactResponse['cdr_url'] ?? $this->nubefact->getCdrUrl($invoice);
+            $invoice->save();
+
+            Log::info('OrderPaymentService::retryFailedInvoice — reintento exitoso', [
+                'invoice_id' => $invoice->id,
+                'provider_invoice_id' => $invoice->provider_invoice_id,
+            ]);
+
+            return true;
+        } catch (NubefactException $e) {
+            $isInfraError = in_array($e->getNubefactCode(), [
+                NubefactException::CONFIG_ERROR,
+                NubefactException::CONNECTION_ERROR,
+                NubefactException::DEMO_LIMIT_EXCEEDED,
+            ]);
+
+            $failStatus = $isInfraError ? Invoice::SUNAT_STATUS_DRAFT : Invoice::SUNAT_STATUS_REJECTED;
+
+            $invoice->addHistoryEntry(
+                $failStatus,
+                'Reintento manual fallido: ' . $e->getMessage(),
+                'Sistema',
+            );
+            $invoice->sunat_status = $failStatus;
+            $invoice->save();
+
+            Log::error('OrderPaymentService::retryFailedInvoice — reintento fallido', [
+                'invoice_id' => $invoice->id,
+                'nubefact_code' => $e->getNubefactCode(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 }

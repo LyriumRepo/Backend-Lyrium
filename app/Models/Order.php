@@ -81,6 +81,9 @@ final class Order extends Model
         'coupon_code',
         'coupon_id',
         'store_shipping',
+        'delivered_at',
+        'customer_validated_at',
+        'validation_source',
     ];
 
     protected function casts(): array
@@ -92,7 +95,24 @@ final class Order extends Model
             'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
             'store_shipping' => 'array',
+            'delivered_at' => 'datetime',
+            'customer_validated_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        // Registrar el momento exacto en que la orden llega a "delivered",
+        // sin importar por qué vía se actualizó el status (vendedor, admin o refreshGlobalStatus).
+        static::updating(function (Order $order) {
+            if (
+                $order->isDirty('status')
+                && $order->status === self::STATUS_DELIVERED
+                && $order->delivered_at === null
+            ) {
+                $order->delivered_at = now();
+            }
+        });
     }
 
     public function user(): BelongsTo
@@ -291,6 +311,17 @@ final class Order extends Model
     public function isCancelled(): bool
     {
         return $this->status === self::STATUS_CANCELLED;
+    }
+
+    public function canBeCustomerValidated(): bool
+    {
+        return $this->status === self::STATUS_DELIVERED
+            && $this->customer_validated_at === null;
+    }
+
+    public function isCustomerValidated(): bool
+    {
+        return $this->customer_validated_at !== null;
     }
 
     public function canBeConfirmedBySeller(): bool

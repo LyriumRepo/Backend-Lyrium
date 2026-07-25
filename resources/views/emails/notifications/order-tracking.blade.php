@@ -26,14 +26,47 @@
         </tr>
         @endif
 
+        {{-- FILA DE 5 PASOS — retiro en tienda --}}
+        @isset($pickupSteps)
+        <tr>
+            <td style="padding: 4px 12px 26px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                    <tr>
+                        @foreach($pickupSteps as $i => $step)
+                            @if($i > 0)
+                            <td style="width: 8%; padding: 0;">
+                                <div style="height: 3px; line-height: 3px; font-size: 0; background-color: {{ $pickupSteps[$i - 1]['done'] ? '#00BFC1' : '#dbe3e6' }};">&nbsp;</div>
+                            </td>
+                            @endif
+                            <td style="width: 1%; white-space: nowrap; text-align: center; padding: 0;">
+                                <img src="cid:{{ $step['cid'] }}" width="52" height="52" alt="Paso {{ $i + 1 }}" style="display: block; width: 52px; height: 52px; opacity: {{ ($step['done'] || $step['active']) ? '1' : '0.32' }};" />
+                            </td>
+                        @endforeach
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        @endisset
+
         {{-- TÍTULO PRINCIPAL --}}
         <tr>
-            <td style="text-align: center; padding-bottom: 20px;">
+            <td style="text-align: center; padding-bottom: {{ isset($subtitle) ? '8px' : '20px' }};">
                 <h1 style="font-size: 22px; font-weight: 800; color: #00BFC1; margin: 0; line-height: 1.3;">
                     {{ $trackingTitle }}
                 </h1>
             </td>
         </tr>
+
+        {{-- SUBTÍTULO (opcional) --}}
+        @isset($subtitle)
+        <tr>
+            <td style="text-align: center; padding: 0 12px 20px;">
+                <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">
+                    {{ $subtitle }}
+                </p>
+            </td>
+        </tr>
+        @endisset
 
         {{-- DETALLE DEL PEDIDO --}}
         <tr>
@@ -107,6 +140,29 @@
             </td>
         </tr>
 
+        {{-- CTA — solo aquí cuando no hay datos de envío; si los hay, el botón
+             único va dentro de esa sección (más abajo) para no duplicar botones --}}
+        @if(! $carrierName)
+        <tr>
+            <td style="text-align: center; padding: 4px 0 24px;">
+                <a href="{{ $actionUrl }}" style="display: inline-block; padding: 14px 36px; background-color: #00BFC1; color: #ffffff !important; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; letter-spacing: 0.2px;">
+                    {{ $actionLabel ?? 'Ver mis pedidos' }}
+                </a>
+            </td>
+        </tr>
+        @endif
+
+        {{-- NOTA EXTRA (opcional) --}}
+        @isset($extraNote)
+        <tr>
+            <td style="text-align: center; padding: 0 12px 24px;">
+                <p style="font-size: 12px; color: #94A3B8; margin: 0; line-height: 1.5;">
+                    {{ $extraNote }}
+                </p>
+            </td>
+        </tr>
+        @endisset
+
         {{-- DATOS DEL ENVÍO --}}
         @if($carrierName)
         <tr>
@@ -138,15 +194,13 @@
                     </tr>
                     @endforeach
 
-                    @if($trackingUrl)
                     <tr>
                         <td colspan="2" style="text-align: center; padding: 14px 16px;">
-                            <a href="{{ $trackingUrl }}" target="_blank" style="display: inline-block; padding: 10px 24px; background-color: #00BFC1; color: #ffffff !important; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px;">
-                                Rastrear mi pedido
+                            <a href="{{ $actionUrl }}" style="display: inline-block; padding: 10px 24px; background-color: #00BFC1; color: #ffffff !important; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 6px;">
+                                {{ $actionLabel ?? 'Ver mis pedidos' }}
                             </a>
                         </td>
                     </tr>
-                    @endif
 
                 </table>
             </td>
@@ -222,15 +276,6 @@
             </td>
         </tr>
         @endif
-
-        {{-- CTA --}}
-        <tr>
-            <td style="text-align: center; padding: 28px 0 8px;">
-                <a href="{{ $actionUrl }}" style="display: inline-block; padding: 14px 36px; background-color: #00BFC1; color: #ffffff !important; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; letter-spacing: 0.2px;">
-                    Ver mis pedidos
-                </a>
-            </td>
-        </tr>
 
         <tr>
             <td style="text-align: center; padding-top: 8px;">

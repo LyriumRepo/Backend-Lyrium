@@ -24,6 +24,30 @@ use Illuminate\Support\Str;
 final class ContractController extends Controller
 {
     public function __construct(private readonly AuditService $auditService) {}
+
+    /**
+     * GET /api/contracts/terms
+     * Términos y Condiciones Generales para Sellers (público, estático).
+     * No depende de datos del formulario — se usa para el check 1 (T&C) en
+     * el registro de vendedor, antes del check 2 (Cláusulas Monetarias que
+     * ya cubre el preview del Acuerdo Comercial pre-llenado).
+     */
+    public function terms(): JsonResponse
+    {
+        try {
+            $html = View::make('contratos.tyc-seller')->render();
+
+            return response()->json(['success' => true, 'html' => $html]);
+        } catch (\Throwable $e) {
+            Log::error('[ContractController@terms] '.$e->getMessage());
+
+            return response()->json(
+                ['message' => 'No se pudieron cargar los Términos y Condiciones.'],
+                500
+            );
+        }
+    }
+
     /**
      * POST /api/contracts/preview
      * Vista previa del acuerdo comercial con datos del seller (público).

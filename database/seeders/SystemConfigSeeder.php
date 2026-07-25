@@ -30,6 +30,9 @@ class SystemConfigSeeder extends Seeder
             ['key' => 'autoblock_duration_minutes', 'name' => 'Duración del bloqueo', 'value' => '20', 'type' => 'integer', 'category' => 'security', 'description' => 'Minutos que dura el bloqueo automático (0 = indefinido)', 'is_public' => false],
             ['key' => 'whitelist_enabled', 'name' => 'Whitelist habilitada', 'value' => 'true', 'type' => 'boolean', 'category' => 'security', 'description' => 'Permitir bypass de rate limiting para IPs en whitelist', 'is_public' => false],
             ['key' => 'max_login_attempts', 'name' => 'Intentos máximos de login', 'value' => '10', 'type' => 'integer', 'category' => 'security', 'description' => 'Intentos máximos por minuto antes de rate limiting', 'is_public' => false],
+
+            // Validación de recepción por el cliente
+            ['key' => 'receipt_validation_auto_expire_days', 'name' => 'Días para auto-cierre de validación', 'value' => '7', 'type' => 'integer', 'category' => 'orders', 'description' => 'Días tras la entrega para cerrar automáticamente pedidos/reservas sin validación del cliente (sin bono de Lirios)', 'is_public' => false],
         ];
 
         foreach ($configs as $config) {

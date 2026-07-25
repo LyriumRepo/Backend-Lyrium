@@ -682,6 +682,35 @@ final class AuthController extends Controller
     }
 
     /**
+     * GET /api/sellers/check-ruc
+     *
+     * Validación en tiempo real durante el registro de vendedor: indica si
+     * ya existe una solicitud (SellerApplication) previa con ese RUC, y bajo
+     * qué estado, para que el frontend muestre un mensaje amigable antes de
+     * que el usuario complete todo el formulario. No bloquea el envío final
+     * — esa validación definitiva la sigue haciendo el flujo de registro.
+     */
+    public function checkRuc(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ruc' => 'required|string|size:11',
+        ]);
+
+        $application = SellerApplication::where('ruc', $validated['ruc'])
+            ->latest()
+            ->first();
+
+        if (! $application) {
+            return response()->json(['exists' => false]);
+        }
+
+        return response()->json([
+            'exists' => true,
+            'estado' => $application->estado,
+        ]);
+    }
+
+    /**
      * POST /api/auth/logout
      */
     public function logout(Request $request): JsonResponse

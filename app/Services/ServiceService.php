@@ -684,7 +684,7 @@ final class ServiceService
             $orderServiceItem->order->refreshGlobalStatus();
         }
 
-        $booking = $booking->fresh();
+        $booking = $booking->fresh()->load('service', 'user');
 
         $this->auditService->record(
             event: 'bookings.completed',
@@ -694,6 +694,17 @@ final class ServiceService
             source: AuditService::SOURCE_WEB,
             metadata: ['booking_id' => $booking->id],
         );
+
+        // Invitar al cliente a validar la finalización (email con link firmado + push).
+        if ($booking->user && $booking->customer_validated_at === null) {
+            try {
+                $booking->user->notify(new \App\Notifications\BookingCompletedCustomerNotification($booking));
+            } catch (\Throwable $e) {
+                Log::error('[Booking] Error enviando invitación de validación al cliente', [
+                    'booking_id' => $booking->id, 'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return $booking;
     }

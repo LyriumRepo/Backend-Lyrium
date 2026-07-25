@@ -106,6 +106,32 @@ final class ProductBranchStockController extends Controller
     }
 
     /**
+     * GET /api/seller/products/branch-stock
+     * Retorna el stock total de retiro en tienda (suma de stock en todas las sucursales)
+     * para todos los productos del vendedor autenticado.
+     * Respuesta: { data: { "product_id": total_stock, ... } }
+     */
+    public function sellerBranchStock(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $store = $user->store;
+
+        if (! $store) {
+            return response()->json(['data' => []]);
+        }
+
+        $branchStock = ProductBranchStock::whereHas('product', function ($q) use ($store) {
+            $q->where('store_id', $store->id);
+        })->get();
+
+        $result = $branchStock->groupBy('product_id')->map(function ($stocks) {
+            return $stocks->where('pickup_enabled', true)->sum('stock');
+        });
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
      * GET /api/products/{id}/branches/public
      * Endpoint público (sin auth) para que el checkout vea sucursales disponibles.
      */

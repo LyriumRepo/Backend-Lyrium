@@ -43,6 +43,25 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
         ],
     ];
 
+    /**
+     * Retiro en tienda (shipping_type='pickup') tiene su propio set de 5 íconos
+     * (public/images/email/pickup-step-{1..5}.png) en vez de reutilizar las
+     * imágenes de domicilio (que muestran una casa en el paso 4 — no aplica
+     * cuando el cliente recoge en sucursal). La fila de 5 pasos se arma en
+     * vivo en el blade a partir de este orden, no como imagen horneada.
+     */
+    private const PICKUP_STEP_ORDER = [
+        Order::STATUS_CONFIRMED  => 1,
+        Order::STATUS_PROCESSING => 2,
+        Order::STATUS_SHIPPED    => 3,
+        Order::STATUS_ON_THE_WAY => 4,
+        Order::STATUS_DELIVERED  => 5,
+    ];
+
+    private const PICKUP_STEPS_COUNT = 5;
+
+    private const PICKUP_DELIVERED_TITLE = '¡RECIBIDO! CONFIRMAMOS QUE RECOGISTE TU PEDIDO';
+
     private const STATUS_LABELS = [
         Order::STATUS_PENDING_SELLER => 'Pedido recibido',
         Order::STATUS_CONFIRMED      => 'Validado por el vendedor',
@@ -142,10 +161,22 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
     private const PICKUP_SHIPPING_TYPES = ['pickup', 'service_store'];
 
+    // Distinto de PICKUP_SHIPPING_TYPES: ese es para el texto (compartido con
+    // "atención en sede" de servicios); esto es solo para el set de íconos del
+    // flujo físico de retiro de producto en tienda.
+    private function isPickup(): bool
+    {
+        return ($this->order->shipping_type ?? null) === 'pickup';
+    }
+
     private function resolveTrackingTitle(): ?string
     {
         if ($this->isServiceOnly()) {
             return self::SERVICE_TRACKING_MAP[$this->order->status] ?? null;
+        }
+
+        if ($this->order->status === Order::STATUS_DELIVERED && $this->isPickup()) {
+            return self::PICKUP_DELIVERED_TITLE;
         }
 
         if ($this->order->status !== Order::STATUS_ON_THE_WAY) {
@@ -155,8 +186,38 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
         $shippingType = $this->order->shipping_type ?? 'delivery';
 
         return in_array($shippingType, self::PICKUP_SHIPPING_TYPES, true)
-            ? '¡TU PEDIDO ESTÁ LISTO PARA RECOJO EN SUCURSAL!'
+            ? '¡LLEGÓ TU PEDIDO! RECÓGELO EN LA SUCURSAL'
             : '¡TU PEDIDO ESTÁ EN CAMINO A TU DOMICILIO!';
+    }
+
+    /**
+     * Arma la fila de 5 pasos (íconos de pickup-step-N) con cuáles ya están
+     * "hechos" según el status actual. Devuelve null si no aplica (servicio,
+     * cancelado, o no es retiro en tienda) — el blade cae al $imageCid normal.
+     *
+     * @return array<int, array{cid: string, done: bool, active: bool}>|null
+     */
+    private function buildPickupSteps(): ?array
+    {
+        if (!$this->isPickup() || $this->isServiceOnly()) {
+            return null;
+        }
+
+        $currentStep = self::PICKUP_STEP_ORDER[$this->order->status] ?? null;
+        if ($currentStep === null) {
+            return null;
+        }
+
+        $steps = [];
+        for ($n = 1; $n <= self::PICKUP_STEPS_COUNT; $n++) {
+            $steps[] = [
+                'cid'    => "pickup-step-{$n}",
+                'done'   => $n <= $currentStep,
+                'active' => $n === $currentStep,
+            ];
+        }
+
+        return $steps;
     }
 
     public function toMail(object $notifiable): MailMessage
@@ -176,15 +237,19 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
 
         $carrierInfo = $this->getCarrierInfo();
 
+        $pickupSteps = $this->buildPickupSteps();
+
         // Los pedidos 100% servicio no tienen nada que despachar/transportar,
         // por lo que no se usa la imagen de etapa del flujo de productos.
-        $stageImage = $isServiceOnly ? null : ($tracking['image'] ?? null);
+        // Retiro en tienda tampoco usa la imagen horneada de domicilio —
+        // en su lugar se renderiza la fila de 5 pasos ($pickupSteps) en el blade.
+        $stageImage = ($isServiceOnly || $pickupSteps !== null) ? null : ($tracking['image'] ?? null);
 
         $items = $this->combinedItems();
 
         return (new MailMessage)
             ->subject('Seguimiento de tu pedido #' . $this->order->order_number . ' - Lyrium')
-            ->withSymfonyMessage(fn ($message) => $this->embedTrackingImages($message, $stageImage))
+            ->withSymfonyMessage(fn ($message) => $this->embedTrackingImages($message, $stageImage, $pickupSteps !== null))
             ->view('emails.notifications.order-tracking', [
                 'customerName'       => $notifiable->name,
                 'orderNumber'        => $this->order->order_number,
@@ -192,6 +257,7 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
                 'bannerTopCid'       => 'banner-top',
                 'bannerBottomCid'    => 'banner-bottom',
                 'imageCid'           => $stageImage ? 'tracking-stage' : null,
+                'pickupSteps'        => $pickupSteps,
                 'items'              => $items,
                 'subtotal'           => number_format((float) $this->order->subtotal, 2),
                 'shippingCost'       => number_format((float) $this->order->shipping_cost, 2),
@@ -208,11 +274,12 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
     }
 
     /**
-     * Embebe los banners fijos (top/bottom) y la imagen de la etapa de seguimiento
-     * (si aplica) como adjuntos inline con Content-ID, para que el blade los
-     * referencie via cid:banner-top, cid:banner-bottom, cid:tracking-stage.
+     * Embebe los banners fijos (top/bottom), la imagen de la etapa de seguimiento
+     * (si aplica) y — para retiro en tienda — los 5 íconos de pickup-step-N,
+     * todos como adjuntos inline con Content-ID (cid:banner-top, cid:banner-bottom,
+     * cid:tracking-stage, cid:pickup-step-1..5).
      */
-    private function embedTrackingImages(\Symfony\Component\Mime\Email $message, ?string $stageImage): void
+    private function embedTrackingImages(\Symfony\Component\Mime\Email $message, ?string $stageImage, bool $embedPickupSteps = false): void
     {
         $bannerTop = public_path('images/email/banner-top.jpg');
         $bannerBottom = public_path('images/email/banner-bottom.jpg');
@@ -227,6 +294,14 @@ final class OrderStatusTrackingNotification extends Notification implements Shou
             $stagePath = public_path('images/email/' . $stageImage);
             if (file_exists($stagePath)) {
                 $message->embedFromPath($stagePath, 'tracking-stage');
+            }
+        }
+        if ($embedPickupSteps) {
+            for ($n = 1; $n <= self::PICKUP_STEPS_COUNT; $n++) {
+                $iconPath = public_path("images/email/pickup-step-{$n}.png");
+                if (file_exists($iconPath)) {
+                    $message->embedFromPath($iconPath, "pickup-step-{$n}");
+                }
             }
         }
     }

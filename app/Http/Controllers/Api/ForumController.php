@@ -73,6 +73,7 @@ final class ForumController extends Controller
             'anonymous_name' => $request->user('sanctum') ? null : 'Anónimo',
             'title' => $validated['title'],
             'content' => $validated['content'],
+            'status' => 'active',
         ]);
 
         $topic->load('category');
@@ -125,13 +126,12 @@ final class ForumController extends Controller
         return $this->created(['success' => true]);
     }
 
-    public function updatePost(Request $request, int $id): JsonResponse
+    public function updatePost(Request $request, int $postId): JsonResponse
     {
-        $post = ForumPost::findOrFail($id);
-        $user = $request->user();
+        $post = ForumPost::findOrFail($postId);
 
-        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
-            return $this->error('No tienes permiso para editar esta respuesta', 403);
+        if ($post->user_id !== $request->user('sanctum')?->id) {
+            return response()->json(['success' => false, 'error' => 'No puedes editar esta respuesta.'], 403);
         }
 
         $validated = $request->validate([
@@ -148,24 +148,19 @@ final class ForumController extends Controller
         return $this->success(['success' => true]);
     }
 
-    public function deletePost(Request $request, int $id): JsonResponse
+    public function deletePost(Request $request, int $postId): JsonResponse
     {
-        $post = ForumPost::findOrFail($id);
-        $user = $request->user();
+        $post = ForumPost::findOrFail($postId);
 
-        if (! $user || ! $post->user_id || $user->id !== $post->user_id) {
-            return $this->error('No tienes permiso para eliminar esta respuesta', 403);
+        if ($post->user_id !== $request->user('sanctum')?->id) {
+            return response()->json(['success' => false, 'error' => 'No puedes eliminar esta respuesta.'], 403);
         }
-
-        $topicId = $post->forum_topic_id;
-        $categoryId = ForumTopic::where('id', $topicId)->value('forum_category_id');
 
         $post->update(['status' => 'hidden']);
 
-        ForumTopic::where('id', $topicId)->decrement('reply_count');
-        ForumCategory::where('id', $categoryId)->decrement('post_count');
+        ForumTopic::where('id', $post->forum_topic_id)->decrement('reply_count');
 
-        return $this->success(['message' => 'Respuesta eliminada']);
+        return $this->success(['success' => true]);
     }
 
     public function vote(Request $request): JsonResponse

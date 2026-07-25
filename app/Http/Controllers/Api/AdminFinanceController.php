@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\Review;
 use App\Models\SellerPayment;
-use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -240,13 +240,27 @@ final class AdminFinanceController extends Controller
 
     private function getStockRotacion(): array
     {
-        $totalSold = (int) DB::table('order_items')->sum('quantity');
-        $stores = DB::table('stores')->count();
-        $avgRotation = $stores > 0 ? round($totalSold / max($stores, 1) / 4, 1) : 0;
+        $totalStock = (float) DB::table('products')->sum('stock');
+
+        if ($totalStock <= 0) {
+            return ['labels' => ['Q1', 'Q2', 'Q3', 'Q4'], 'data' => [0, 0, 0, 0]];
+        }
+
+        $data = [];
+        for ($i = 3; $i >= 0; $i--) {
+            $start = now()->subQuarters($i)->startOfQuarter();
+            $end = now()->subQuarters($i)->endOfQuarter();
+
+            $unitsSold = (float) DB::table('order_items')
+                ->whereBetween('created_at', [$start, $end])
+                ->sum('quantity');
+
+            $data[] = round($unitsSold / $totalStock, 2);
+        }
 
         return [
             'labels' => ['Q1', 'Q2', 'Q3', 'Q4'],
-            'data' => [$avgRotation, $avgRotation, $avgRotation, $avgRotation],
+            'data' => $data,
         ];
     }
 
@@ -411,9 +425,10 @@ final class AdminFinanceController extends Controller
 
     private function getCSAT(string $start, string $end): array
     {
-        $avgRating = (float) Ticket::whereNotNull('satisfaction_rating')
-            ->whereBetween('created_at', [$start, $end.' 23:59:59'])
-            ->avg('satisfaction_rating');
+        // CSAT: felicidad del cliente con la experiencia de compra = promedio de
+        // reseñas de producto (1-5 estrellas) en todo el marketplace, como porcentaje.
+        $avgRating = (float) Review::whereBetween('created_at', [$start, $end.' 23:59:59'])
+            ->avg('rating');
 
         $percentage = $avgRating > 0 ? round($avgRating / 5 * 100, 1) : 0;
 

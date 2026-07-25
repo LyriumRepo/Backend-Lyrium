@@ -5,15 +5,16 @@
     <title>Reporte de Vendedores - Lyrium</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'DejaVu Sans', sans-serif; background: #fff; color: #1c2b24; font-size: 9px; padding: 20px; }
-        h2 { text-align: center; font-size: 16px; margin-bottom: 4px; color: #1a3a2e; }
-        .subtitle { text-align: center; font-size: 8px; color: #5a7266; margin-bottom: 16px; }
+        body { font-family: 'DejaVu Sans', sans-serif; background: #0c2316; color: #d7ebcd; font-size: 9px; padding: 20px; }
+        h2 { text-align: center; font-size: 16px; margin-bottom: 4px; color: #a3e635; }
+        .subtitle { text-align: center; font-size: 8px; color: #6b8f71; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #e8f5ee; padding: 6px 4px; text-align: left; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #2e6b50; font-weight: bold; }
-        td { padding: 5px 4px; border-bottom: 1px solid #e8f5ee; color: #1c2b24; }
+        th { background: #123c26; padding: 6px 4px; text-align: left; font-size: 7px; letter-spacing: 1px; text-transform: uppercase; color: #a3e635; font-weight: bold; }
+        td { padding: 5px 4px; border-bottom: 1px solid #265a37; color: #d7ebcd; }
+        tr:nth-child(even) td { background: #143420; }
         .right { text-align: right; }
         .center { text-align: center; }
-        .total-row td { border-top: 2px solid #1a3a2e; font-weight: bold; background: #f0f9f4; }
+        .total-row td { border-top: 2px solid #a3e635; font-weight: bold; background: #143420; }
     </style>
 </head>
 <body>
@@ -52,7 +53,7 @@
         </tbody>
     </table>
     @if($stores->isEmpty())
-        <p style="text-align:center;margin-top:20px;color:#999;">No se encontraron vendedores.</p>
+        <p style="text-align:center;margin-top:20px;color:#6b8f71;">No se encontraron vendedores.</p>
     @endif
 </body>
 </html>

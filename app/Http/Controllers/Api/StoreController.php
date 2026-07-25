@@ -525,7 +525,7 @@ final class StoreController extends Controller
             ], 422);
         }
 
-        $allowedLayouts = $plan?->capability('layouts') ?? ['1', '2', '3'];
+        $allowedLayouts = $plan?->capability('layouts') ?? ['1', '2', '3', 'emprende'];
         $allowedString = implode(',', $allowedLayouts);
 
         $data = $request->validate([
@@ -705,7 +705,7 @@ final class StoreController extends Controller
             'ruc' => $store->ruc,
             'representative' => $store->rep_legal_nombre,
             'type' => 'Convenio Digital',
-            'modality' => 'Digital',
+            'modality' => 'VIRTUAL',
             'status' => 'PENDING',
             'start_date' => now()->toDateString(),
             'end_date' => null,

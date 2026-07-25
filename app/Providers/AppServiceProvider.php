@@ -10,6 +10,8 @@ use App\Models\Expense;
 use App\Models\Review;
 use App\Observers\ExpenseObserver;
 use App\Observers\ReviewObserver;
+use App\Services\DocumentScanner\OcrTextExtractor;
+use App\Services\DocumentScanner\SpatieTextExtractor;
 use App\Services\IzipayService;
 use App\Services\NubefactProvider;
 use App\Services\NubefactService;
@@ -28,6 +30,27 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(InvoiceProviderInterface::class, fn () => NubefactProvider::fromConfig());
         $this->app->bind(NubefactService::class, fn () => NubefactService::fromConfig());
         $this->app->bind(IzipayService::class, fn () => IzipayService::fromConfig());
+
+        // Rutas explícitas a los binarios externos usados para escanear PDFs.
+        // Sin esto, exec()/shell_exec() dependen del PATH del proceso que corre
+        // el servidor (Apache/XAMPP, artisan serve, etc.), que puede no incluir
+        // las mismas rutas que la terminal del desarrollador.
+        //
+        // NOTA: se usa bind() directo (no when()->needs()) porque
+        // DocumentScannerService construye estas clases con "new X" como valor
+        // por defecto del parámetro del constructor; el contenedor de Laravel
+        // solo resuelve vía make() (y por tanto aplica bindings contextuales)
+        // si la clase está bindeada directamente — si no, usa el default de PHP
+        // y nunca pasa por el contenedor.
+        $this->app->bind(
+            SpatieTextExtractor::class,
+            fn () => new SpatieTextExtractor(env('PDFTOTEXT_PATH')),
+        );
+
+        $this->app->bind(
+            OcrTextExtractor::class,
+            fn () => new OcrTextExtractor(env('TESSERACT_PATH', 'tesseract')),
+        );
     }
 
     /**

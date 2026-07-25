@@ -17,6 +17,7 @@ final class NubefactException extends \RuntimeException
     public const SUNAT_REJECTED = 'SUNAT_REJECTED';
     public const SUNAT_OBSERVED = 'SUNAT_OBSERVED';
     public const DUPLICATE_DOCUMENT = 'DUPLICATE_DOCUMENT';
+    public const DEMO_LIMIT_EXCEEDED = 'DEMO_LIMIT_EXCEEDED';
 
     public function __construct(
         string $message = '',
@@ -114,6 +115,16 @@ final class NubefactException extends \RuntimeException
             message: "NubeFact — Documento duplicado: {$message}",
             code: 400,
             nubefactCode: self::DUPLICATE_DOCUMENT,
+            context: $context,
+        );
+    }
+
+    public static function demoLimitExceeded(string $message, ?array $context = null): self
+    {
+        return new self(
+            message: "NubeFact — Límite de la cuenta DEMO alcanzado: {$message}",
+            code: 402,
+            nubefactCode: self::DEMO_LIMIT_EXCEEDED,
             context: $context,
         );
     }

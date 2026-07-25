@@ -92,6 +92,9 @@ final class ServiceBookingResource extends JsonResource
 
             // ── Estado ───────────────────────────────────────────────────────
             'status' => $this->status, // 'pending'|'confirmed'|'completed'|'cancelled'|'no_show'|'on_the_way'
+            'completed_at' => $this->completed_at?->toIso8601String(),
+            'customer_validated_at' => $this->customer_validated_at?->toIso8601String(),
+            'validation_source' => $this->validation_source,
 
             // ── Calificación (si el cliente ya calificó esta reserva) ─────────
             'review' => $this->whenLoaded('review', fn () => $this->review ? [

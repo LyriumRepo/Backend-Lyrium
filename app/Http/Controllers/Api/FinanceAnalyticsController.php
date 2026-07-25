@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\Ticket;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,11 +93,12 @@ final class FinanceAnalyticsController extends Controller
 
     private function computeCsat(int $storeId): float
     {
-        $avg = Ticket::where('store_id', $storeId)
-            ->whereNotNull('satisfaction_rating')
-            ->avg('satisfaction_rating');
+        // CSAT: felicidad del cliente con la experiencia de compra = promedio de
+        // reseñas de producto (1-5 estrellas), expresado como porcentaje.
+        $avg = Review::whereHas('product', fn ($q) => $q->where('store_id', $storeId))
+            ->avg('rating');
 
-        return round($avg ?? 0, 2);
+        return $avg ? round(((float) $avg / 5) * 100, 2) : 0.0;
     }
 
     private function computeStockRotation(int $storeId): array

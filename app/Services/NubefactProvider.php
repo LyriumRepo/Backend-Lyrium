@@ -86,7 +86,9 @@ final class NubefactProvider implements InvoiceProviderInterface
                 'url' => $url,
             ]);
 
-            $errorMsg = $json['message'] ?? $json['error'] ?? $body;
+            // NubeFact devuelve el detalle del error en distintas llaves según el endpoint;
+            // 'errors' es la que usa /generar_comprobante (ej: {"errors":"...","codigo":21}).
+            $errorMsg = $json['message'] ?? $json['error'] ?? $json['errors'] ?? $body;
 
             if ($status === 404) {
                 $codigo = $json['codigo'] ?? null;
@@ -109,6 +111,22 @@ final class NubefactProvider implements InvoiceProviderInterface
                 if ($codigo === 23) {
                     throw NubefactException::duplicateDocument(
                         "Este documento ya existe en NubeFact (código 23). {$errorMsg}",
+                        ['status' => $status, 'body' => $json, 'url' => $url, 'codigo' => $codigo],
+                    );
+                }
+
+                // El código 21 NO es exclusivo del límite de la cuenta DEMO — NubeFact lo
+                // reutiliza también para RUC con dígito verificador incorrecto, series no
+                // autorizadas, etc. Solo se clasifica como límite DEMO si el mensaje lo dice
+                // explícitamente; cualquier otro caso cae a validationError (dato incorrecto,
+                // no reintentable a ciegas — confirmado en producción: 2 de 3 fallas "código 21"
+                // eran RUC inválido, no límite de cuenta).
+                $isDemoLimit = $codigo === 21 && str_contains(mb_strtolower((string) $errorMsg), 'cuenta demo');
+
+                if ($isDemoLimit) {
+                    throw NubefactException::demoLimitExceeded(
+                        "La cuenta NubeFact configurada es una cuenta DEMO y alcanzó su límite de 50 comprobantes (código 21). "
+                        . "Elimina comprobantes de prueba en el panel de NubeFact o cambia a una cuenta de producción. {$errorMsg}",
                         ['status' => $status, 'body' => $json, 'url' => $url, 'codigo' => $codigo],
                     );
                 }

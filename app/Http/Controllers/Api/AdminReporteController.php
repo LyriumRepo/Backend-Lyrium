@@ -70,7 +70,7 @@ final class AdminReporteController extends Controller
             'csv' => $this->csv('reporte-ventas', ['#', 'Orden', 'Fecha', 'Cliente', 'Email', 'Total', 'Metodo', 'Estado Pago', 'Estado Transaccion'], $orders->map(fn ($o, $i) => [
                 $i + 1, $o->order_number, $o->created_at->format('d/m/Y H:i'),
                 $o->user?->name ?? 'N/A', $o->user?->email ?? 'N/A',
-                number_format($o->total, 2),
+                number_format((float) $o->total, 2),
                 $o->latestIzipayTransaction?->payment_method_type ?? '—',
                 $o->payment_status,
                 $o->latestIzipayTransaction?->transaction_status ?? '—',
@@ -252,7 +252,7 @@ final class AdminReporteController extends Controller
             'csv' => $this->csv('reporte-productos',
                 ['#', 'Producto', 'Tienda', 'Categoria', 'Precio', 'Estado', 'Vendidos', 'Reviews', 'Rating'],
                 $products->map(fn ($p, $i) => [
-                    $i + 1, $p['name'], $p['store'], $p['category'], number_format($p['price'], 2),
+                    $i + 1, $p['name'], $p['store'], $p['category'], number_format((float) $p['price'], 2),
                     $p['status'], $p['sold_qty'], $p['reviews_count'], $p['rating'],
                 ])->toArray()
             ),
@@ -276,6 +276,7 @@ final class AdminReporteController extends Controller
     {
         $callback = function () use ($headers, $rows) {
             $file = fopen('php://output', 'w');
+            fwrite($file, "\xEF\xBB\xBF");
             fputcsv($file, $headers);
             foreach ($rows as $row) {
                 fputcsv($file, $row);

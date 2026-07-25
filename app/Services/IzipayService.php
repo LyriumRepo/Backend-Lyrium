@@ -1030,13 +1030,14 @@ final class IzipayService
                     'schedule_id' => $hold->schedule_id,
                     'specialist_id' => $hold->specialist_id,
                     'appointment_date' => $appointmentDate,
-                    'status' => ServiceBooking::STATUS_CONFIRMED,
+                    // Pendiente hasta que el vendedor la valide — mismo criterio que
+                    // IzipayBookingService::createBookingFromTransaction.
+                    'status' => ServiceBooking::STATUS_PENDING,
                     'total_price' => $service->finalPrice(),
                     'payment_method' => 'izipay_'.($order->payment_method ?? 'card'),
                     'payment_status' => 'paid',
                     'customer_notes' => $hold->customer_notes,
                     'service_address' => $address,
-                    'confirmed_at' => now(),
                 ]);
 
                 $bookings[] = $booking;

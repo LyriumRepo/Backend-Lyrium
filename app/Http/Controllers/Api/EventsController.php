@@ -42,7 +42,13 @@ final class EventsController extends Controller
         // Liberar sesión para evitar que el SSE bloquee otras peticiones del mismo usuario
         session()->save();
 
-        $maxDuration = 60;
+        // Corto a propósito: en `php artisan serve` (dev, un solo proceso) cada
+        // conexión abierta bloquea TODAS las demás peticiones hasta que se cierra.
+        // 60s dejaba cualquier otra request (crear/editar plan, /subscriptions/current)
+        // esperando hasta un minuto. El cliente (useSSE.ts) reconecta solo en ~1s,
+        // así que bajar esto no afecta el tiempo real percibido, solo el peor caso
+        // de bloqueo para el resto de la app.
+        $maxDuration = 3;
         $startTime = time();
         $lastHeartbeat = time();
 

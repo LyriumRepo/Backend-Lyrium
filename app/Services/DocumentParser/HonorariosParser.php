@@ -90,7 +90,11 @@ final class HonorariosParser implements ParsesDocument
         $ruc = null;
         $address = null;
 
-        if ($name && (str_contains($name, 'R.U.C.') || str_contains($name, 'RECIBO'))) {
+        if ($name && str_contains($name, 'R.U.C.')) {
+            // El layout en columnas puede dejar nombre y R.U.C. en la misma línea física.
+            $name = trim(substr($name, 0, strpos($name, 'R.U.C.')));
+            $name = $name !== '' ? $name : null;
+        } elseif ($name && str_contains($name, 'RECIBO')) {
             $name = null;
         }
 

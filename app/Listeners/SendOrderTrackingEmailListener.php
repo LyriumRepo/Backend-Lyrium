@@ -51,5 +51,24 @@ final class SendOrderTrackingEmailListener implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
         }
+
+        // Al llegar a "delivered", invitar al cliente a validar la recepción.
+        // Solo pedidos con productos: los pedidos 100% servicio se validan
+        // a nivel de reserva (BookingCompletedCustomerNotification) para no duplicar.
+        if (
+            $order->status === Order::STATUS_DELIVERED
+            && $order->items->isNotEmpty()
+            && $order->customer_validated_at === null
+        ) {
+            try {
+                $user->notify(new \App\Notifications\OrderDeliveredCustomerNotification($order));
+            } catch (\Throwable $e) {
+                Log::error('SendOrderTrackingEmailListener: error al enviar invitación de validación', [
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }
