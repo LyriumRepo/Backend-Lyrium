@@ -203,7 +203,7 @@ final class Order extends Model
             if (empty($nonCancelled)) {
                 return self::STATUS_CANCELLED;
             }
-            $nonCancelledUnique = array_unique($nonCancelled);
+            $nonCancelledUnique = array_values(array_unique($nonCancelled));
             if (count($nonCancelledUnique) === 1) {
                 return $nonCancelledUnique[0];
             }

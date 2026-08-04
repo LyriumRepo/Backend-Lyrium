@@ -260,7 +260,9 @@ final class InvoiceController extends Controller
     {
         $store = $this->getStore($request->user());
 
-        $query = Invoice::with(['order.user', 'order.items', 'order.serviceItems', 'store.owner'])
+        // items.store / serviceItems.store son necesarios para que InvoiceResource
+        // pueda armar storeCommissions y el nombre de tienda por ítem del pedido.
+        $query = Invoice::with(['order.user', 'order.items.store', 'order.serviceItems.store', 'store.owner'])
             ->where('store_id', $store->id)
             ->where(function ($q) {
                 $q->whereNull('source')->orWhere('source', '!=', 'plan_subscription');
@@ -294,11 +296,23 @@ final class InvoiceController extends Controller
     {
         $store = $this->getStore($request->user());
 
-        $invoices = Invoice::where('store_id', $store->id)->get();
+        $now = now();
 
-        $totalFacturado = $invoices
+        $baseQuery = fn () => Invoice::where('store_id', $store->id)
+            ->where(function ($q) {
+                $q->whereNull('source')->orWhere('source', '!=', 'plan_subscription');
+            });
+
+        // "Total Facturado" está acotado al mes actual (así lo indica su descripción en el frontend).
+        $totalFacturado = $baseQuery()
+            ->whereMonth('created_at', $now->month)
+            ->whereYear('created_at', $now->year)
             ->where('sunat_status', Invoice::SUNAT_STATUS_ACCEPTED)
             ->sum('total');
+
+        // "Tasa de Éxito", "Pendientes" y "Comprobantes Emitidos" son totales históricos
+        // (su descripción en el frontend no menciona "mes actual").
+        $invoices = $baseQuery()->get();
 
         $acceptedCount = $invoices
             ->where('sunat_status', Invoice::SUNAT_STATUS_ACCEPTED)
@@ -311,9 +325,7 @@ final class InvoiceController extends Controller
             ->whereIn('sunat_status', [Invoice::SUNAT_STATUS_SENT_WAIT_CDR, Invoice::SUNAT_STATUS_DRAFT])
             ->count();
 
-        $totalComprobantes = $invoices
-            ->where('sunat_status', Invoice::SUNAT_STATUS_ACCEPTED)
-            ->count();
+        $totalComprobantes = $acceptedCount;
 
         return $this->success([
             'totalFacturado' => (float) $totalFacturado,

@@ -79,6 +79,7 @@ final class Service extends Model implements HasMedia
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'reviewed_at' => 'datetime',
         ];
     }
 

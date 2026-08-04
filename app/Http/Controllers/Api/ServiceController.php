@@ -192,7 +192,35 @@ final class ServiceController extends Controller
             ], 403);
         }
 
-        $service = $this->serviceService->update($id, $request->validated());
+        $validated = $request->validated();
+        $isAdministrator = $user->hasRole('administrator');
+        $canManagePublishedService = in_array($service->status, [
+            Service::STATUS_ACTIVE,
+            Service::STATUS_INACTIVE,
+        ], true);
+
+        if (! $isAdministrator && ! $canManagePublishedService) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este servicio está esperando la aprobación del administrador.',
+            ], 403);
+        }
+
+        // La moderación (pending_review/rejected/approved) es exclusiva del endpoint admin.
+        // El dueño solo puede alternar un servicio previamente aprobado entre activo e inactivo.
+        $canTogglePublication = ! $isAdministrator
+            && $canManagePublishedService
+            && isset($validated['status'])
+            && in_array($validated['status'], [
+                Service::STATUS_ACTIVE,
+                Service::STATUS_INACTIVE,
+            ], true);
+
+        if (! $canTogglePublication) {
+            unset($validated['status']);
+        }
+
+        $service = $this->serviceService->update($id, $validated);
 
         $service->load(['schedules', 'category.parent', 'store', 'specialists']);
 
@@ -221,6 +249,7 @@ final class ServiceController extends Controller
                 'id' => $service->id,
                 'name' => $service->name,
                 'slug' => $service->slug,
+                'image' => $service->getFirstMediaUrl('images') ?: $service->image,
                 'price' => (string) $service->price,
                 'status' => $service->status,
                 'rejection_reason' => $service->rejection_reason,

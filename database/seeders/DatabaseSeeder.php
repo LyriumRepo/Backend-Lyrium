@@ -19,11 +19,17 @@ class DatabaseSeeder extends Seeder
             ShippingSeeder::class,
             CommissionTierSeeder::class,
             GlossaryEntrySeeder::class,
-            ForumCategorySeeder::class,
             SecurityAdminSeeder::class,
             SpecialistSeeder::class,
             LogisticsSeeder::class,
+            BlogDemoSeeder::class,
             ForumCategorySeeder::class,
+            ForumDemoSeeder::class,
+            BlogCommentDemoSeeder::class,
+            DemoStoresSeeder::class,
+            DemoStoresWithImagesSeeder::class,
+            ContractDemoSeeder::class,
+            StoreMediaSeeder::class,
         ]);
     }
 }

@@ -68,10 +68,16 @@ final class IzipayPlanController extends Controller
         $plan = isset($data['plan_id'])
             ? Plan::findOrFail($data['plan_id'])
             : Plan::where('slug', $data['plan_slug'])->firstOrFail();
-        $months       = (int) $data['months'];
-        $discount     = $this->getDiscountPercent($months);
-        $base         = (float) $plan->monthly_fee * $months;
-        $totalAmount  = round($base * (1 - $discount / 100), 2);
+        $months = (int) $data['months'];
+
+        if ($plan->is_lifetime) {
+            $discount    = 0;
+            $totalAmount = (float) $plan->lifetime_price;
+        } else {
+            $discount    = Plan::discountPercentForMonths($months);
+            $base        = (float) $plan->monthly_fee * $months;
+            $totalAmount = round($base * (1 - $discount / 100), 2);
+        }
 
         // ID único de referencia para Izipay (prefijo PLAN para distinguirlo de órdenes)
         $izipayOrderId = 'PLAN-' . $store->id . '-' . time();
@@ -146,16 +152,25 @@ final class IzipayPlanController extends Controller
                 'reviewed_by'    => null,
             ]);
 
-            $endsAt = now()->addMonths($planRequest->months);
+            $endsAt = $planRequest->plan->is_lifetime
+                ? now()->addYears(100)
+                : now()->addMonths($planRequest->months);
+
+            $subscriptionValues = [
+                'plan_id'   => $planRequest->plan_id,
+                'starts_at' => now(),
+                'ends_at'   => $endsAt,
+                'status'    => 'active',
+            ];
+            // No tocar `auto_renew` fuera de lifetime: si la tienda reutiliza una fila
+            // 'active' existente, pisaría la preferencia real del vendedor con null.
+            if ($planRequest->plan->is_lifetime) {
+                $subscriptionValues['auto_renew'] = false;
+            }
 
             $subscription = Subscription::updateOrCreate(
                 ['store_id' => $planRequest->store_id, 'status' => 'active'],
-                [
-                    'plan_id'   => $planRequest->plan_id,
-                    'starts_at' => now(),
-                    'ends_at'   => $endsAt,
-                    'status'    => 'active',
-                ]
+                $subscriptionValues
             );
 
             $planRequest->store->update(['commission_rate' => $planRequest->plan->commission_rate]);
@@ -257,11 +272,18 @@ final class IzipayPlanController extends Controller
             'reviewed_by' => null,
         ]);
 
-        $endsAt = now()->addMonths($planRequest->months);
+        $endsAt = $planRequest->plan->is_lifetime
+            ? now()->addYears(100)
+            : now()->addMonths($planRequest->months);
+
+        $subscriptionValues = ['plan_id' => $planRequest->plan_id, 'starts_at' => now(), 'ends_at' => $endsAt, 'status' => 'active'];
+        if ($planRequest->plan->is_lifetime) {
+            $subscriptionValues['auto_renew'] = false;
+        }
 
         $subscription = Subscription::updateOrCreate(
             ['store_id' => $planRequest->store_id, 'status' => 'active'],
-            ['plan_id' => $planRequest->plan_id, 'starts_at' => now(), 'ends_at' => $endsAt, 'status' => 'active']
+            $subscriptionValues
         );
 
         $planRequest->store->update(['commission_rate' => $planRequest->plan->commission_rate]);
@@ -279,22 +301,5 @@ final class IzipayPlanController extends Controller
         try { $user->notify(new PlanActivatedNotification($planRequest->plan, $subscription, $planRequest)); } catch (\Throwable) {}
 
         GeneratePlanInvoiceJob::dispatch($planRequest)->onQueue('default');
-    }
-
-    /**
-     * Tabla de descuentos por duración — idéntica a getDiscountForMonths() del frontend.
-     */
-    private function getDiscountPercent(int $months): int
-    {
-        return match(true) {
-            $months <= 1  => 0,
-            $months <= 3  => 5,
-            $months <= 6  => 12,
-            $months <= 12 => 22,
-            $months <= 18 => 30,
-            $months <= 24 => 38,
-            $months <= 36 => 48,
-            default       => min(48 + ($months - 36), 60),
-        };
     }
 }

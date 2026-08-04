@@ -35,7 +35,7 @@ final class ProfileRequestNotification extends Notification implements ShouldQue
             'data'  => [
                 'type'     => 'profile_request_created',
                 'store_id' => (string) ($store?->id ?? ''),
-                'url'      => '/admin/stores/' . ($store?->id ?? ''),
+                'url'      => '/admin/sellers?tab=validacion',
             ],
         ];
     }

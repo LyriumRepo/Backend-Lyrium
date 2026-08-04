@@ -61,9 +61,24 @@ final class PlanRequestController extends Controller
             ], 422);
         }
 
-        $months = $data['months'];
-        $monthlyFee = (float) $plan->monthly_fee;
-        $totalAmount = $monthlyFee * $months;
+        $isTrial = $data['payment_method'] === PlanRequest::PAYMENT_METHOD_TRIAL;
+
+        if ($isTrial) {
+            // La duración real del trial la decide el servidor a partir de claim_months
+            // del plan (nunca el cliente) — claim_months no se expone a vendedores en
+            // PlanResource, así que confiar en $data['months'] para un trial permitiría
+            // que el frontend mandara cualquier valor. Un trial siempre cuesta 0.
+            $months = $plan->claim_months ?: 1;
+            $totalAmount = 0.0;
+        } elseif ($plan->is_lifetime) {
+            $months = $data['months'];
+            $totalAmount = (float) $plan->lifetime_price;
+        } else {
+            $months = $data['months'];
+            $monthlyFee = (float) $plan->monthly_fee;
+            $discountPercent = Plan::discountPercentForMonths($months);
+            $totalAmount = round($monthlyFee * $months * (1 - $discountPercent / 100), 2);
+        }
 
         $planRequest = PlanRequest::create([
             'store_id' => $store->id,
@@ -137,8 +152,15 @@ final class PlanRequestController extends Controller
         }
 
         $months = $data['months'];
-        $monthlyFee = (float) $plan->monthly_fee;
-        $totalAmount = $monthlyFee * $months;
+
+        if ($plan->is_lifetime) {
+            $totalAmount = (float) $plan->lifetime_price;
+        } else {
+            $monthlyFee = (float) $plan->monthly_fee;
+            $discountPercent = Plan::discountPercentForMonths($months);
+            $totalAmount = round($monthlyFee * $months * (1 - $discountPercent / 100), 2);
+        }
+
         $amountCents = (int) round($totalAmount * 100);
 
         $planRequest = PlanRequest::create([
@@ -460,6 +482,7 @@ final class PlanRequestController extends Controller
                 'store.owner:id,name,email',
                 'store.activeSubscription' => fn ($q) => $q->with('plan:id,name,slug,css_color'),
                 'plan:id,name,slug,monthly_fee,css_color',
+                'izipayTransaction',
             ])
             ->orderBy('created_at', 'desc');
 
@@ -487,6 +510,13 @@ final class PlanRequestController extends Controller
                 'planId' => $req->plan?->slug ?? '',
                 'planNombre' => $req->plan?->name ?? '',
                 'planColor' => $req->plan?->css_color ?? '#10b981',
+                'paymentDetail' => $req->izipayTransaction ? [
+                    'payment_method_type' => $req->izipayTransaction->payment_method_type,
+                    'card_brand' => $req->izipayTransaction->card_brand,
+                    'card_last4' => $req->izipayTransaction->card_last4,
+                    'transaction_uuid' => $req->izipayTransaction->transaction_uuid,
+                    'mode' => $req->izipayTransaction->mode,
+                ] : null,
             ])->values()->all();
 
             return [
@@ -645,20 +675,35 @@ final class PlanRequestController extends Controller
             'reviewed_by' => $reviewedBy,
         ]);
 
-        $endsAt = now()->addMonths($planRequest->months);
+        // Lifetime no vence — se representa con una fecha de fin muy lejana para no
+        // tener que tocar cada consulta que filtra por `ends_at >= now()`.
+        $endsAt = $planRequest->plan->is_lifetime
+            ? now()->addYears(100)
+            : now()->addMonths($planRequest->months);
+
+        $subscriptionValues = [
+            'plan_id' => $planRequest->plan_id,
+            'starts_at' => now(),
+            'ends_at' => $endsAt,
+            'status' => 'active',
+            'plan_request_id' => $planRequest->id,
+        ];
+
+        // Un plan de por vida no tiene nada que renovar, y un trial nunca debe heredar
+        // el auto_renew + tarjeta de una suscripción previa (updateOrCreate reutiliza la
+        // misma fila si la tienda ya tenía una suscripción 'active'). Para los demás casos
+        // NO tocamos `auto_renew`: es la preferencia del vendedor (ver toggleAutoRenewal) y
+        // updateOrCreate la pisaría con null si la incluyéramos siempre.
+        if ($planRequest->plan->is_lifetime || $planRequest->isTrial()) {
+            $subscriptionValues['auto_renew'] = false;
+        }
 
         $subscription = Subscription::updateOrCreate(
             [
                 'store_id' => $planRequest->store_id,
                 'status' => 'active',
             ],
-            [
-                'plan_id' => $planRequest->plan_id,
-                'starts_at' => now(),
-                'ends_at' => $endsAt,
-                'status' => 'active',
-                'plan_request_id' => $planRequest->id,
-            ]
+            $subscriptionValues
         );
 
         $planRequest->store->update([

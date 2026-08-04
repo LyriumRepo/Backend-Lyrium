@@ -22,7 +22,7 @@ class PlanSeeder extends Seeder
             'accent_color' => '#7d9940',
             'requires_payment' => false,
             'enable_claim_lock' => false,
-            'claim_months' => 1,
+            'claim_months' => 12,
             'subscribe_button_text' => 'Comenzar gratis',
             'currency' => 'S/',
             'period' => '/mes',
@@ -207,6 +207,41 @@ class PlanSeeder extends Seeder
                 'bioblog_podcasts_per_week' => 4,
                 'bioblog_shorts_per_week' => 4,
             ],
+        ]);
+
+        // Plan "Crece - Por Vida": pago único, mismas capacidades que Crece.
+        // is_active=true para que /admin/plans y /plans lo devuelvan (así el frontend
+        // puede resolver su numericId al comprarlo), pero el frontend lo excluye
+        // deliberadamente de la grilla de tarjetas (no es un plan más, es una duración
+        // especial dentro de la tarjeta de Crece).
+        $crece = Plan::where('slug', 'crece')->first();
+        Plan::updateOrCreate(['slug' => 'crece-lifetime'], [
+            'name' => 'Crece - Por Vida',
+            'monthly_fee' => 0,
+            'is_lifetime' => true,
+            'lifetime_price' => 1500.00,
+            'commission_rate' => 0.1500,
+            'has_membership_fee' => true,
+            'is_active' => true,
+            'timeline_icon' => 'trending-up',
+            'badge' => 'Por Vida',
+            'description' => 'Todo lo del plan Crece, con un único pago y sin renovaciones.',
+            'css_color' => '#64c695',
+            'accent_color' => '#4da978',
+            'requires_payment' => true,
+            'enable_claim_lock' => false,
+            'claim_months' => 1,
+            'subscribe_button_text' => 'Suscribirse de por vida',
+            'currency' => 'S/',
+            'period' => '/vida',
+            'price_annual' => null,
+            'price_text' => 'S/ 1500',
+            'price_subtext' => 'pago único',
+            'use_price_mode' => true,
+            'compact_visible_count' => 5,
+            'features' => $crece?->features ?? [],
+            'detailed_benefits' => $crece?->detailed_benefits ?? [],
+            'capabilities' => $crece?->capabilities ?? [],
         ]);
     }
 }

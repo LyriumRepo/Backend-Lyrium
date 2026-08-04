@@ -14,7 +14,7 @@ final class InvoiceResource extends JsonResource
         $storeCommissions = $this->store_commissions;
 
         if (! $storeCommissions && $this->relationLoaded('order') && $this->order) {
-            $storeCommissions = $this->order->items->groupBy('store_id')->map(fn ($items) => [
+            $storeCommissions = $this->combinedOrderItems()->groupBy('store_id')->map(fn ($items) => [
                 'storeId' => (string) $items->first()->store_id,
                 'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
                 'storeSlug' => $items->first()->store?->slug ?? '',
@@ -103,6 +103,7 @@ final class InvoiceResource extends JsonResource
                 // (productos) como order_service_items (servicios).
                 'items'       => $this->combinedOrderItems()->map(fn ($item) => [
                     'productName'      => $item->product?->name ?? $item->product_name ?? $item->service_name ?? '',
+                    'itemType'         => $item instanceof \App\Models\OrderServiceItem ? 'Servicio' : 'Producto',
                     'quantity'         => (int) $item->quantity,
                     'unitPrice'        => (float) $item->unit_price,
                     'lineTotal'        => (float) $item->line_total,
@@ -111,16 +112,11 @@ final class InvoiceResource extends JsonResource
                     'storeName'        => $item->store?->store_name ?? $item->store?->nombre_comercial ?? null,
                     'storeSlug'        => $item->store?->slug ?? null,
                 ]),
-                'stores' => $this->combinedOrderItems()
-                    ->pluck('store')
-                    ->filter()
-                    ->unique('id')
-                    ->values()
-                    ->map(fn ($s) => [
-                        'id'   => (string) $s->id,
-                        'name' => $s->store_name ?? $s->nombre_comercial ?? '',
-                        'slug' => $s->slug ?? '',
-                    ]),
+                // Todas las tiendas del pedido (sin filtrar por la tienda de esta
+                // factura) — solo nombre/slug, nunca sus items ni montos — para que
+                // el panel admin pueda mostrar el chip "+N" cuando el pedido es
+                // multi-tienda. La tienda de esta factura siempre va primero.
+                'stores' => $this->allOrderStores(),
             ]),
 
             'createdAt'  => $this->emission_date?->toIso8601String() ?? $this->created_at?->toIso8601String(),
@@ -145,7 +141,40 @@ final class InvoiceResource extends JsonResource
             ? ($this->store_id ? $this->order->serviceItems->where('store_id', $this->store_id) : $this->order->serviceItems)
             : collect();
 
-        return $products->concat($services);
+        // ->where() preserves original array keys; on a multi-store order where this
+        // store's items aren't first, the resulting keys are non-sequential (e.g. {1,3}).
+        // json_encode() then serializes that as a JSON object instead of an array,
+        // breaking `items.map()` on the frontend. ->values() reindexes to 0..n so every
+        // consumer of this collection (here and downstream) always serializes as a list.
+        return $products->concat($services)->values();
+    }
+
+    /**
+     * Todas las tiendas del pedido original, SIN filtrar por la tienda de esta
+     * factura — solo nombre/id/slug, nunca items ni montos de otras tiendas.
+     * La tienda de esta factura siempre aparece primero. Se usa exclusivamente
+     * para el chip "+N tiendas" del panel admin cuando el pedido es multi-vendor.
+     */
+    private function allOrderStores()
+    {
+        if (! $this->relationLoaded('order') || ! $this->order) {
+            return collect();
+        }
+
+        $products = $this->order->relationLoaded('items') ? $this->order->items : collect();
+        $services = $this->order->relationLoaded('serviceItems') ? $this->order->serviceItems : collect();
+
+        return $products->concat($services)
+            ->pluck('store')
+            ->filter()
+            ->unique('id')
+            ->sortBy(fn ($s) => $s->id == $this->store_id ? 0 : 1)
+            ->values()
+            ->map(fn ($s) => [
+                'id'   => (string) $s->id,
+                'name' => $s->store_name ?? $s->nombre_comercial ?? '',
+                'slug' => $s->slug ?? '',
+            ]);
     }
 
     private function resolveOrderTypeLabel(): ?string

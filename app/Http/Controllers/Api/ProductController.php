@@ -273,6 +273,17 @@ final class ProductController extends Controller
 
         Gate::authorize('update', $product);
 
+        $user = $request->user();
+        $isAdministrator = $user->hasRole('administrator');
+        $canManagePublishedProduct = in_array($product->status, ['approved', 'inactive'], true);
+
+        if (! $isAdministrator && ! $canManagePublishedProduct) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este producto está esperando la aprobación del administrador.',
+            ], 403);
+        }
+
         $data    = $request->validated();
 
         if (array_key_exists('sticker', $data)) {
@@ -281,7 +292,18 @@ final class ProductController extends Controller
             }
         }
 
+        $wasApproved = $product->status === 'approved';
+        $isReverting = ! $isAdministrator && $wasApproved;
+
         $updateData = $this->buildUpdateData($data, $product->type);
+
+        if ($isReverting) {
+            $updateData['status'] = 'pending_review';
+            $updateData['reviewed_at'] = null;
+            $updateData['reviewed_by'] = null;
+            $updateData['rejection_reason'] = null;
+        }
+
         $product->update($updateData);
 
         if (array_key_exists('category', $data)) {
@@ -289,6 +311,48 @@ final class ProductController extends Controller
         }
 
         $this->syncAttributes($product, $data, update: true);
+
+        $product->load(self::RELATIONS_DETAIL);
+
+        if ($isReverting) {
+            try {
+                broadcast(new ProductStatusChanged($product));
+            } catch (\Throwable) {
+                // Real-time broadcast unavailable; data was saved successfully
+            }
+
+            $admins = User::role('administrator')->get();
+            $notification = new ProductPendingReviewNotification($product);
+            foreach ($admins as $admin) {
+                $admin->notify($notification);
+            }
+        }
+
+        return response()->json(new ProductResource($product));
+    }
+
+    /**
+     * PUT /api/products/{id}/visibility
+     */
+    public function toggleVisibility(Request $request, string $id): JsonResponse
+    {
+        $product = Product::findOrFail($id);
+
+        Gate::authorize('update', $product);
+
+        $validated = $request->validate([
+            'visible' => 'required|boolean',
+        ]);
+
+        if (! in_array($product->status, ['approved', 'inactive'], true)) {
+            return response()->json([
+                'message' => 'El producto debe estar aprobado para cambiar su visibilidad.',
+            ], 403);
+        }
+
+        $product->update([
+            'status' => $validated['visible'] ? 'approved' : 'inactive',
+        ]);
 
         $product->load(self::RELATIONS_DETAIL);
 

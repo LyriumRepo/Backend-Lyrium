@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\SellerApplication;
 use App\Models\Store;
+use App\Models\Subscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -79,6 +81,7 @@ final class SellerApplicationController extends Controller
             $app->store_id = $store->id;
             $app->save();
             $this->crearContratoDesdeSolicitud($app, $store);
+            $this->crearSuscripcionEmprendeInicial($store);
         }
 
         if ($nuevoEstado === 'RECHAZADO' && $app->store && $app->store->status === 'pending') {
@@ -151,6 +154,30 @@ final class SellerApplicationController extends Controller
             'end_date' => $endDate,
             'notes' => 'Contrato generado automáticamente al aprobar solicitud',
         ]);
+    }
+
+    /**
+     * Plan Emprende tiene vigencia real de 12 meses (no es gratis indefinido) —
+     * "PLANES PARA MI TIENDA LYRIUM.pdf", pág. 10: aplica venta mínima igual que
+     * los demás planes tras el periodo de gracia de 6 meses.
+     */
+    private function crearSuscripcionEmprendeInicial(Store $store): void
+    {
+        $emprende = Plan::where('slug', 'emprende')->first();
+        if (! $emprende) {
+            return;
+        }
+
+        Subscription::create([
+            'store_id' => $store->id,
+            'plan_id' => $emprende->id,
+            'starts_at' => now(),
+            'ends_at' => now()->addMonths(12),
+            'status' => 'active',
+            'auto_renew' => false,
+        ]);
+
+        $store->update(['commission_rate' => $emprende->commission_rate]);
     }
 
     private function format(SellerApplication $app): array

@@ -35,6 +35,9 @@ final class Product extends Model implements HasMedia
         'sticker',
         'discount_percentage',
         'status',
+        'rejection_reason',
+        'reviewed_at',
+        'reviewed_by',
         'expiration_date',
         // Digital
         'download_url',

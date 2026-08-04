@@ -10,6 +10,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\SellerPayment;
+use App\Models\ServiceBooking;
 use App\Models\Store;
 use App\Notifications\CommissionGeneratedNotification;
 use App\Services\AuditService;
@@ -53,6 +54,21 @@ final class OrderPaymentService
             ]);
 
             $order->load(['items.product.store', 'serviceItems.service.store', 'user']);
+
+            // Las reservas de servicio se crean con payment_status='pending' (ver
+            // OrderController::store) y solo el pago de la Order pasaba a 'paid' —
+            // el ServiceBooking nunca se sincronizaba, por lo que AgendaController
+            // (que filtra por payment_status='paid') jamás las mostraba aunque la
+            // orden ya estuviera pagada y confirmada.
+            $bookingIds = $order->serviceItems->pluck('service_booking_id')->filter()->unique()->values();
+            if ($bookingIds->isNotEmpty()) {
+                ServiceBooking::whereIn('id', $bookingIds)
+                    ->where('payment_status', '!=', 'paid')
+                    ->update([
+                        'payment_status' => 'paid',
+                        'payment_method' => $paymentMethod,
+                    ]);
+            }
 
             $productStoreIds = $order->items->pluck('store_id')->unique()->values();
             $serviceStoreIds = $order->serviceItems->pluck('store_id')->unique()->values();

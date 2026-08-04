@@ -649,6 +649,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
 
         // Admin Facturas de suscripciones de planes
         Route::get('/admin/plan-invoices', [NubefactController::class, 'planInvoices']);
+        Route::get('/admin/plan-invoices/kpis', [NubefactController::class, 'planInvoiceKpis']);
 
         // System Config - Admin
         Route::get('/admin/config', [SystemConfigController::class, 'index']);
@@ -887,6 +888,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
             Route::put('/products/{id}', [ProductController::class, 'update']);
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
             Route::put('/products/{id}/stock', [ProductController::class, 'updateStock']);
+            Route::put('/products/{id}/visibility', [ProductController::class, 'toggleVisibility']);
 
             // Products Media (upload image)
             Route::post('/products/{id}/media', [MediaController::class, 'uploadProductMedia']);
@@ -969,7 +971,7 @@ Route::middleware(['auth:sanctum', 'track.session'])->group(function () {
         });
 
         // ── BioBlog ──────────────────────────────────────────────────
-        Route::prefix('blog')->group(function () {
+        Route::prefix('seller/blog')->group(function () {
             Route::get('/dashboard', [\App\Http\Controllers\Api\BlogDashboardController::class, 'index']);
 
             Route::get('/articles', [\App\Http\Controllers\Api\BlogArticleController::class, 'index']);

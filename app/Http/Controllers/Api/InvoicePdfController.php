@@ -16,7 +16,7 @@ final class InvoicePdfController extends Controller
 {
     public function show(Request $request, string $id)
     {
-        $invoice = Invoice::with(['order.items.store', 'order.user'])->findOrFail($id);
+        $invoice = Invoice::with(['order.items.store', 'order.serviceItems.store', 'order.user'])->findOrFail($id);
 
         $user = $request->user();
         if ($user) {
@@ -32,14 +32,20 @@ final class InvoicePdfController extends Controller
         $order = $invoice->order;
         $items = $invoice->items;
         if (empty($items) && $order) {
-            // Filtrar por store_id de la factura para no incluir productos de otras tiendas
-            // en pedidos multi-vendor. Si la factura no tiene store_id (caso manual/legacy),
-            // se usan todos los ítems como fallback seguro.
-            $sourceItems = $invoice->store_id
+            // Filtrar por store_id de la factura para no incluir productos/servicios de
+            // otras tiendas en pedidos multi-vendor. Si la factura no tiene store_id
+            // (caso manual/legacy), se usan todos los ítems como fallback seguro.
+            $sourceProductItems = $invoice->store_id
                 ? $order->items->where('store_id', $invoice->store_id)
                 : $order->items;
+            // Un pedido puede mezclar productos y servicios de la misma tienda (ver
+            // OrderPaymentService::emitInvoiceForStore) — faltaba incluir los servicios
+            // aquí, así que el PDF los omitía por completo en vez de solo los productos.
+            $sourceServiceItems = $invoice->store_id
+                ? $order->serviceItems->where('store_id', $invoice->store_id)
+                : $order->serviceItems;
 
-            $items = $sourceItems->map(fn ($oi) => [
+            $items = $sourceProductItems->map(fn ($oi) => [
                 'cantidad' => $oi->quantity,
                 'descripcion' => $oi->product_name,
                 'valor_unitario' => round($oi->unit_price / 1.18, 2),
@@ -47,7 +53,15 @@ final class InvoicePdfController extends Controller
                 'descuento' => 0,
                 'total' => $oi->line_total,
                 'subtotal' => $oi->line_total,
-            ])->toArray();
+            ])->concat($sourceServiceItems->map(fn ($si) => [
+                'cantidad' => $si->quantity,
+                'descripcion' => $si->service_name,
+                'valor_unitario' => round($si->unit_price / 1.18, 2),
+                'precio_unitario' => $si->unit_price,
+                'descuento' => 0,
+                'total' => $si->line_total,
+                'subtotal' => $si->line_total,
+            ]))->toArray();
         }
 
         $documentTypes = [

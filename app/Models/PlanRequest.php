@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class PlanRequest extends Model
 {
@@ -68,6 +69,11 @@ final class PlanRequest extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function izipayTransaction(): HasOne
+    {
+        return $this->hasOne(IzipayPlanTransaction::class, 'plan_request_id');
     }
 
     public function isPending(): bool

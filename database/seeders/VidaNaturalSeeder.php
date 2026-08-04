@@ -28,7 +28,7 @@ class VidaNaturalSeeder extends Seeder
                 'nicename' => 'vida-natural',
                 'phone' => '999111222',
                 'document_type' => 'RUC',
-                'document_number' => '20111111111',
+                'document_number' => '20111111112',
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
@@ -36,7 +36,7 @@ class VidaNaturalSeeder extends Seeder
         $user->assignRole('seller');
 
         $store = Store::updateOrCreate(
-            ['ruc' => '20111111111'],
+            ['ruc' => '20111111112'],
             [
                 'owner_id' => $user->id,
                 'trade_name' => 'Vida Natural',

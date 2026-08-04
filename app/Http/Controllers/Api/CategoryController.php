@@ -31,7 +31,11 @@ final class CategoryController extends Controller
         }
 
         if ($request->boolean('tree')) {
-            $query->whereNull('parent_id')->with('children.children');
+            $query->whereNull('parent_id')->with([
+                'children' => fn ($q) => $q->withCount('products')->with([
+                    'children' => fn ($q2) => $q2->withCount('products'),
+                ]),
+            ]);
         }
 
         if ($type = $request->query('type')) {
@@ -99,13 +103,13 @@ final class CategoryController extends Controller
                             'name' => $sub->name,
                             'slug' => $sub->slug,
                             'image' => $sub->image ? asset($sub->image) : null,
-                            'href' => $prefix . '/' . $cat->slug . '?sub=' . $sub->slug,
+                            'href' => $prefix.'/'.$cat->slug.'?sub='.$sub->slug,
                             'children' => $sub->children->map(function ($subsub) use ($cat, $prefix) {
                                 return [
                                     'id' => $subsub->id,
                                     'name' => $subsub->name,
                                     'slug' => $subsub->slug,
-                                    'href' => $prefix . '/' . $cat->slug . '?sub=' . $subsub->slug,
+                                    'href' => $prefix.'/'.$cat->slug.'?sub='.$subsub->slug,
                                 ];
                             }),
                         ];
@@ -115,7 +119,7 @@ final class CategoryController extends Controller
         ]);
     }
 
-     /**
+    /**
      * GET /api/categories/{slug}
      */
     public function getBySlug(string $slug): JsonResponse
@@ -125,13 +129,13 @@ final class CategoryController extends Controller
         if (! $category) {
             return response()->json([
                 'success' => false,
-                'message' => 'Category not found'
+                'message' => 'Category not found',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'data' => new CategoryResource($category)
+            'data' => new CategoryResource($category),
         ]);
     }
 
@@ -175,8 +179,6 @@ final class CategoryController extends Controller
             }
         }
 
-        
-
         $category = Category::create([
             'name' => $data['name'],
             'slug' => $this->generateSlug($data['name'], $data['parent'] ?? null),
@@ -216,6 +218,35 @@ final class CategoryController extends Controller
         $parentId = array_key_exists('parent', $data)
             ? $data['parent']
             : $category->parent_id;
+
+        if (array_key_exists('parent', $data) && $data['parent'] !== null) {
+            $newParentId = (int) $data['parent'];
+
+            if ($newParentId === $category->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Una categoría no puede ser su propio padre.',
+                ], 422);
+            }
+
+            if ($this->isDescendant($category->id, $newParentId)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se puede asignar como padre a una subcategoría de sí misma.',
+                ], 422);
+            }
+
+            $parent = Category::find($newParentId);
+            if ($parent && $parent->parent_id) {
+                $grandparent = Category::find($parent->parent_id);
+                if ($grandparent && $grandparent->parent_id !== null) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'No se pueden crear categorías de más de 3 niveles de profundidad.',
+                    ], 422);
+                }
+            }
+        }
 
         $updateData = [];
         if (isset($data['name'])) {
@@ -293,6 +324,25 @@ final class CategoryController extends Controller
         return response()->json(new CategoryResource($category));
     }
 
+    /**
+     * Sube por la cadena de parent_id desde $candidateParentId hasta la raíz;
+     * si en el camino se encuentra $categoryId, $candidateParentId es un
+     * descendiente de $categoryId (asignarlo como padre crearía un ciclo).
+     */
+    private function isDescendant(int $categoryId, int $candidateParentId): bool
+    {
+        $current = Category::find($candidateParentId);
+
+        while ($current !== null) {
+            if ($current->id === $categoryId) {
+                return true;
+            }
+            $current = $current->parent_id ? Category::find($current->parent_id) : null;
+        }
+
+        return false;
+    }
+
     private function generateSlug(string $name, ?int $parentId = null, ?int $ignoreId = null): string
     {
         $slug = Str::slug($name);
@@ -305,15 +355,15 @@ final class CategoryController extends Controller
                     $grandparent = Category::find($parent->parent_id);
                     if ($grandparent) {
                         $slug = Str::slug(
-                            $grandparent->name . '-' .
-                            $parent->name . '-' .
+                            $grandparent->name.'-'.
+                            $parent->name.'-'.
                             $name
                         );
                     }
                 } else {
                     // Nivel 2
                     $slug = Str::slug(
-                        $parent->name . '-' . $name
+                        $parent->name.'-'.$name
                     );
                 }
             }
@@ -322,10 +372,10 @@ final class CategoryController extends Controller
         $counter = 1;
         while (
             Category::where('slug', $slug)
-                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
                 ->exists()
         ) {
-            $slug = $originalSlug . '-' . $counter;
+            $slug = $originalSlug.'-'.$counter;
             $counter++;
         }
 
@@ -408,5 +458,4 @@ final class CategoryController extends Controller
 
         return response()->json(['data' => $tree]);
     }
-
 }

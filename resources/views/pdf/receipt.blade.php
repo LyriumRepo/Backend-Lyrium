@@ -194,11 +194,14 @@
   $bolitaPath   = public_path('images/iconologo.png');
   $bolitaBase64 = file_exists($bolitaPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($bolitaPath)) : '';
 
-  // Base = subtotal de los ítems de ESTA tienda (invoice->store_id).
+  // Base = subtotal de los ítems de ESTA tienda (invoice->store_id) — productos Y
+  // servicios. Faltaba sumar serviceItems, así que un pedido mixto solo calculaba
+  // la comisión sobre la parte de producto y omitía la de servicio por completo.
   // Si no hay store_id (legacy/manual), usa el subtotal total del pedido como fallback.
   if ($invoice && $invoice->store_id) {
-      $order->loadMissing('items');
-      $baseConIgv = (float) $order->items->where('store_id', $invoice->store_id)->sum('line_total');
+      $order->loadMissing(['items', 'serviceItems']);
+      $baseConIgv = (float) $order->items->where('store_id', $invoice->store_id)->sum('line_total')
+          + (float) $order->serviceItems->where('store_id', $invoice->store_id)->sum('line_total');
   } else {
       $baseConIgv = (float) $order->subtotal;
   }

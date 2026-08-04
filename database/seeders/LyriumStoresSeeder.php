@@ -156,9 +156,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedVidaNatural(): void
     {
-        $user  = $this->makeUser('vida.natural@lyrium.com', 'Vida Natural', '999111001', '20111111111');
+        $user  = $this->makeUser('vida.natural@lyrium.com', 'Vida Natural', '999111001', '20111111112');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20111111111',
+            'ruc'              => '20111111112',
             'trade_name'       => 'Vida Natural',
             'razon_social'     => 'Vida Natural SAC',
             'nombre_comercial' => 'Vida Natural',
@@ -195,9 +195,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedVinaSol(): void
     {
-        $user  = $this->makeUser('vina.sol@lyrium.com', 'Viña Sol', '999222001', '20222222221');
+        $user  = $this->makeUser('vina.sol@lyrium.com', 'Viña Sol', '999222001', '20222222223');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20222222221',
+            'ruc'              => '20222222223',
             'trade_name'       => 'Viña Sol',
             'razon_social'     => 'Viña Sol EIRL',
             'nombre_comercial' => 'Viña Sol',
@@ -230,9 +230,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedMasNatural(): void
     {
-        $user  = $this->makeUser('mas.natural@lyrium.com', 'Más Natural', '999333001', '20333333331');
+        $user  = $this->makeUser('mas.natural@lyrium.com', 'Más Natural', '999333001', '20333333334');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20333333331',
+            'ruc'              => '20333333334',
             'trade_name'       => 'Más Natural',
             'razon_social'     => 'Más Natural SAC',
             'nombre_comercial' => 'Más Natural',
@@ -261,9 +261,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedAmoSpa(): void
     {
-        $user  = $this->makeUser('amo.spa@lyrium.com', 'Amó Spa', '999444001', '20444444441');
+        $user  = $this->makeUser('amo.spa@lyrium.com', 'Amó Spa', '999444001', '20444444445');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20444444441',
+            'ruc'              => '20444444445',
             'trade_name'       => 'Amó Spa',
             'razon_social'     => 'Amó Spa EIRL',
             'nombre_comercial' => 'Amó Spa',
@@ -295,9 +295,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedFitBody(): void
     {
-        $user  = $this->makeUser('fit.body@lyrium.com', 'Fit Body', '999555001', '20555555551');
+        $user  = $this->makeUser('fit.body@lyrium.com', 'Fit Body', '999555001', '20555555556');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20555555551',
+            'ruc'              => '20555555556',
             'trade_name'       => 'Fit Body',
             'razon_social'     => 'Fit Body SAC',
             'nombre_comercial' => 'Fit Body',
@@ -334,9 +334,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedCentroMedico(): void
     {
-        $user  = $this->makeUser('centro.medico@lyrium.com', 'Centro Médico Digital', '999666001', '20666666661');
+        $user  = $this->makeUser('centro.medico@lyrium.com', 'Centro Médico Digital', '999666001', '20666666667');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20666666661',
+            'ruc'              => '20666666667',
             'trade_name'       => 'Centro Médico Digital',
             'razon_social'     => 'Centro Médico Digital SAC',
             'nombre_comercial' => 'Centro Médico Digital',
@@ -365,9 +365,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedPlazaMedic(): void
     {
-        $user  = $this->makeUser('plaza.medic@lyrium.com', 'Plaza Medic', '999777001', '20777777771');
+        $user  = $this->makeUser('plaza.medic@lyrium.com', 'Plaza Medic', '999777001', '20777777778');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20777777771',
+            'ruc'              => '20777777778',
             'trade_name'       => 'Plaza Medic',
             'razon_social'     => 'Plaza Medic EIRL',
             'nombre_comercial' => 'Plaza Medic',
@@ -397,9 +397,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedFisiocenter(): void
     {
-        $user  = $this->makeUser('fisiocenter@lyrium.com', 'Fisiocenter', '999888001', '20888888881');
+        $user  = $this->makeUser('fisiocenter@lyrium.com', 'Fisiocenter', '999888001', '20888888889');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20888888881',
+            'ruc'              => '20888888889',
             'trade_name'       => 'Fisiocenter',
             'razon_social'     => 'Fisiocenter SAC',
             'nombre_comercial' => 'Fisiocenter',
@@ -459,9 +459,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedSotomayor(): void
     {
-        $user  = $this->makeUser('sotomayor@lyrium.com', 'Sotomayor', '999902001', '20100000001');
+        $user  = $this->makeUser('sotomayor@lyrium.com', 'Sotomayor', '999902001', '20100000009');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20100000001',
+            'ruc'              => '20100000009',
             'trade_name'       => 'Sotomayor',
             'razon_social'     => 'Sotomayor SAC',
             'nombre_comercial' => 'Sotomayor',
@@ -490,9 +490,9 @@ class LyriumStoresSeeder extends Seeder
     // ──────────────────────────────────────────────────────────────────
     private function seedSanJuanDeDios(): void
     {
-        $user  = $this->makeUser('sanjuandedios@lyrium.com', 'San Juan de Dios Psiquiatría', '999903001', '20110000001');
+        $user  = $this->makeUser('sanjuandedios@lyrium.com', 'San Juan de Dios Psiquiatría', '999903001', '20110000007');
         $store = $this->makeStore($user->id, [
-            'ruc'              => '20110000001',
+            'ruc'              => '20110000007',
             'trade_name'       => 'San Juan de Dios - Psiquiatría',
             'razon_social'     => 'San Juan de Dios SAC',
             'nombre_comercial' => 'San Juan de Dios - Psiquiatría',

@@ -262,9 +262,10 @@ class LogisticsService
 
         if ($isLocal) {
             $couriers = [];
+            if ($row?->tiene_shalom) $couriers[] = 'Shalom';
             if ($row?->tiene_sharf)  $couriers[] = 'Sharf';
             if ($row?->tiene_urbano) $couriers[] = 'Urbano';
-            return $couriers ?: ['Sharf', 'Urbano'];
+            return $couriers ?: ['Shalom', 'Sharf', 'Urbano'];
         }
 
         if (!$row) return ['Shalom'];

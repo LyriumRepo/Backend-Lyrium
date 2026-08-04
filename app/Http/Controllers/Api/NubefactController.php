@@ -52,6 +52,8 @@ final class NubefactController extends Controller
                 'created_at'      => $inv->created_at->toIso8601String(),
                 'plan_name'       => $inv->planRequest?->plan?->name,
                 'months'          => $inv->planRequest?->months,
+                'payment_method'  => $inv->planRequest?->payment_method,
+                'payment_status'  => $inv->planRequest?->payment_status,
                 'store_name'      => $inv->store?->store_name ?? $inv->store?->trade_name,
                 'store_id'        => $inv->store_id,
                 'plan_request_id' => $inv->plan_request_id,
@@ -66,6 +68,39 @@ final class NubefactController extends Controller
                 'total'      => $invoices->total(),
                 'totalPages' => $invoices->lastPage(),
             ],
+        ]);
+    }
+
+    public function planInvoiceKpis(Request $request): JsonResponse
+    {
+        $query = Invoice::where('source', 'plan_subscription');
+
+        $now = now();
+        $currentMonthStart  = $now->copy()->startOfMonth();
+        $previousMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $previousMonthEnd   = $now->copy()->subMonth()->endOfMonth();
+
+        $currentMonth = (clone $query)
+            ->whereBetween('created_at', [$currentMonthStart, $now])
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->sum('total');
+
+        $previousMonth = (clone $query)
+            ->whereBetween('created_at', [$previousMonthStart, $previousMonthEnd])
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->sum('total');
+
+        $avgAmount = (clone $query)
+            ->whereIn('sunat_status', ['ACCEPTED', 'SENT_WAIT_CDR'])
+            ->avg('total');
+
+        return $this->success([
+            'totalFacturadoMesActual'   => (float) $currentMonth,
+            'totalFacturadoMesAnterior' => (float) $previousMonth,
+            'porcentajeCrecimiento'     => $previousMonth > 0
+                ? round((($currentMonth - $previousMonth) / $previousMonth) * 100, 1)
+                : ($currentMonth > 0 ? 100.0 : 0.0),
+            'montoPromedio'             => (float) ($avgAmount ?? 0),
         ]);
     }
 
@@ -144,9 +179,9 @@ final class NubefactController extends Controller
 
                 $storeCommissions = null;
                 if ($orderId = $data['order_id'] ?? null) {
-                    $order = \App\Models\Order::with('items.store')->find($orderId);
+                    $order = \App\Models\Order::with(['items.store', 'serviceItems.store'])->find($orderId);
                     if ($order) {
-                        $storeCommissions = $order->items->groupBy('store_id')->map(fn ($items) => [
+                        $storeCommissions = $order->items->concat($order->serviceItems)->groupBy('store_id')->map(fn ($items) => [
                             'storeId' => (string) $items->first()->store_id,
                             'storeName' => $items->first()->store?->trade_name ?? $items->first()->store?->store_name ?? '—',
                             'storeSlug' => $items->first()->store?->slug ?? '',
@@ -198,7 +233,10 @@ final class NubefactController extends Controller
 
         $query = Invoice::where('provider', 'nubefact')
             ->where(fn ($q) => $q->whereNull('source')->orWhere('source', 'order'))
-            ->with(['order.items.store', 'store.owner']);
+            // order.serviceItems faltaba aquí — InvoiceResource::combinedOrderItems()
+            // solo mezcla productos+servicios si la relación viene cargada, así que sin
+            // esto la comisión de servicios se omitía silenciosamente en la tabla.
+            ->with(['order.items.store', 'order.serviceItems.store', 'store.owner']);
 
         if (! $user->hasRole('administrator')) {
             $query->whereHas('order', fn ($q) => $q->where('user_id', $user->id));
@@ -222,7 +260,7 @@ final class NubefactController extends Controller
     public function mostrar(Request $request, string $id): JsonResponse
     {
         $user = $request->user();
-        $invoice = Invoice::where('provider', 'nubefact')->with(['order.items.store'])->findOrFail($id);
+        $invoice = Invoice::where('provider', 'nubefact')->with(['order.items.store', 'order.serviceItems.store'])->findOrFail($id);
 
         if (! $user->hasRole('administrator') && $invoice->order?->user_id !== $user->id) {
             return $this->forbidden('No tienes acceso a este comprobante.');

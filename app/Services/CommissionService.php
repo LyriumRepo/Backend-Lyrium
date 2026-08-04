@@ -85,19 +85,35 @@ final class CommissionService
 
     public function getCommissionSummary(Order $order, ?int $storeId = null): array
     {
-        $order->loadMissing('items');
+        $order->loadMissing(['items', 'serviceItems']);
 
-        $source = $storeId
+        $productSource = $storeId
             ? $order->items->where('store_id', $storeId)
             : $order->items;
+        // Un pedido puede mezclar productos y servicios de la misma tienda — faltaba
+        // sumar los ítems de servicio aquí, así que la comisión de servicios (ya
+        // calculada y guardada por calculateForOrder()) se omitía del resumen/PDF.
+        $serviceSource = $storeId
+            ? $order->serviceItems->where('store_id', $storeId)
+            : $order->serviceItems;
 
-        $items = $source->map(fn (OrderItem $item) => [
+        $productItems = $productSource->map(fn (OrderItem $item) => [
             'product_name' => $item->product_name,
             'line_total' => (float) $item->line_total,
             'valor_venta' => round($item->line_total / 1.18, 2),
             'commission_rate' => (float) $item->commission_rate,
             'commission_amount' => (float) $item->commission_amount,
         ]);
+
+        $serviceItems = $serviceSource->map(fn (OrderServiceItem $item) => [
+            'product_name' => $item->service_name,
+            'line_total' => (float) $item->line_total,
+            'valor_venta' => round($item->line_total / 1.18, 2),
+            'commission_rate' => (float) $item->commission_rate,
+            'commission_amount' => (float) $item->commission_amount,
+        ]);
+
+        $items = $productItems->concat($serviceItems);
 
         // commission_amount por ítem = "Comisión Total" (incluye IGV de la comisión).
         // Sin envío (fórmula Lyrium aplica solo sobre venta de productos).

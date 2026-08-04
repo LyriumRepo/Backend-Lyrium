@@ -321,7 +321,7 @@
             <div class="commission-row">
                 <table>
                     <tr>
-                        <td>Subtotal productos (base comisión)</td>
+                        <td>Subtotal productos y servicios (base comisión)</td>
                         <td class="right">S/ {{ number_format($commissionBase, 2) }}</td>
                     </tr>
                     <tr>
@@ -335,7 +335,7 @@
                 </table>
             </div>
             <p class="commission-note">
-                Comisión calculada sobre el subtotal de productos × tasa vigente (sin envío).<br>
+                Comisión calculada sobre el subtotal de productos y servicios × tasa vigente (sin envío).<br>
                 El envío no se incluye porque el vendedor lo traslada al carrier.
                 No modifica los importes fiscales del comprobante.
             </p>

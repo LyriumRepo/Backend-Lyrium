@@ -11,7 +11,7 @@ class PlanRequestSeeder extends Seeder
 {
     public function run(): void
     {
-        $store = Store::where('ruc', '20123456781')->first();
+        $store = Store::where('ruc', '20123456786')->first();
 
         if (! $store) {
             $this->command->warn('Store not found. Run AdminUserSeeder first.');

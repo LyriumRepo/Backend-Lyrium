@@ -183,6 +183,7 @@ final class ServiceResource extends JsonResource
             // ── Timestamps ──────────────────────────────────────────────────
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            'reviewed_at' => $this->reviewed_at?->toIso8601String(),
         ];
     }
 

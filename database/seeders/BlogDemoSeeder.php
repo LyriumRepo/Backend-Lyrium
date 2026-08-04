@@ -136,6 +136,9 @@ final class BlogDemoSeeder extends Seeder
             ['title' => 'Tip rápido: hidrátate mejor', 'img' => 'chica-sentada.jpg'],
             ['title' => '3 snacks saludables en 1 minuto', 'img' => 'cuidado_personal.jpg'],
             ['title' => 'Respiración para calmar la ansiedad', 'img' => 'joven-sentado.jpg'],
+            ['title' => 'Estiramientos rápidos para la espalda', 'img' => 'Fondos_BioBlog-6.webp'],
+            ['title' => 'Cómo armar una lonchera saludable', 'img' => 'blog-teclas.jpg'],
+            ['title' => '5 minutos de mindfulness antes de dormir', 'img' => 'entrevista_doctora-scaled.webp'],
         ];
 
         foreach ($shorts as $i => $s) {

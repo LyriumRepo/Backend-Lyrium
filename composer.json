@@ -59,7 +59,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -c \"#93c5fd,#c4b5fd,#86efac\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" --names=server,queue,reverb --kill-others"
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#86efac,#fbbf24\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan reverb:start\" \"node ruc-checker/server.js\" --names=server,queue,reverb,rpa --kill-others"
         ],
         "test": [
             "@php artisan config:clear --ansi",

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
-use Illuminate\Support\Facades\Storage;
 
 use App\Events\StoreStatusChanged;
 use App\Http\Controllers\Controller;
@@ -11,6 +10,8 @@ use App\Http\Requests\StoreUpdateRequest;
 use App\Http\Resources\StoreResource;
 use App\Models\Contract;
 use App\Models\Store;
+use App\Models\StoreBranch;
+use App\Models\StoreReview;
 use App\Models\User;
 use App\Notifications\StoreProfileUpdatedNotification;
 use App\Notifications\StoreStatusNotification;
@@ -20,6 +21,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 final class StoreController extends Controller
@@ -100,7 +102,7 @@ final class StoreController extends Controller
             $plan = $store->subscription->plan?->name === 'Premium' ? 'premium' : 'basico';
         }
 
-        $storeReviewStats = \App\Models\StoreReview::getStoreStats($store->id);
+        $storeReviewStats = StoreReview::getStoreStats($store->id);
 
         return response()->json([
             'success' => true,
@@ -359,7 +361,7 @@ final class StoreController extends Controller
         $this->auditService->record(
             event: $event,
             module: 'stores',
-            description: 'Tienda ' . ($data['reason'] ?? $data['status']),
+            description: 'Tienda '.($data['reason'] ?? $data['status']),
             auditable: $store,
             oldValues: ['status' => $store->getOriginal('status')],
             newValues: ['status' => $data['status'], 'reason' => $data['reason'] ?? null],
@@ -434,6 +436,13 @@ final class StoreController extends Controller
 
             $branchId = $branchData['id'] ?? null;
 
+            if ($branchId) {
+                $existing = StoreBranch::find($branchId);
+                if ($existing && $existing->store_id !== $store->id) {
+                    return response()->json(['message' => 'Sucursal no pertenece a la tienda.'], 422);
+                }
+            }
+
             unset($branchData['id']);
 
             $branchData['store_id'] = $store->id;
@@ -441,7 +450,7 @@ final class StoreController extends Controller
             $branch = $store->branches()->updateOrCreate(
                 [
                     'id' => $branchId,
-                    'store_id' => $store->id
+                    'store_id' => $store->id,
                 ],
                 $branchData
             );
@@ -458,16 +467,30 @@ final class StoreController extends Controller
             $store->branches()->where('id', '!=', $principal->id)->update(['is_principal' => false]);
             $store->update([
                 'department' => $principal->department,
-                'province'   => $principal->province,
-                'district'   => $principal->district,
+                'province' => $principal->province,
+                'district' => $principal->district,
             ]);
+        } else {
+            // Ninguna sucursal quedó marcada como principal (p. ej. se borró
+            // la única principal sin reemplazo): promovemos la más antigua
+            // de las restantes para que la tienda nunca quede sin principal
+            // ni sin dpto/prov/distr sincronizados.
+            $fallbackPrincipal = $store->branches()->orderBy('id')->first();
+            if ($fallbackPrincipal) {
+                $fallbackPrincipal->update(['is_principal' => true]);
+                $store->update([
+                    'department' => $fallbackPrincipal->department,
+                    'province' => $fallbackPrincipal->province,
+                    'district' => $fallbackPrincipal->district,
+                ]);
+            }
         }
 
         if (! empty($toDelete)) {
             $this->auditService->record(
                 event: 'stores.branch.deleted',
                 module: 'stores',
-                description: count($toDelete) . ' sucursales eliminadas',
+                description: count($toDelete).' sucursales eliminadas',
                 auditable: $store,
                 oldValues: ['branch_ids' => $toDelete],
                 correlationId: (string) $store->id,
@@ -479,7 +502,7 @@ final class StoreController extends Controller
             $this->auditService->record(
                 event: 'stores.branch.created',
                 module: 'stores',
-                description: count($createdBranchIds) . ' sucursales creadas',
+                description: count($createdBranchIds).' sucursales creadas',
                 auditable: $store,
                 newValues: ['branch_ids' => $createdBranchIds],
                 correlationId: (string) $store->id,
@@ -491,7 +514,7 @@ final class StoreController extends Controller
             $this->auditService->record(
                 event: 'stores.branch.updated',
                 module: 'stores',
-                description: count($updatedBranchIds) . ' sucursales actualizadas',
+                description: count($updatedBranchIds).' sucursales actualizadas',
                 auditable: $store,
                 correlationId: (string) $store->id,
                 metadata: ['updated_branch_ids' => $updatedBranchIds],
@@ -667,7 +690,7 @@ final class StoreController extends Controller
         $this->auditService->record(
             event: 'stores.media.uploaded',
             module: 'stores',
-            description: count($urls) . ' imágenes agregadas a galería',
+            description: count($urls).' imágenes agregadas a galería',
             auditable: $store,
             newValues: ['gallery_count' => count($urls)],
             correlationId: (string) $store->id,
@@ -746,7 +769,7 @@ final class StoreController extends Controller
         $this->auditService->record(
             event: 'stores.media.deleted',
             module: 'stores',
-            description: 'Imagen de galería eliminada (índice ' . $index . ')',
+            description: 'Imagen de galería eliminada (índice '.$index.')',
             auditable: $store,
             oldValues: ['gallery_index' => $index],
             correlationId: (string) $store->id,
@@ -760,14 +783,18 @@ final class StoreController extends Controller
             'message' => 'Imagen eliminada correctamente',
         ]);
     }
-    //UploadRepLegalPhoto
+
+    // UploadRepLegalPhoto
     public function uploadRepLegalPhoto(Request $request, int $id)
     {
         $request->validate([
-            'file' => ['required', 'image', 'max:5120']
+            'file' => ['required', 'image', 'max:5120'],
         ]);
 
-        $store = Store::findOrFail($id);
+        $store = Store::where('id', $id)->where('owner_id', $request->user()->id)->first();
+        if (! $store) {
+            return response()->json(['message' => 'Tienda no encontrada.'], 404);
+        }
 
         $path = $request->file('file')
             ->store('stores', 'public');
@@ -775,13 +802,13 @@ final class StoreController extends Controller
         $url = Storage::url($path);
 
         $store->update([
-            'rep_legal_foto' => $url
+            'rep_legal_foto' => $url,
         ]);
 
         $this->notifyAdminStoreChanged($store, 'general');
 
         return response()->json([
-            'url' => $url
+            'url' => $url,
         ]);
     }
 

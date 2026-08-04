@@ -12,6 +12,7 @@ use App\Notifications\ProfileRequestNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ProfileRequestController extends Controller
 {
@@ -262,7 +263,9 @@ final class ProfileRequestController extends Controller
             ], 422);
         }
 
-        $notes = $request->input('notes');
+        // El frontend admin (useControlVendedores.ts) envía "admin_notes";
+        // se acepta también "notes" como alias por compatibilidad.
+        $notes = $request->input('admin_notes', $request->input('notes'));
 
         $profileRequest->update([
             'status' => StoreProfileRequest::STATUS_APPROVED,
@@ -297,13 +300,18 @@ final class ProfileRequestController extends Controller
             ], 422);
         }
 
+        // Mismo contrato que approve(): el frontend admin envía "admin_notes";
+        // se acepta también "notes" como alias por compatibilidad.
         $request->validate([
-            'notes' => ['required', 'string', 'min:10', 'max:1000'],
+            'admin_notes' => ['required_without:notes', 'string', 'min:10', 'max:1000'],
+            'notes' => ['required_without:admin_notes', 'string', 'min:10', 'max:1000'],
         ]);
+
+        $notes = $request->input('admin_notes', $request->input('notes'));
 
         $profileRequest->update([
             'status' => StoreProfileRequest::STATUS_REJECTED,
-            'admin_notes' => $request->input('notes'),
+            'admin_notes' => $notes,
             'reviewed_by' => $request->user()->id,
             'last_rejected_at' => now(),
         ]);
@@ -323,7 +331,7 @@ final class ProfileRequestController extends Controller
         ]);
     }
 
-    public function stream(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
+    public function stream(Request $request): StreamedResponse
     {
         $lastEventId = $request->header('Last-Event-ID', 0);
 
