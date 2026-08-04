@@ -28,6 +28,8 @@ final class StoreResource extends JsonResource
                     'url' => $media->getUrl(),
                     'title' => $media->getCustomProperty('title') ?? '',
                     'link' => $media->getCustomProperty('link') ?? '',
+                    // 'horizontal' por defecto para banners subidos antes de este campo.
+                    'orientation' => $media->getCustomProperty('orientation') ?? 'horizontal',
                 ])
                 ->values()
                 ->all(),

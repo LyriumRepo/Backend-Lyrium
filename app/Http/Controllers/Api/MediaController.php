@@ -348,9 +348,13 @@ final class MediaController extends Controller
             $this->validateAdBannersLimit($store);
 
             $file = $request->file('file');
+            // 'horizontal' por defecto: mantiene el comportamiento actual para
+            // sellers cuya plantilla no tiene slots laterales.
+            $orientation = $request->input('orientation', 'horizontal');
 
             $media = $store->addMedia($file)
                 ->preservingOriginal()
+                ->withCustomProperties(['orientation' => $orientation])
                 ->toMediaCollection('ad_banners');
 
             $url = $media->getUrl();
@@ -360,12 +364,13 @@ final class MediaController extends Controller
                 module: 'media',
                 description: 'Banner promocional subido para tienda ID ' . $storeId,
                 source: AuditService::SOURCE_WEB,
-                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType()],
+                metadata: ['store_id' => $storeId, 'media_id' => $media->id, 'file_type' => $file->getMimeType(), 'orientation' => $orientation],
             );
 
             return $this->created([
                 'id' => $media->id,
                 'url' => $url,
+                'orientation' => $orientation,
             ]);
         } catch (\OverflowException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

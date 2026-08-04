@@ -22,6 +22,9 @@ final class StoreMediaRequest extends FormRequest
                 'mimes:jpeg,jpg,png,webp,gif',
                 'max:10240',
             ],
+            // Solo usado por banners promocionales (ad_banners) de tienda; el resto
+            // de endpoints que reutilizan esta request lo ignoran sin problema.
+            'orientation' => ['sometimes', 'string', 'in:horizontal,vertical'],
         ];
     }
 
@@ -32,6 +35,7 @@ final class StoreMediaRequest extends FormRequest
             'file.file' => 'El archivo debe ser un archivo válido.',
             'file.mimes' => 'El archivo debe ser una imagen (JPEG, PNG, WebP o GIF).',
             'file.max' => 'El archivo no debe superar los 10 MB.',
+            'orientation.in' => 'La orientación debe ser horizontal o vertical.',
         ];
     }
 }
