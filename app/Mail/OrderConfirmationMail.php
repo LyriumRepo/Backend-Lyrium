@@ -74,6 +74,8 @@ final class OrderConfirmationMail extends Mailable implements ShouldQueue
         $shippingMethod = match ($order->shipping_type) {
             'domicilio' => 'Entrega a Domicilio',
             'agencia' => 'Recojo en Agencia',
+            'service_store' => 'Servicio en tienda',
+            'service_home' => 'Servicio a domicilio',
             default => '—',
         };
 
