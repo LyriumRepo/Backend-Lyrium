@@ -161,25 +161,35 @@ final class NubefactProvider implements InvoiceProviderInterface
         return $response->json();
     }
 
-    public function getInvoiceStatus(string $providerInvoiceId): ?array
+    public function getInvoiceStatus(string $tipoDeComprobante, string $serie, string $numero): ?array
     {
-        $url = rtrim($this->apiUrl, '/') . "?operacion=consultar_comprobante&id={$providerInvoiceId}";
+        // La API de NubeFact usa un único endpoint POST+JSON para TODAS las operaciones
+        // (igual que emitInvoice) — 'consultar_comprobante' identifica el documento por
+        // tipo/serie/número, no por un "id" vía querystring GET (eso devuelve 404, porque
+        // ese endpoint no soporta GET; el 404 es la página web de NubeFact, no un error de la API).
+        $url = rtrim($this->apiUrl, '/');
+        $payload = [
+            'operacion' => 'consultar_comprobante',
+            'tipo_de_comprobante' => $tipoDeComprobante,
+            'serie' => $serie,
+            'numero' => $numero,
+        ];
 
         try {
             $response = Http::withHeaders([
                     'Authorization' => 'Token token="' . $this->apiToken . '"',
-                    'Accept' => 'application/json',
+                    'Content-Type' => 'application/json',
                 ])
                 ->timeout($this->timeout)
                 ->connectTimeout($this->connectTimeout)
-                ->get($url);
+                ->post($url, $payload);
 
             if ($response->successful()) {
                 return $response->json();
             }
 
             $this->logWarning('getInvoiceStatus — No se pudo obtener estado', [
-                'provider_invoice_id' => $providerInvoiceId,
+                'payload' => $payload,
                 'status' => $response->status(),
                 'body' => $this->sanitizeBody($response->body()),
             ]);
@@ -187,13 +197,13 @@ final class NubefactProvider implements InvoiceProviderInterface
             return null;
         } catch (ConnectionException $e) {
             $this->logError('getInvoiceStatus — Error de conexión', [
-                'provider_invoice_id' => $providerInvoiceId,
+                'payload' => $payload,
                 'error' => $e->getMessage(),
             ]);
             return null;
         } catch (\Throwable $e) {
             $this->logError('getInvoiceStatus — Error', [
-                'provider_invoice_id' => $providerInvoiceId,
+                'payload' => $payload,
                 'error' => $e->getMessage(),
             ]);
             return null;

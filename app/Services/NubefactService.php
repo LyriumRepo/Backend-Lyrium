@@ -218,11 +218,15 @@ final class NubefactService
 
     public function getInvoiceStatus(Invoice $invoice): ?array
     {
-        if (empty($invoice->provider_invoice_id)) {
+        if (empty($invoice->series) || empty($invoice->number)) {
             return null;
         }
 
-        return $this->provider->getInvoiceStatus($invoice->provider_invoice_id);
+        return $this->provider->getInvoiceStatus(
+            $this->mapTypeToNubefact($invoice->type),
+            $invoice->series,
+            (string) $invoice->number,
+        );
     }
 
     public function getPdfUrl(Invoice $invoice): ?string

@@ -8,7 +8,7 @@ interface InvoiceProviderInterface
 {
     public function emitInvoice(array $payload): array;
 
-    public function getInvoiceStatus(string $providerInvoiceId): ?array;
+    public function getInvoiceStatus(string $tipoDeComprobante, string $serie, string $numero): ?array;
 
     public function getInvoicePdfUrl(?string $providerInvoiceId): ?string;
 
