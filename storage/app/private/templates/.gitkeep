@@ -1,0 +1,5 @@
+Coloca aquí los templates .docx requeridos por ContractDocumentService:
+  - convenio_template.docx  (TEMPLATE_PATH)
+  - acuerdo_comercial.docx  (ACUERDO_PATH)
+Sin estos archivos, generate() cae a texto plano por código, y
+generateFromContract() devuelve file_path vacío (sin error visible).

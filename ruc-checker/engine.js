@@ -96,7 +96,11 @@ function evaluacionBooleana(data) {
         rechazos.push("La empresa figura como no habida en SUNAT");
     }
 
-    if (!emiteComprobantes(data.comprobantes)) {
+    // Cuando el dato viene de la fuente de respaldo (apisperu.com, plan
+    // gratuito) no se expone el detalle de comprobantes electrónicos —
+    // no se puede aplicar este filtro con certeza, así que se omite en
+    // vez de rechazar por falta de datos que esa fuente nunca entrega.
+    if (!data.fuenteIncompleta && !emiteComprobantes(data.comprobantes)) {
         rechazos.push("La empresa no emite comprobantes de pago (factura o boleta)");
     }
 

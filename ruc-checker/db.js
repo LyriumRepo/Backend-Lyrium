@@ -1,14 +1,12 @@
+require("dotenv").config();
 const mysql = require("mysql2");
 
-// ─── IMPORTANTE ──────────────────────────────────────────────────────────────
-// Cambia "nombre_de_tu_bd" por el nombre real de la base de datos del marketplace
-// tal como aparece en XAMPP / phpMyAdmin.
-// ─────────────────────────────────────────────────────────────────────────────
 const db = mysql.createPool({
-    host:               "localhost",
-    user:               "root",
-    password:           "",             // Contraseña de MySQL en XAMPP (vacía por defecto)
-    database:           "db-lyriumv1", // <-- REEMPLAZAR con el nombre real
+    host:               process.env.DB_HOST || "127.0.0.1",
+    port:               parseInt(process.env.DB_PORT || "3306"),
+    user:               process.env.DB_USER || "root",
+    password:           process.env.DB_PASSWORD || "",
+    database:           process.env.DB_DATABASE || "db-lyriumv1",
     waitForConnections: true,
     connectionLimit:    10,
     queueLimit:         0

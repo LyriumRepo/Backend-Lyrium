@@ -1,2 +1,8 @@
 *
 !.gitignore
+
+# Plantillas .docx que el código necesita para generar convenios/acuerdos
+# (ContractDocumentService::TEMPLATE_PATH y ::ACUERDO_PATH). Son assets
+# fuente, no contenido subido en runtime — deben viajar con el backend.
+!templates/
+!templates/**

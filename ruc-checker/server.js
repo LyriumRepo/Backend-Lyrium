@@ -1,10 +1,13 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const multer = require("multer");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 const { consultarRUC, consultarURL } = require("./scraper");
+const { consultarRUCFallback } = require("./apisperuClient");
 const { extraerTextoPDF } = require("./pdfExtractor");
 const { evaluarEmpresa } = require("./engine");
 const { query } = require("./db");
@@ -98,6 +101,62 @@ async function getSellerRoleId() {
     return rows[0].id;
 }
 
+// ─── Crear usuario del marketplace si aún no existe (compartido) ─────────────
+async function crearUsuarioSiNoExiste({ user_id, nombre, correo, telefono, ruc, password }) {
+    if (user_id) return user_id;
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const username = await usernameUnico(nombre);
+    const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+
+    const userResult = await query(
+        `INSERT INTO users
+         (name, username, email, nicename, phone, document_type, document_number, password, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'RUC', ?, ?, ?, ?)`,
+        [nombre, username, correo, slugify(nombre), telefono, ruc, passwordHash, now, now]
+    );
+    const newUserId = userResult.insertId;
+
+    try {
+        const roleId = await getSellerRoleId();
+        await query(
+            "INSERT IGNORE INTO model_has_roles (role_id, model_type, model_id) VALUES (?, 'App\\\\Models\\\\User', ?)",
+            [roleId, newUserId]
+        );
+    } catch (roleErr) {
+        console.error("⚠ No se pudo asignar rol seller:", roleErr.message);
+    }
+
+    return newUserId;
+}
+
+// ─── Avisar a los administradores (tabla notifications, formato Laravel) ─────
+// Escribe directo en la tabla `notifications` (mismo patrón que ya usa este
+// servicio para users/model_has_roles) para que el bell/toast del panel admin
+// la recoja sin cambios adicionales en el backend Laravel.
+async function notificarAdmins(tipo, data) {
+    try {
+        const admins = await query(
+            `SELECT u.id FROM users u
+             INNER JOIN model_has_roles mhr ON mhr.model_id = u.id AND mhr.model_type = 'App\\\\Models\\\\User'
+             INNER JOIN roles r ON r.id = mhr.role_id
+             WHERE r.name = 'administrator'`
+        );
+        if (admins.length === 0) return;
+
+        const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+        for (const admin of admins) {
+            await query(
+                `INSERT INTO notifications (id, type, notifiable_type, notifiable_id, data, created_at, updated_at)
+                 VALUES (?, ?, 'App\\\\Models\\\\User', ?, ?, ?, ?)`,
+                [crypto.randomUUID(), tipo, admin.id, JSON.stringify(data), now, now]
+            );
+        }
+    } catch (notifErr) {
+        console.error("⚠ No se pudo notificar a los administradores:", notifErr.message);
+    }
+}
+
 
 // =============================================================================
 // POST /registro-seller
@@ -158,12 +217,84 @@ app.post("/registro-seller", upload.single("archivoPDF"), async (req, res) => {
         }
 
         // ── 4. Consultar SUNAT ───────────────────────────────────────────────
-        const dataSunat = await Promise.race([
-            consultarRUC(ruc),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Timeout consultando SUNAT (45s)")), 45000)
-            )
-        ]);
+        let dataSunat;
+        let motivoFalloRpa = null;
+        try {
+            dataSunat = await Promise.race([
+                consultarRUC(ruc),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Timeout consultando SUNAT (45s)")), 45000)
+                )
+            ]);
+            if (dataSunat.error) {
+                motivoFalloRpa = "SUNAT rechazó o no respondió la consulta automática (posible bloqueo del sitio)";
+            }
+        } catch (sunatErr) {
+            dataSunat = { error: true, existe: false };
+            motivoFalloRpa = sunatErr.message;
+        }
+
+        // ── Plan B: SUNAT bloqueó/no respondió → intentar apisperu.com antes
+        // de rendirse. No es un segundo RPA, solo consume esa API externa.
+        if (motivoFalloRpa) {
+            const fallback = await consultarRUCFallback(ruc);
+            if (!fallback.error && fallback.existe) {
+                dataSunat = fallback;
+                motivoFalloRpa = null; // se recuperó por la fuente secundaria
+            }
+        }
+
+        // Ni SUNAT ni el respaldo respondieron — el scraper devuelve el mismo
+        // { existe:false } tanto para esto como para un RUC genuinamente
+        // inexistente, así que se distingue aquí. No se rechaza la solicitud:
+        // se guarda para revisión manual y se avisa al admin, en vez de
+        // perderla en silencio como pasaba antes (detectado 2026-08-08).
+        if (motivoFalloRpa) {
+            user_id = await crearUsuarioSiNoExiste({ user_id, nombre, correo, telefono, ruc, password });
+            const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+            const diagnosticoFallo = [
+                "⚠ No se pudo verificar automáticamente el RUC con SUNAT en este momento.",
+                `Motivo técnico: ${motivoFalloRpa}`,
+                "La solicitud fue registrada y requiere que un administrador verifique el RUC manualmente en SUNAT antes de aprobar o rechazar.",
+            ];
+
+            const appResult = await query(
+                `INSERT INTO seller_applications
+                 (user_id, nombre_comercial, ruc, dni, telefono, correo, categoria,
+                  razon_social, sunat_data, tipo_evidencia, evidencia_valor,
+                  etapa, score, riesgo, estado, diagnostico, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    user_id, nombre, ruc, dni, telefono, correo, categoria || null,
+                    null,
+                    JSON.stringify({ rpa_fallo: true, motivo: motivoFalloRpa }),
+                    tipoEvidencia, valorEvidencia || null,
+                    1, 0, "MEDIO", "REVISION",
+                    JSON.stringify(diagnosticoFallo),
+                    now, now
+                ]
+            );
+            const applicationId = appResult.insertId;
+
+            await notificarAdmins("rpa_verification_failed", {
+                subject: `No se pudo verificar el RUC ${ruc} con SUNAT — requiere revisión manual`,
+                seller_name: nombre,
+                ruc,
+                application_id: applicationId,
+                reason: motivoFalloRpa,
+                action_url: "/admin/sellers/solicitudes",
+            });
+
+            return res.json({
+                estado: "REVISION",
+                score: 0,
+                riesgo: "MEDIO",
+                etapa: 1,
+                diagnostico: diagnosticoFallo,
+                application_id: applicationId,
+                store_id: null,
+            });
+        }
 
         if (!dataSunat.existe) {
             return res.json({ estado: "RECHAZADO", diagnostico: ["RUC no existe en SUNAT"] });
@@ -184,13 +315,14 @@ app.post("/registro-seller", upload.single("archivoPDF"), async (req, res) => {
             condicion: dataSunat.condicion || null,
             comprobantes: dataSunat.comprobantes || [],
             representantes: dataSunat.representantes || [],
+            fuente: dataSunat.fuente || "sunat_rpa",
 
             // Las 4 validaciones críticas — booleanas
             validacion: {
                 rucExiste: Boolean(dataSunat.existe),
                 estadoActivo: dataSunat.estado === "ACTIVO",
                 condicionHabido: dataSunat.condicion === "HABIDO",
-                emiteComprobante: tieneComprobantes,
+                emiteComprobante: dataSunat.fuenteIncompleta ? null : tieneComprobantes,
             }
         };
 
@@ -239,37 +371,24 @@ app.post("/registro-seller", upload.single("archivoPDF"), async (req, res) => {
             evidencia: evidenciaFinal
         }, dataSunat);
 
+        // Transparencia para el admin: si se usó la fuente de respaldo, que
+        // quede visible en el mismo panel de diagnóstico que ya usa el RPA
+        // normal (sin necesidad de tocar el frontend).
+        if (dataSunat.fuenteIncompleta) {
+            resultado.diagnostico = [
+                "ℹ️ RUC verificado vía fuente secundaria (apisperu.com) — SUNAT no respondió directamente. No se pudo confirmar comprobantes electrónicos automáticamente; verifícalo manualmente si es relevante.",
+                ...resultado.diagnostico
+            ];
+        }
+
         const now = new Date().toISOString().slice(0, 19).replace("T", " ");
 
         // ── 7. Crear usuario en el marketplace (si no viene user_id) ─────────
-        if (!user_id) {
-            const passwordHash = await bcrypt.hash(password, 10);
-            const username = await usernameUnico(nombre);
-
-            const userResult = await query(
-                `INSERT INTO users
-                 (name, username, email, nicename, phone, document_type, document_number, password, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, 'RUC', ?, ?, ?, ?)`,
-                [nombre, username, correo, slugify(nombre), telefono, ruc, passwordHash, now, now]
-            );
-            user_id = userResult.insertId;
-
-            // Asignar rol 'seller' en Spatie
-            try {
-                const roleId = await getSellerRoleId();
-                await query(
-                    "INSERT IGNORE INTO model_has_roles (role_id, model_type, model_id) VALUES (?, 'App\\\\Models\\\\User', ?)",
-                    [roleId, user_id]
-                );
-            } catch (roleErr) {
-                console.error("⚠ No se pudo asignar rol seller:", roleErr.message);
-            }
-
-            // NOTA: El OTP de verificación de correo ya no se dispara aquí.
-            // Ahora se envía solo si el usuario lo solicita desde la
-            // pantalla de resultado (POST /enviar-diagnostico), o cuando
-            // el admin aprueba la solicitud.
-        }
+        // NOTA: El OTP de verificación de correo ya no se dispara aquí.
+        // Ahora se envía solo si el usuario lo solicita desde la
+        // pantalla de resultado (POST /enviar-diagnostico), o cuando
+        // el admin aprueba la solicitud.
+        user_id = await crearUsuarioSiNoExiste({ user_id, nombre, correo, telefono, ruc, password });
 
         // ── 8. Guardar solicitud en seller_applications ─────────────────────
         const appResult = await query(
