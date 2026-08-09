@@ -180,6 +180,16 @@ final class ServiceResource extends JsonResource
                 []
             ),
 
+            // ── Rating ───────────────────────────────────────────────────────
+            // Promedio/conteo real de reseñas (vía Service::reviews(), que
+            // atraviesa service_bookings -> reviews). Usa withAvg/withCount
+            // si el controller los precarga (ver ServiceController), si no
+            // cae al accessor con query en vivo (Service::getAverageRatingAttribute).
+            'rating' => [
+                'average' => (float) ($this->average_rating ?? 0),
+                'count' => (int) ($this->review_count ?? 0),
+            ],
+
             // ── Timestamps ──────────────────────────────────────────────────
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

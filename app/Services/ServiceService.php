@@ -41,6 +41,8 @@ final class ServiceService
         return Service::query()
             ->where('store_id', $storeId)
             ->with(['schedules', 'category.parent', 'specialists'])
+            ->withCount('reviews as review_count')
+            ->withAvg('reviews as average_rating', 'rating')
             ->latest()
             ->paginate($perPage);
     }
@@ -51,7 +53,9 @@ final class ServiceService
 
         $query = Service::query()
             ->where('status', Service::STATUS_ACTIVE)
-            ->with(['store', 'schedules', 'category.parent', 'specialists']);
+            ->with(['store', 'schedules', 'category.parent', 'specialists'])
+            ->withCount('reviews as review_count')
+            ->withAvg('reviews as average_rating', 'rating');
 
         if (! empty($filters['category_id'])) {
             $ids = $this->getDescendantIds((int) $filters['category_id']);
@@ -121,6 +125,8 @@ final class ServiceService
     {
         return Service::query()
             ->with(['store', 'schedules', 'category.parent', 'specialists'])
+            ->withCount('reviews as review_count')
+            ->withAvg('reviews as average_rating', 'rating')
             ->findOrFail($id);
     }
 
@@ -128,6 +134,8 @@ final class ServiceService
     {
         return Service::query()
             ->with(['store', 'schedules', 'category.parent', 'specialists.schedules'])
+            ->withCount('reviews as review_count')
+            ->withAvg('reviews as average_rating', 'rating')
             ->where('slug', $slug)
             ->firstOrFail();
     }

@@ -132,6 +132,22 @@ final class Service extends Model implements HasMedia
         );
     }
 
+    public function getAverageRatingAttribute($value): float
+    {
+        // Mismo patrón que Store::getAverageRatingAttribute: si $value ya
+        // viene de un withAvg('reviews as average_rating', 'rating') lo usa
+        // directo; si no, hace fallback a una query en vivo sobre reviews()
+        // (la relación HasManyThrough vía service_bookings de más arriba).
+        $rating = $value ?? $this->reviews()->avg('rating') ?? 0;
+
+        return round((float) $rating, 1);
+    }
+
+    public function getReviewCountAttribute($value): int
+    {
+        return (int) ($value ?? $this->reviews()->count());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public function isActive(): bool

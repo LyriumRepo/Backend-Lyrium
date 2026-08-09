@@ -61,7 +61,13 @@ final class ProductResource extends JsonResource
             ]),
 
             'rating' => [
-                'average' => (float) ($this->reviews_avg ?? $this->average_rating),
+                // withAvg('reviews', 'rating') expone el atributo como
+                // reviews_avg_rating (convención de Eloquent: {relación}_{fn}_{columna}),
+                // no reviews_avg — esa clave nunca existía, así que este valor
+                // siempre caía al fallback average_rating (accessor con query
+                // en vivo). Corregido para leer el alias real; deja de depender
+                // del accessor como camino principal.
+                'average' => (float) ($this->reviews_avg_rating ?? $this->average_rating),
                 'count' => (int) ($this->reviews_count ?? $this->review_count),
             ],
 
