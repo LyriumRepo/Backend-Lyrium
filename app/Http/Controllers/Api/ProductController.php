@@ -11,11 +11,12 @@ use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\User;
 use App\Models\Store;
+use App\Models\User;
 use App\Notifications\ProductPendingReviewNotification;
 use App\Notifications\ProductStatusNotification;
 use App\Services\PlanService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,7 +54,7 @@ final class ProductController extends Controller
         $query = Product::with(self::RELATIONS_LIST)
             ->withCount('reviews')
             ->withAvg('reviews', 'rating');
-        $user  = $request->user() ?? $request->user('sanctum');
+        $user = $request->user() ?? $request->user('sanctum');
 
         if ($user?->hasRole('administrator')) {
             // Admin ve todo
@@ -133,7 +134,7 @@ final class ProductController extends Controller
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('categories', function ($cat) use ($search) {
                         $cat->where('name', 'like', "%{$search}%");
-                    })   
+                    })
             );
         }
 
@@ -143,7 +144,7 @@ final class ProductController extends Controller
             if ($category) {
                 $category->load([
                     'children',
-                    'children.children'
+                    'children.children',
                 ]);
 
                 $ids = $this->getDescendantIds($category);
@@ -154,7 +155,7 @@ final class ProductController extends Controller
             }
         }
 
-        $perPage  = min((int) $request->query('per_page', 15), 100);
+        $perPage = min((int) $request->query('per_page', 15), 100);
         $products = $query->orderByDesc('created_at')->paginate($perPage);
 
         return response()->json([
@@ -284,7 +285,7 @@ final class ProductController extends Controller
             ], 403);
         }
 
-        $data    = $request->validated();
+        $data = $request->validated();
 
         if (array_key_exists('sticker', $data)) {
             if ($stickerError = $this->validateStickerAllowed($product->store, $data['sticker'])) {
@@ -292,17 +293,7 @@ final class ProductController extends Controller
             }
         }
 
-        $wasApproved = $product->status === 'approved';
-        $isReverting = ! $isAdministrator && $wasApproved;
-
         $updateData = $this->buildUpdateData($data, $product->type);
-
-        if ($isReverting) {
-            $updateData['status'] = 'pending_review';
-            $updateData['reviewed_at'] = null;
-            $updateData['reviewed_by'] = null;
-            $updateData['rejection_reason'] = null;
-        }
 
         $product->update($updateData);
 
@@ -313,20 +304,6 @@ final class ProductController extends Controller
         $this->syncAttributes($product, $data, update: true);
 
         $product->load(self::RELATIONS_DETAIL);
-
-        if ($isReverting) {
-            try {
-                broadcast(new ProductStatusChanged($product));
-            } catch (\Throwable) {
-                // Real-time broadcast unavailable; data was saved successfully
-            }
-
-            $admins = User::role('administrator')->get();
-            $notification = new ProductPendingReviewNotification($product);
-            foreach ($admins as $admin) {
-                $admin->notify($notification);
-            }
-        }
 
         return response()->json(new ProductResource($product));
     }
@@ -453,15 +430,15 @@ final class ProductController extends Controller
     // Helpers privados
     // ─────────────────────────────────────────────
 
-    private function applyFilters(\Illuminate\Database\Eloquent\Builder $query, Request $request): void
+    private function applyFilters(Builder $query, Request $request): void
     {
         if ($search = $request->query('search')) {
             $query->where(
                 fn ($q) => $q->where('name', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('categories', function ($cat) use ($search) {
-                    $cat->where('name', 'like', "%{$search}%");
-                })
+                        $cat->where('name', 'like', "%{$search}%");
+                    })
             );
         }
 
@@ -482,7 +459,7 @@ final class ProductController extends Controller
 
                 $category->load([
                     'children',
-                    'children.children'
+                    'children.children',
                 ]);
 
                 $ids = $this->getDescendantIds($category);
@@ -702,7 +679,7 @@ final class ProductController extends Controller
         return $updateData;
     }
 
-    //Función para obtener categorias decendientes.
+    // Función para obtener categorias decendientes.
     private function getDescendantIds(Category $category): array
     {
         $ids = [$category->id];

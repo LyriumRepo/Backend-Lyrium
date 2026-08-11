@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 final class TrackAdminSession
 {
@@ -18,13 +19,14 @@ final class TrackAdminSession
         if ($user) {
             $now = now()->timestamp;
             $token = $user->currentAccessToken();
+            $tokenId = $token instanceof PersonalAccessToken ? $token->id : null;
 
             DB::table('sessions')->updateOrInsert(
                 ['user_id' => $user->id],
                 [
                     'id' => (string) Str::uuid(),
                     'user_id' => $user->id,
-                    'token_id' => $token?->id,
+                    'token_id' => $tokenId,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                     'country' => $request->header('CF-IPCountry'),

@@ -371,7 +371,9 @@ final class OrderController extends Controller
                     'service_id'      => $hold->service_id,
                     'user_id'         => $user->id,
                     'schedule_id'     => $hold->schedule_id,
-                    'appointment_date'=> $hold->appointment_date,
+                    'appointment_date'=> \Carbon\Carbon::parse(
+                        $hold->appointment_date->format('Y-m-d').' '.$hold->start_time
+                    ),
                     // Pendiente hasta que el vendedor la valide (PUT /bookings/{id}/confirm) —
                     // antes se creaba ya "confirmed", lo que dejaba ese paso del vendedor inalcanzable.
                     'status'          => ServiceBooking::STATUS_PENDING,
@@ -388,7 +390,9 @@ final class OrderController extends Controller
                     'store_id'                  => $service?->store_id,
                     'service_booking_id'        => $booking->id,
                     'specialist_id'             => $hold->specialist_id,
-                    'appointment_date'          => $hold->appointment_date,
+                    'appointment_date'          => \Carbon\Carbon::parse(
+                        $hold->appointment_date->format('Y-m-d').' '.$hold->start_time
+                    ),
                     'service_name'              => $service?->name ?? 'Servicio',
                     'quantity'                  => 1,
                     'unit_price'                => $price,

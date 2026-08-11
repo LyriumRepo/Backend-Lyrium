@@ -285,7 +285,7 @@ final class ProductTest extends TestCase
     {
         $seller = $this->createSellerWithContract();
         $store = $seller->ownedStores()->first();
-        $product = Product::factory()->create(['store_id' => $store->id]);
+        $product = Product::factory()->approved()->create(['store_id' => $store->id]);
 
         $response = $this->actingAs($seller)
             ->putJson("/api/products/{$product->id}", [
@@ -295,6 +295,42 @@ final class ProductTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('name', 'Updated Product Name');
+    }
+
+    public function test_seller_update_approved_product_keeps_approved(): void
+    {
+        $seller = $this->createSellerWithContract();
+        $store = $seller->ownedStores()->first();
+        $product = Product::factory()->approved()->create(['store_id' => $store->id]);
+
+        $response = $this->actingAs($seller)
+            ->putJson("/api/products/{$product->id}", [
+                'name' => 'Edited Approved Product',
+                'price' => 59.90,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('status', 'approved');
+
+        $fresh = $product->fresh();
+        $this->assertEquals('approved', $fresh->status);
+        $this->assertEquals('Edited Approved Product', $fresh->name);
+        $this->assertEquals(59.90, (float) $fresh->price);
+    }
+
+    public function test_seller_cannot_update_pending_product(): void
+    {
+        $seller = $this->createSellerWithContract();
+        $store = $seller->ownedStores()->first();
+        $product = Product::factory()->pendingReview()->create(['store_id' => $store->id]);
+
+        $response = $this->actingAs($seller)
+            ->putJson("/api/products/{$product->id}", [
+                'name' => 'Should Not Apply',
+            ]);
+
+        $response->assertForbidden();
+        $this->assertNotEquals('Should Not Apply', $product->fresh()->name);
     }
 
     // ─── DESTROY (SELLER) ───────────────────────────────────────────
@@ -327,7 +363,7 @@ final class ProductTest extends TestCase
 
         $response = $this->actingAs($seller)
             ->putJson("/api/products/{$product->id}/stock", [
-                'quantity' => 50,
+                'stock_quantity' => 50,
             ]);
 
         $response->assertOk();
@@ -342,11 +378,11 @@ final class ProductTest extends TestCase
 
         $response = $this->actingAs($seller)
             ->putJson("/api/products/{$product->id}/stock", [
-                'quantity' => -5,
+                'stock_quantity' => -5,
             ]);
 
         $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['quantity']);
+            ->assertJsonValidationErrors(['stock_quantity']);
     }
 
     // ─── UPDATE STATUS (ADMIN) ──────────────────────────────────────
