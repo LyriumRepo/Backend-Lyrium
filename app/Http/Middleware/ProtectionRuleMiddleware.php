@@ -13,8 +13,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class ProtectionRuleMiddleware
 {
-    private const CIDR_REGEX = '/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/';
-
     public function __construct(
         private readonly AuditService $auditService,
     ) {}
@@ -84,7 +82,7 @@ final class ProtectionRuleMiddleware
         $ip = (string) ClientIp::resolve($request);
         $pattern = $rule->pattern;
 
-        if ($pattern === null) {
+        if ($pattern === null || $ip === '') {
             return false;
         }
 
@@ -92,7 +90,7 @@ final class ProtectionRuleMiddleware
             return true;
         }
 
-        if (preg_match(self::CIDR_REGEX, $pattern)) {
+        if (str_contains($pattern, '/')) {
             return $this->cidrMatch($ip, $pattern);
         }
 
@@ -103,24 +101,57 @@ final class ProtectionRuleMiddleware
         return false;
     }
 
+    /**
+     * Compara IP contra un rango CIDR de forma agnóstica a la versión
+     * (IPv4 de 32 bits o IPv6 de 128 bits), usando inet_pton para obtener
+     * la representación binaria de cada dirección en vez de ip2long()
+     * (que solo entiende IPv4 y devuelve false — sin match — para IPv6).
+     */
     private function cidrMatch(string $ip, string $cidr): bool
     {
-        $parts = explode('/', $cidr);
-        $range = $parts[0];
-        $prefix = (int) $parts[1];
+        [$range, $prefixRaw] = array_pad(explode('/', $cidr, 2), 2, null);
 
-        $ipLong = ip2long($ip);
-        $rangeLong = ip2long($range);
-        $mask = -1 << (32 - $prefix);
+        if ($range === null || $prefixRaw === null || ! ctype_digit($prefixRaw)) {
+            return false;
+        }
 
-        return $ipLong !== false && $rangeLong !== false
-            && ($ipLong & $mask) === ($rangeLong & $mask);
+        $prefix = (int) $prefixRaw;
+        $ipBinary = @inet_pton($ip);
+        $rangeBinary = @inet_pton($range);
+
+        // Deben ser de la misma familia (ambas IPv4 de 4 bytes o ambas IPv6
+        // de 16 bytes); si alguna no es una IP valida, inet_pton da false.
+        if ($ipBinary === false || $rangeBinary === false || strlen($ipBinary) !== strlen($rangeBinary)) {
+            return false;
+        }
+
+        $maxBits = strlen($ipBinary) * 8;
+        if ($prefix < 0 || $prefix > $maxBits) {
+            return false;
+        }
+
+        $fullBytes = intdiv($prefix, 8);
+        $remainderBits = $prefix % 8;
+
+        if ($fullBytes > 0 && substr($ipBinary, 0, $fullBytes) !== substr($rangeBinary, 0, $fullBytes)) {
+            return false;
+        }
+
+        if ($remainderBits === 0) {
+            return true;
+        }
+
+        $mask = (0xFF << (8 - $remainderBits)) & 0xFF;
+
+        return (ord($ipBinary[$fullBytes]) & $mask) === (ord($rangeBinary[$fullBytes]) & $mask);
     }
 
     private function wildcardMatch(string $ip, string $pattern): bool
     {
         $escaped = preg_quote($pattern, '/');
-        $regex = '/^'.str_replace('\*', '\d{1,3}', $escaped).'$/';
+        // '.+' en vez de '\d{1,3}' para que tambien funcione con segmentos
+        // hexadecimales de IPv6 (p.ej. "2001:1388:*"), no solo octetos IPv4.
+        $regex = '/^'.str_replace('\*', '.+', $escaped).'$/i';
 
         return (bool) preg_match($regex, $ip);
     }
