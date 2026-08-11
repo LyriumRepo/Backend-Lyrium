@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Security;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AuditLogResource;
 use App\Models\AuditLog;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -86,7 +87,7 @@ final class SecurityDashboardController extends Controller
             ->get();
 
         return response()->json([
-            'events' => $events,
+            'events' => AuditLogResource::collection($events),
             'total' => $events->count(),
         ]);
     }

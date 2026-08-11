@@ -124,9 +124,9 @@ final class AuditLogController extends Controller
     /**
      * GET /api/audit-logs/{id}
      */
-    public function show(int $id): JsonResponse
+    public function show(string $id): JsonResponse
     {
-        $log = AuditLog::findOrFail($id);
+        $log = AuditLog::findOrFail((int) $id);
 
         return response()->json(new AuditLogResource($log));
     }
