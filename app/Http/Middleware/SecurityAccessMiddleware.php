@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\BlockedIp;
 use App\Services\AuditService;
+use App\Support\ClientIp;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,7 +19,7 @@ final class SecurityAccessMiddleware
 
     public function handle(Request $request, Closure $next): Response
     {
-        $ip = $request->ip();
+        $ip = ClientIp::resolve($request);
 
         if ($ip === null) {
             return $next($request);

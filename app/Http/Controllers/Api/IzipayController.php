@@ -22,6 +22,7 @@ use App\Models\Order;
 use App\Models\PlanRequest;
 use App\Services\IzipayBookingService;
 use App\Services\IzipayService;
+use App\Support\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -92,7 +93,7 @@ final class IzipayController extends Controller
     public function webhook(Request $request): JsonResponse
     {
         Log::info('IzipayController: webhook recibido', [
-            'ip' => $request->ip(),
+            'ip' => ClientIp::resolve($request),
             'kr-hash' => $request->input('kr-hash'),
             'content-type' => $request->header('Content-Type'),
         ]);

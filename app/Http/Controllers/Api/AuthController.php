@@ -21,6 +21,7 @@ use App\Notifications\RpaDiagnosticoNotification;
 use App\Services\AuditService;
 use App\Services\GoogleAuthService;
 use App\Services\OtpService;
+use App\Support\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,7 @@ final class AuthController extends Controller
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             LoginAttempt::create([
                 'email' => $credentials['email'],
-                'ip_address' => $request->ip(),
+                'ip_address' => ClientIp::resolve($request),
                 'user_agent' => $request->userAgent(),
                 'status' => 'failed',
             ]);
@@ -75,7 +76,7 @@ final class AuthController extends Controller
             LoginAttempt::create([
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'ip_address' => $request->ip(),
+                'ip_address' => ClientIp::resolve($request),
                 'user_agent' => $request->userAgent(),
                 'status' => 'failed',
             ]);
@@ -103,7 +104,7 @@ final class AuthController extends Controller
             LoginAttempt::create([
                 'user_id' => $user->id,
                 'email' => $user->email,
-                'ip_address' => $request->ip(),
+                'ip_address' => ClientIp::resolve($request),
                 'user_agent' => $request->userAgent(),
                 'status' => 'failed',
             ]);
@@ -131,7 +132,7 @@ final class AuthController extends Controller
         LoginAttempt::create([
             'user_id' => $user->id,
             'email' => $user->email,
-            'ip_address' => $request->ip(),
+            'ip_address' => ClientIp::resolve($request),
             'user_agent' => $request->userAgent(),
             'status' => 'success',
         ]);
@@ -149,7 +150,7 @@ final class AuthController extends Controller
         AdminSession::create([
             'id' => (string) Str::uuid(),
             'user_id' => $user->id,
-            'ip_address' => $request->ip(),
+            'ip_address' => ClientIp::resolve($request),
             'user_agent' => $request->userAgent(),
             'last_activity' => now()->timestamp,
             'payload' => '[]',

@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\ProtectionRule;
 use App\Services\AuditService;
+use App\Support\ClientIp;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,7 +43,7 @@ final class ProtectionRuleMiddleware
             $this->auditService->record(
                 event: 'security.protection.rule.triggered',
                 module: 'security',
-                description: "Regla de protección '{$rule->name}' activada para IP {$request->ip()}",
+                description: "Regla de protección '{$rule->name}' activada para IP ".ClientIp::resolve($request),
                 severity: 'critical',
                 success: false,
                 source: AuditService::SOURCE_SYSTEM,
@@ -51,7 +52,7 @@ final class ProtectionRuleMiddleware
                     'rule_name' => $rule->name,
                     'rule_type' => $rule->type,
                     'pattern' => $rule->pattern,
-                    'ip' => $request->ip(),
+                    'ip' => ClientIp::resolve($request),
                     'url' => $request->fullUrl(),
                 ],
             );
@@ -80,7 +81,7 @@ final class ProtectionRuleMiddleware
 
     private function matchIpBlock(Request $request, ProtectionRule $rule): bool
     {
-        $ip = (string) $request->ip();
+        $ip = (string) ClientIp::resolve($request);
         $pattern = $rule->pattern;
 
         if ($pattern === null) {

@@ -13,6 +13,7 @@ use App\Models\AdminSession;
 use App\Models\LoginAttempt;
 use App\Models\SecurityEvent;
 use App\Models\User;
+use App\Support\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -120,7 +121,7 @@ final class SecurityController extends Controller
         SecurityEvent::create([
             'event_type' => 'session_revoked',
             'description' => "Sesión {$id} revocada por administrador.",
-            'ip_address' => request()->ip(),
+            'ip_address' => ClientIp::resolve(request()),
             'user_id' => auth()->id(),
             'metadata' => [
                 'revoked_session_id' => $id,

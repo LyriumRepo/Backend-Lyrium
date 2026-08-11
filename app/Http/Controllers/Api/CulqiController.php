@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\CulqiChargeRequest;
 use App\Models\Order;
 use App\Services\CulqiService;
+use App\Support\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -99,7 +100,7 @@ final class CulqiController extends Controller
 
         if (! $this->isValidCulqiSignature($request, $culqiSignature)) {
             Log::warning('Culqi webhook: firma inválida', [
-                'ip' => $request->ip(),
+                'ip' => ClientIp::resolve($request),
                 'signature' => $culqiSignature,
             ]);
 

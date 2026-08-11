@@ -9,6 +9,7 @@ use App\Events\CriticalSecurityEvent;
 use App\Events\RepeatedFailedLoginEvent;
 use App\Models\AuditLog;
 use App\Models\SystemConfig;
+use App\Support\ClientIp;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -98,7 +99,7 @@ final class AuditService
 
     private function getIp(): ?string
     {
-        return request()->ip();
+        return ClientIp::resolve(request());
     }
 
     private function getUserAgent(): ?string

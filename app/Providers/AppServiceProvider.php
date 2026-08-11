@@ -15,6 +15,7 @@ use App\Services\DocumentScanner\SpatieTextExtractor;
 use App\Services\IzipayService;
 use App\Services\NubefactProvider;
 use App\Services\NubefactService;
+use App\Support\ClientIp;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -64,7 +65,7 @@ class AppServiceProvider extends ServiceProvider
         Review::observe(ReviewObserver::class);
 
         RateLimiter::for('login', function (Request $request) {
-            $ip = (string) $request->ip();
+            $ip = (string) ClientIp::resolve($request);
 
             if ($this->isWhitelistedIp($ip)) {
                 return Limit::none();
@@ -77,9 +78,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('api', function (Request $request) {
-            $key = (string) ($request->user()?->id ?? $request->ip());
+            $ip = (string) ClientIp::resolve($request);
+            $key = (string) ($request->user()?->id ?? $ip);
 
-            if ($this->isWhitelistedIp((string) $request->ip())) {
+            if ($this->isWhitelistedIp($ip)) {
                 return Limit::none();
             }
 
@@ -87,9 +89,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('sensitive', function (Request $request) {
-            $key = (string) ($request->user()?->id ?? $request->ip());
+            $ip = (string) ClientIp::resolve($request);
+            $key = (string) ($request->user()?->id ?? $ip);
 
-            if ($this->isWhitelistedIp((string) $request->ip())) {
+            if ($this->isWhitelistedIp($ip)) {
                 return Limit::none();
             }
 
