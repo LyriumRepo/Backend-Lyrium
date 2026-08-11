@@ -183,6 +183,19 @@ final class ExpenseController extends Controller
             $filePath = $file->storeAs('uploads/expenses', $fileName, 'public');
         }
 
+        // TEMPORAL: diagnostico del error "El archivo no existe." en produccion.
+        // Quitar este bloque una vez identificada la causa (ver conversacion 2026-08-11).
+        \Illuminate\Support\Facades\Log::warning('DIAG scan: pre-exists-check', [
+            'has_file_input' => $request->hasFile('file'),
+            'input_file_path' => $request->input('file_path'),
+            'resolved_file_path' => $filePath,
+            'disk_root' => Storage::disk('public')->path(''),
+            'storage_exists' => $filePath ? Storage::disk('public')->exists($filePath) : null,
+            'native_file_exists' => $filePath ? file_exists(Storage::disk('public')->path($filePath)) : null,
+            'filesystem_default_disk' => config('filesystems.default'),
+            'public_disk_root_config' => config('filesystems.disks.public.root'),
+        ]);
+
         if (! $filePath || ! Storage::disk('public')->exists($filePath)) {
             return $this->error('El archivo no existe.', 404);
         }
